@@ -257,14 +257,6 @@
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/session-gemma-remind.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/session-gemini-remind.sh"
-          },
-          {
-            "type": "command",
             "command": "/Users/leonard/.claude/hooks/gemma-morning-brief.sh",
             "timeout": 35,
             "statusMessage": "Gemma 세션 브리핑 생성 중..."
