@@ -229,7 +229,7 @@ collect_claude_files() {
         done < <(find "$CLAUDE_DIR/docs" -type f \( -name "*.md" -o -name "*.txt" -o -name "*.yaml" -o -name "*.yml" -o -name "*.json" \) 2>/dev/null)
     fi
 
-    # identity-hub 설정 (settings.local.json 제외)
+    # identity-hub 설정 (사내 공유 — settings.local.json 만 제외)
     if [[ -d "$CLAUDE_DIR/identity-hub" ]]; then
         while IFS= read -r f; do
             local rel="${f#$CLAUDE_DIR/}"
@@ -263,7 +263,7 @@ collect_claude_files() {
         done
     fi
 
-    # 팀 설정 (Gemini delegation 등 개인 전용 inbox 제외)
+    # 팀 설정 (사내 공유 — 개인 키워드 inbox만 제외)
     if [[ -d "$CLAUDE_DIR/teams" ]]; then
         while IFS= read -r f; do
             local rel="${f#$CLAUDE_DIR/}"
