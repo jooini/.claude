@@ -93,7 +93,8 @@
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/danger-keyword-detect.sh"
+            "command": "/Users/leonard/.claude/hooks/danger-keyword-detect.sh",
+            "timeout": 5
           },
           {
             "type": "command",
@@ -247,15 +248,18 @@
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/task-progress-tracker.sh"
+            "command": "/Users/leonard/.claude/hooks/task-progress-tracker.sh",
+            "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/claudemd-change-broadcast.sh"
+            "command": "/Users/leonard/.claude/hooks/claudemd-change-broadcast.sh",
+            "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/rag-auto-index.sh"
+            "command": "/Users/leonard/.claude/hooks/rag-auto-index.sh",
+            "timeout": 5
           }
         ]
       }
@@ -287,11 +291,13 @@
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/qwen-weekly-retro.sh"
+            "command": "/Users/leonard/.claude/hooks/qwen-weekly-retro.sh",
+            "timeout": 60
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/qwen-alias-suggest.sh"
+            "command": "/Users/leonard/.claude/hooks/qwen-alias-suggest.sh",
+            "timeout": 30
           },
           {
             "type": "command",
@@ -348,15 +354,18 @@
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/qwen-decision-capture.sh"
+            "command": "/Users/leonard/.claude/hooks/qwen-decision-capture.sh",
+            "timeout": 60
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/qwen-learning-capture.sh"
+            "command": "/Users/leonard/.claude/hooks/qwen-learning-capture.sh",
+            "timeout": 60
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/qwen-handoff-suggest.sh"
+            "command": "/Users/leonard/.claude/hooks/qwen-handoff-suggest.sh",
+            "timeout": 5
           },
           {
             "type": "command",
@@ -427,11 +436,6 @@
           {
             "type": "command",
             "command": "/Users/leonard/.claude/hooks/simple-query-ollama-route.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/qwen-similar-sessions-suggest.sh",
             "timeout": 5
           }
         ]
