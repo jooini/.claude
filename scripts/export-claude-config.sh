@@ -104,26 +104,43 @@ is_personal() {
 collect_claude_files() {
     local files=()
 
-    # 핵심 설정
-    [[ -f "$CLAUDE_DIR/CLAUDE.md" ]]    && files+=("CLAUDE.md")
-    [[ -f "$CLAUDE_DIR/AGENTS.md" ]]    && files+=("AGENTS.md")
-    [[ -f "$CLAUDE_DIR/README.md" ]]    && files+=("README.md")
-    [[ -f "$CLAUDE_DIR/settings.json" ]] && files+=("settings.json")
-    [[ -f "$CLAUDE_DIR/setup.sh" ]]     && files+=("setup.sh")
-    [[ -f "$CLAUDE_DIR/package.sh" ]]   && files+=("package.sh")
-    [[ -f "$CLAUDE_DIR/statusline-agent.sh" ]] && files+=("statusline-agent.sh")
+    # 핵심 설정 (최상위 단일 파일)
+    local top_files=(
+        "CLAUDE.md"
+        "AGENTS.md"
+        "README.md"
+        "CHEATSHEET.md"
+        "VERSION"
+        "settings.json"
+        "settings.json.example"
+        "settings.local.json.example"
+        "docs-config.yaml"
+        "docs-config.yaml.example"
+        "setup.sh"
+        "package.sh"
+        "statusline-agent.sh"
+    )
+    for f in "${top_files[@]}"; do
+        [[ -f "$CLAUDE_DIR/$f" ]] && files+=("$f")
+    done
 
-    # 에이전트
+    # 에이전트 (재귀: 하위 knowledge/, docs/, builds/, src/ 모두 포함)
+    # 단 파일명 기준 is_personal 적용 (디렉토리 이름은 매칭 안 함)
     if [[ -d "$CLAUDE_DIR/agents" ]]; then
-        for f in "$CLAUDE_DIR"/agents/*.md; do
-            [[ -f "$f" ]] || continue
+        while IFS= read -r f; do
+            local rel="${f#$CLAUDE_DIR/}"
             local base=$(basename "$f")
             is_personal "$base" && continue
-            files+=("agents/$base")
-        done
+            # 백업/임시 파일 제외
+            [[ "$base" == .DS_Store ]] && continue
+            [[ "$base" == *.bak ]] && continue
+            [[ "$base" == *.bak.* ]] && continue
+            [[ "$rel" == *".last-build"* ]] && continue
+            files+=("$rel")
+        done < <(find "$CLAUDE_DIR/agents" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" \) 2>/dev/null)
     fi
 
-    # 스킬 (ask-gemma/ask-gemini/ask-codex 디렉토리 제외)
+    # 스킬 (ask-gemma/ask-gemini/ask-codex 디렉토리 제외 — 디렉토리명에 키워드 매칭)
     if [[ -d "$CLAUDE_DIR/skills" ]]; then
         for f in "$CLAUDE_DIR"/skills/*.md; do
             [[ -f "$f" ]] || continue
@@ -137,6 +154,8 @@ collect_claude_files() {
             is_personal "$dname" && continue
             while IFS= read -r f; do
                 local rel="${f#$CLAUDE_DIR/}"
+                local fbase=$(basename "$f")
+                [[ "$fbase" == .DS_Store ]] && continue
                 files+=("$rel")
             done < <(find "$d" -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" \) 2>/dev/null)
         done
@@ -180,9 +199,16 @@ collect_claude_files() {
             is_personal "$base" && continue
             files+=("scripts/$base")
         done
+        # python 스크립트도 포함
+        for f in "$CLAUDE_DIR"/scripts/*.py; do
+            [[ -f "$f" ]] || continue
+            local base=$(basename "$f")
+            is_personal "$base" && continue
+            files+=("scripts/$base")
+        done
     fi
 
-    # 훅 (gemma-*, codex-*, gemini-* 제외)
+    # 훅 (gemma-*, codex-*, gemini-* 제외, _disabled/ 도 제외 — 비활성화된 파일)
     if [[ -d "$CLAUDE_DIR/hooks" ]]; then
         for f in "$CLAUDE_DIR"/hooks/*.sh; do
             [[ -f "$f" ]] || continue
@@ -192,14 +218,26 @@ collect_claude_files() {
         done
     fi
 
-    # 문서
+    # 문서 (docs/ 는 공유 가능한 공식 문서. is_personal 필터 미적용)
+    # 단 파일 단위 시크릿 마스킹은 scrub_sensitive 가 처리
     if [[ -d "$CLAUDE_DIR/docs" ]]; then
-        for f in "$CLAUDE_DIR"/docs/*.md; do
-            [[ -f "$f" ]] || continue
+        while IFS= read -r f; do
+            local rel="${f#$CLAUDE_DIR/}"
             local base=$(basename "$f")
-            is_personal "$base" && continue
-            files+=("docs/$base")
-        done
+            [[ "$base" == .DS_Store ]] && continue
+            files+=("$rel")
+        done < <(find "$CLAUDE_DIR/docs" -type f \( -name "*.md" -o -name "*.txt" -o -name "*.yaml" -o -name "*.yml" -o -name "*.json" \) 2>/dev/null)
+    fi
+
+    # identity-hub 설정 (settings.local.json 제외)
+    if [[ -d "$CLAUDE_DIR/identity-hub" ]]; then
+        while IFS= read -r f; do
+            local rel="${f#$CLAUDE_DIR/}"
+            local base=$(basename "$f")
+            [[ "$base" == settings.local.json ]] && continue
+            [[ "$base" == .DS_Store ]] && continue
+            files+=("$rel")
+        done < <(find "$CLAUDE_DIR/identity-hub" -type f \( -name "*.md" -o -name "*.json" -o -name "*.yaml" -o -name "*.yml" \) 2>/dev/null)
     fi
 
     # 프로젝트별 CLAUDE.md (메모리 제외)
