@@ -1,14 +1,18 @@
 #!/bin/zsh
-# Stop hook: 세션 종료 시 jsonl을 Gemma에 넘겨 한 줄 요약 + 수정 파일 + 미완료 TODO 추출
+# Stop hook: 세션 종료 시 jsonl을 qwen-cli에 넘겨 한 줄 요약 + 수정 파일 + 미완료 TODO 추출
 # 출력 저장 경로: ~/.claude/cache/session-summary/{session_id}.md
 # /done, /handoff, /save-history 스킬이 읽어 재사용할 공통 빌딩블록
 # 실패/서버다운 시 즉시 스킵 (세션 종료 블로킹 없음)
+# 페르소나: writer (qwen3.5:9b)
 
 : "${HOME:?}"
 
-OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
+QWEN="$HOME/.local/bin/qwen-cli"
 CACHE_DIR="$HOME/.claude/cache/session-summary"
 mkdir -p "$CACHE_DIR"
+
+# qwen-cli 미설치 시 즉시 스킵
+[ -x "$QWEN" ] || exit 0
 
 INPUT=$(cat)
 
@@ -116,85 +120,32 @@ if [ -z "$EXTRACTED" ]; then
     exit 0
 fi
 
-# Ollama 확인
-if ! curl -s --max-time 2 "http://${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
-    # 서버 다운이라도 원재료는 저장 (나중에 다른 도구로 요약 가능)
-    printf '# 세션 원재료 (Gemma 서버 접근 불가)\n\n%s\n' "$EXTRACTED" > "$OUTPUT_FILE"
+# 프롬프트 구성: 추출 원재료 + 출력 형식 지시
+PROMPT=$(printf '다음은 Claude Code 세션의 핵심 기록이다. 한국어로 구조화된 세션 요약을 작성해줘.\n\n출력 형식 (정확히 이 구조):\n\n## 한 줄 요약\n<세션 전체를 한 줄로 (70자 이내)>\n\n## 주요 작업\n- <작업 1>\n- <작업 2>\n- <작업 3>\n\n## 수정 파일\n- <경로> — <변경 의도 한 줄>\n- ...\n\n## 미완료/후속 조치\n- <끝까지 마무리 안 된 것, 없으면 "없음">\n\n규칙:\n- 사용자 요청 흐름 + 수정 파일 + Bash 명령을 근거로만 작성\n- 없는 내용 추측 금지\n- 이모지/장식 금지\n- 인사/설명 금지, 위 형식만 출력\n\n세션 기록:\n%s' "$EXTRACTED")
+
+# qwen-cli stdin 호출 — writer 페르소나 (qwen3.5:9b 자동 적용), 45초 타임아웃
+RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile writer --num-ctx 8192 2>/dev/null)
+EXIT=$?
+
+# qwen-cli 실패 시 원재료라도 저장 (나중에 다른 도구로 요약 가능)
+if [ "$EXIT" -ne 0 ] || [ -z "$RESULT" ]; then
+    printf '# 세션 원재료 (qwen-cli writer 호출 실패)\n\n%s\n' "$EXTRACTED" > "$OUTPUT_FILE"
     exit 0
 fi
 
-export EXTRACTED
-
-PAYLOAD=$(python3 <<'PYEOF'
-import json, os
-data = os.environ["EXTRACTED"]
-prompt = f"""다음은 Claude Code 세션의 핵심 기록이다. 한국어로 구조화된 세션 요약을 작성해줘.
-
-출력 형식 (정확히 이 구조):
-
-## 한 줄 요약
-<세션 전체를 한 줄로 (70자 이내)>
-
-## 주요 작업
-- <작업 1>
-- <작업 2>
-- <작업 3>
-
-## 수정 파일
-- <경로> — <변경 의도 한 줄>
-- ...
-
-## 미완료/후속 조치
-- <끝까지 마무리 안 된 것, 없으면 "없음">
-
-규칙:
-- 사용자 요청 흐름 + 수정 파일 + Bash 명령을 근거로만 작성
-- 없는 내용 추측 금지
-- 이모지/장식 금지
-
-세션 기록:
-{data}
-"""
-print(json.dumps({
-    "model": "gemma4:e4b",
-    "messages": [
-        {"role": "system", "content": "한국어로 구조화된 세션 요약만 출력. 인사/설명 금지."},
-        {"role": "user", "content": prompt}
-    ],
-    "stream": False,
-    "keep_alive": "30m"
-}))
-PYEOF
-)
-
-if [ -z "$PAYLOAD" ]; then
-    exit 0
-fi
-
-RESULT=$(curl -s --max-time 45 "http://${OLLAMA_HOST}/api/chat" \
-    -H "Content-Type: application/json" \
-    -d "$PAYLOAD" 2>/dev/null | python3 -c "
-import json, sys
-try:
-    print(json.load(sys.stdin).get('message', {}).get('content', ''))
-except Exception:
-    pass
-" 2>/dev/null)
-
-if [ -n "$RESULT" ]; then
-    {
-        echo "# 세션 요약: ${SESSION_ID}"
-        echo ""
-        echo "생성: $(date +%Y-%m-%d\ %H:%M:%S)"
-        echo "소스: ${JSONL}"
-        echo ""
-        echo "$RESULT"
-        echo ""
-        echo "---"
-        echo "## 원재료"
-        echo ""
-        echo "$EXTRACTED"
-    } > "$OUTPUT_FILE"
-fi
+{
+    echo "# 세션 요약: ${SESSION_ID}"
+    echo ""
+    echo "생성: $(date +%Y-%m-%d\ %H:%M:%S)"
+    echo "소스: ${JSONL}"
+    echo "엔진: qwen-cli (writer / qwen3.5:9b)"
+    echo ""
+    echo "$RESULT"
+    echo ""
+    echo "---"
+    echo "## 원재료"
+    echo ""
+    echo "$EXTRACTED"
+} > "$OUTPUT_FILE"
 
 exit 0

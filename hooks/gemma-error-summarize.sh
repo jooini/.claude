@@ -1,11 +1,12 @@
 #!/bin/zsh
-# PostToolUse(Bash): Bash 명령 실패 시 stderr/stdout을 Gemma에 넘겨 한글 요약 생성
+# PostToolUse(Bash): Bash 명령 실패 시 stderr/stdout을 qwen-cli에 넘겨 한글 요약 생성
 # 목적: Claude 컨텍스트 절약 — 긴 stack trace 대신 3줄 요약을 Claude에 주입
 # 출력: hookSpecificOutput.additionalContext로 Claude 모델에 컨텍스트 주입
 
 : "${HOME:?}"
 
-OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
+QWEN="$HOME/.local/bin/qwen-cli"
+[ -x "$QWEN" ] || exit 0
 
 INPUT=$(cat)
 
@@ -63,56 +64,13 @@ case "$CMD_LINE" in
         exit 0 ;;
 esac
 
-# Ollama 빠른 확인
-if ! curl -s --max-time 2 "http://${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
-    exit 0
-fi
+# qwen-cli 호출 — debugger 페르소나 (qwen2.5-coder:14b 자동 적용)
+PROMPT=$(printf '다음 Bash 명령이 실패했다. 출력을 분석해서 한국어로 간결하게 정리.\n\n형식 (정확히 3줄):\n**원인**: <1줄>\n**위치**: <파일:라인 또는 함수명, 없으면 "불명">\n**다음 조치**: <1줄 권고>\n\n원문 복사/장황한 설명 금지.\n\n명령 및 출력:\n%s' "$PAYLOAD_RAW")
 
-export PAYLOAD_RAW
+RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile debugger --num-ctx 8192 2>/dev/null)
+EXIT=$?
 
-PAYLOAD=$(python3 -c "
-import json, os
-raw = os.environ['PAYLOAD_RAW']
-prompt = f'''다음 Bash 명령이 실패했다. 출력을 분석해서 한국어로 간결하게 정리해줘.
-
-형식 (정확히 3줄):
-**원인**: <1줄>
-**위치**: <파일:라인 또는 함수명, 없으면 \"불명\">
-**다음 조치**: <1줄 권고>
-
-원문 복사/장황한 설명 금지.
-
-명령 및 출력:
-{raw}
-'''
-print(json.dumps({
-    'model': 'gemma4:e4b',
-    'messages': [
-        {'role': 'system', 'content': '한국어로 3줄만. 설명/인사 금지.'},
-        {'role': 'user', 'content': prompt}
-    ],
-    'stream': False,
-    'keep_alive': '30m',
-    'options': {'num_predict': 3000}
-}))
-")
-
-if [ -z "$PAYLOAD" ]; then
-    exit 0
-fi
-
-RESULT=$(curl -s --max-time 10 "http://${OLLAMA_HOST}/api/chat" \
-    -H "Content-Type: application/json" \
-    -d "$PAYLOAD" 2>/dev/null | python3 -c "
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    print(data.get('message', {}).get('content', ''))
-except Exception:
-    pass
-" 2>/dev/null)
-
-if [ -z "$RESULT" ]; then
+if [ "$EXIT" -ne 0 ] || [ -z "$RESULT" ]; then
     exit 0
 fi
 
@@ -122,7 +80,7 @@ import json, os
 print(json.dumps({
     'hookSpecificOutput': {
         'hookEventName': 'PostToolUse',
-        'additionalContext': '[Gemma 에러 요약]\n' + os.environ['GEMMA_RESULT']
+        'additionalContext': '[qwen-cli 에러 요약]\n' + os.environ['GEMMA_RESULT']
     }
 }))
 "

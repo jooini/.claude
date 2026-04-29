@@ -1,10 +1,8 @@
 #!/bin/zsh
 # PreToolUse(Bash): git commit -m 감지 → 메시지가 Conventional Commits 규약 따르는지 검사
-# 위반 시 Gemma가 올바른 타입 제안, stdout으로 힌트 출력 (비차단)
+# 위반 시 로컬 LLM(qwen-cli)이 올바른 타입 제안, stdout으로 힌트 출력 (비차단)
 
 : "${HOME:?}"
-
-OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
 
 INPUT=$(cat)
 
@@ -54,10 +52,9 @@ if echo "$FIRST_LINE" | grep -qE '^(feat|fix|refactor|chore|docs|test|style|perf
     exit 0
 fi
 
-# Ollama 확인
-if ! curl -s --max-time 2 "http://${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
-    exit 0
-fi
+# qwen-cli 확인
+QWEN="$HOME/.local/bin/qwen-cli"
+[ -x "$QWEN" ] || exit 0
 
 # staged diff도 같이 보내서 정확한 타입 추정 도움
 DIFF_STAT=""
@@ -65,57 +62,28 @@ if git rev-parse --is-inside-work-tree &>/dev/null; then
     DIFF_STAT=$(git diff --cached --stat 2>/dev/null | head -30)
 fi
 
-export MSG DIFF_STAT
-
-PAYLOAD=$(python3 <<'PYEOF'
-import json, os
-msg = os.environ["MSG"]
-stat = os.environ.get("DIFF_STAT", "")
-prompt = f"""다음 커밋 메시지가 Conventional Commits 규약을 따르지 않는다.
+PROMPT=$(printf '다음 커밋 메시지가 Conventional Commits 규약을 따르지 않는다.
 규약 맞게 수정한 초안을 한 줄로 제시해줘.
 
 규약 형식: `<type>(<scope>): <summary>` 또는 `<type>: <summary>`
 type 후보: feat / fix / refactor / chore / docs / test / style / perf / build / ci / revert
 
 원본 메시지:
-{msg}
+%s
 
 변경 파일 통계 (타입 추정 참고):
-{stat}
+%s
 
 출력 규칙:
 - 초안 한 줄만. 설명/인사/따옴표 없이.
 - 한글 유지 (원본이 한글이면).
 - 70자 이내.
-"""
-print(json.dumps({
-    "model": "gemma4:e4b",
-    "messages": [
-        {"role": "system", "content": "Conventional Commits 형식 한 줄만 출력."},
-        {"role": "user", "content": prompt}
-    ],
-    "stream": False,
-    "keep_alive": "30m",
-    "options": {"num_predict": 80}
-}))
-PYEOF
-)
+' "$MSG" "$DIFF_STAT")
 
-if [ -z "$PAYLOAD" ]; then
-    exit 0
-fi
+RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile reviewer --num-ctx 8192 2>/dev/null)
+EXIT=$?
 
-RESULT=$(curl -s --max-time 10 "http://${OLLAMA_HOST}/api/chat" \
-    -H "Content-Type: application/json" \
-    -d "$PAYLOAD" 2>/dev/null | python3 -c "
-import json, sys
-try:
-    print(json.load(sys.stdin).get('message', {}).get('content', ''))
-except Exception:
-    pass
-" 2>/dev/null)
-
-if [ -n "$RESULT" ]; then
+if [ $EXIT -eq 0 ] && [ -n "$RESULT" ]; then
     echo "[Conventional Commits 위반 감지]"
     echo "  원본: ${FIRST_LINE}"
     echo "  제안: ${RESULT}"

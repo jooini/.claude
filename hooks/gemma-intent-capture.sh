@@ -2,12 +2,16 @@
 # Stop hook: 세션 종료 시 "다음에 이어서 할 일" 추출
 # 기존 gemma-session-summarize와 다른 점: 요약이 아니라 **미완료 의도** 중심
 # 출력: ~/.claude/intent/{project}/{YYYY-MM-DD}.md (프로젝트별 최신만 유지)
+# 페르소나: writer (qwen3.5:9b 자동 적용)
 
 : "${HOME:?}"
 
-OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
+QWEN="$HOME/.local/bin/qwen-cli"
 INTENT_DIR="$HOME/.claude/intent"
 mkdir -p "$INTENT_DIR"
+
+# qwen-cli 미설치 시 즉시 스킵
+[ -x "$QWEN" ] || exit 0
 
 INPUT=$(cat)
 
@@ -43,11 +47,6 @@ fi
 # 프로젝트명 추출 실패 시 capture 생략
 # (홈 디렉토리 /Users/leonard 작업은 주제가 뒤섞이므로 "general" 버킷 오염 방지)
 if [ -z "$PROJECT" ]; then
-    exit 0
-fi
-
-# Ollama 확인
-if ! curl -s --max-time 2 "http://${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
     exit 0
 fi
 
@@ -115,74 +114,14 @@ fi
 # 너무 길면 앞부분 자름 (토큰 한계)
 LAST_CONTEXT=$(echo "$LAST_CONTEXT" | /usr/bin/tail -c 3000)
 
-export LAST_CONTEXT PROJECT
+# 프롬프트 구성
+PROMPT=$(printf '다음은 방금 끝난 Claude Code 세션의 마지막 부분이다.\n"다음 세션에서 이어서 할 일"을 추출해라.\n\n세션 프로젝트: %s\n\n세션 기록 (마지막 부분):\n%s\n\n출력 형식 (정확히 5줄, 한국어):\n마지막 목표: <이 세션에서 하려던 최종 목표 한 줄>\n마지막 시도: <실제 마지막으로 시도한 구체 작업 한 줄>\n중단 이유: <완료? 막힘? 사용자 중단? 한 줄 추정>\n다음 작업: <바로 이어서 할 구체 행동 한 줄>\n주의점: <이어서 할 때 놓치면 안 되는 맥락 한 줄>\n\n규칙:\n- 세션 기록 근거만 사용. 추측 금지.\n- 완결된 세션이면 "없음"으로 표시.\n- 장식/이모지 금지.\n' "$PROJECT" "$LAST_CONTEXT")
 
-PAYLOAD=$(python3 <<'PYEOF'
-import json, os
+# qwen-cli stdin 호출 — writer 페르소나 (qwen3.5:9b 자동 적용)
+RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile writer --num-ctx 8192 2>/dev/null)
+EXIT=$?
 
-ctx = os.environ["LAST_CONTEXT"]
-project = os.environ["PROJECT"]
-
-prompt = f"""다음은 방금 끝난 Claude Code 세션의 마지막 부분이다.
-"다음 세션에서 이어서 할 일"을 추출해라.
-
-세션 프로젝트: {project}
-
-세션 기록 (마지막 부분):
-{ctx}
-
-출력 형식 (정확히 5줄, 한국어):
-마지막 목표: <이 세션에서 하려던 최종 목표 한 줄>
-마지막 시도: <실제 마지막으로 시도한 구체 작업 한 줄>
-중단 이유: <완료? 막힘? 사용자 중단? 한 줄 추정>
-다음 작업: <바로 이어서 할 구체 행동 한 줄>
-주의점: <이어서 할 때 놓치면 안 되는 맥락 한 줄>
-
-규칙:
-- 세션 기록 근거만 사용. 추측 금지.
-- 완결된 세션이면 "없음"으로 표시.
-- 장식/이모지 금지.
-"""
-
-print(json.dumps({
-    "model": "gemma4:e4b",
-    "messages": [{"role": "user", "content": prompt}],
-    "stream": False,
-    "keep_alive": "30m",
-    "options": {"num_predict": 3000, "temperature": 0.3}
-}))
-PYEOF
-)
-
-if [ -z "$PAYLOAD" ]; then
-    exit 0
-fi
-
-RESULT=$(curl -s --max-time 45 "http://${OLLAMA_HOST}/api/chat" \
-    -H "Content-Type: application/json" \
-    -d "$PAYLOAD" 2>/dev/null | python3 -c "
-import json, sys
-try:
-    print(json.load(sys.stdin).get('message', {}).get('content', ''))
-except Exception:
-    pass
-" 2>/dev/null)
-
-# 빈 응답 시 num_predict 2배로 재시도 (gemma4:e4b thinking 토큰 소진 대응)
-if [ -z "$RESULT" ]; then
-    PAYLOAD_RETRY=$(echo "$PAYLOAD" | /usr/bin/sed 's/"num_predict": 3000/"num_predict": 6000/')
-    RESULT=$(curl -s --max-time 90 "http://${OLLAMA_HOST}/api/chat" \
-        -H "Content-Type: application/json" \
-        -d "$PAYLOAD_RETRY" 2>/dev/null | python3 -c "
-import json, sys
-try:
-    print(json.load(sys.stdin).get('message', {}).get('content', ''))
-except Exception:
-    pass
-" 2>/dev/null)
-fi
-
-if [ -z "$RESULT" ]; then
+if [ "$EXIT" -ne 0 ] || [ -z "$RESULT" ]; then
     exit 0
 fi
 
@@ -200,6 +139,7 @@ LATEST_LINK="$PROJECT_DIR/latest.md"
     echo ""
     echo "세션: $SESSION_ID"
     echo "종료: $(date +%Y-%m-%d\ %H:%M:%S)"
+    echo "엔진: qwen-cli (writer / qwen3.5:9b)"
     echo ""
     echo "$RESULT"
 } > "$OUTPUT_FILE"

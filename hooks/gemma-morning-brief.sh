@@ -27,7 +27,11 @@ if [ "$CURRENT_HOUR" -lt 5 ]; then
     exit 0
 fi
 
-# Ollama 확인
+# qwen-cli 확인 (Ollama 백엔드도 우회 헬스체크)
+QWEN_CLI="$HOME/.local/bin/qwen-cli"
+if [ ! -x "$QWEN_CLI" ]; then
+    exit 0
+fi
 if ! curl -s --max-time 2 "http://${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
     exit 0
 fi
@@ -103,11 +107,11 @@ if [ -z "$GIT_STATUS" ]; then
     exit 0
 fi
 
-# Gemma 호출 - 간결한 브리핑 생성
-export GIT_STATUS YESTERDAY_CONTEXT TODAY YESTERDAY OLLAMA_HOST_LAN="${OLLAMA_HOST}"
+# qwen-cli 호출 - 간결한 브리핑 생성 (writer 페르소나, qwen3.5:9b)
+export GIT_STATUS YESTERDAY_CONTEXT TODAY YESTERDAY
 
-BRIEF=$(python3 <<'PYEOF'
-import json, os, urllib.request
+PROMPT=$(python3 <<'PYEOF'
+import os
 
 ctx = os.environ.get("YESTERDAY_CONTEXT", "")
 status = os.environ["GIT_STATUS"]
@@ -134,33 +138,19 @@ prompt = f"""{today} 세션 시작 브리핑을 작성해줘.
 - 데이터 근거만 사용.
 """
 
-def call_gemma(num_predict):
-    body = json.dumps({
-        "model": "gemma4:e4b",
-        "messages": [{"role": "user", "content": prompt}],
-        "stream": False,
-        "keep_alive": "30m",
-        "options": {"num_predict": num_predict, "temperature": 0.3}
-    }).encode()
-    req = urllib.request.Request(
-        f"http://{os.environ.get('OLLAMA_HOST_LAN', 'leonard.local:11434')}/api/chat",
-        data=body,
-        headers={"Content-Type": "application/json"}
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=45) as r:
-            data = json.loads(r.read())
-        return data.get("message", {}).get("content", "").strip()
-    except Exception:
-        return ""
-
-# 1차 시도. 빈 응답 시 num_predict 2배로 재시도 (gemma4:e4b가 thinking에 토큰 소진하는 케이스 대응)
-result = call_gemma(3000)
-if not result:
-    result = call_gemma(6000)
-print(result)
+print(prompt)
 PYEOF
 )
+
+if [ -z "$PROMPT" ]; then
+    exit 0
+fi
+
+# 1차 시도. 빈 응답 시 재시도 (qwen3.5:9b가 thinking에 토큰 소진하는 케이스 대응)
+BRIEF=$(printf '%s' "$PROMPT" | "$QWEN_CLI" -p - --profile writer --num-ctx 8192 2>/dev/null)
+if [ -z "$BRIEF" ]; then
+    BRIEF=$(printf '%s' "$PROMPT" | "$QWEN_CLI" -p - --profile writer --num-ctx 8192 2>/dev/null)
+fi
 
 if [ -z "$BRIEF" ]; then
     exit 0

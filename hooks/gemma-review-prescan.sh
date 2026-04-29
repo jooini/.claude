@@ -1,5 +1,5 @@
 #!/bin/zsh
-# PreToolUse(Agent): code-reviewer 실행 전 Gemma(로컬 Ollama) 프리스캔
+# PreToolUse(Agent): code-reviewer 실행 전 qwen-cli(로컬 Ollama) 프리스캔
 # Gemini와 병렬로 동작. 민감 코드/로컬 세컨드 오피니언 담당
 # exit 0 + stdout = 비차단 리마인더
 
@@ -37,68 +37,51 @@ OUTPUT_FILE="$CACHE_DIR/${PROJECT_NAME}-review-prescan.md"
 if [ -f "$OUTPUT_FILE" ]; then
     FILE_AGE=$(( $(date +%s) - $(stat -f %m "$OUTPUT_FILE" 2>/dev/null || echo 0) ))
     if [ "$FILE_AGE" -lt 300 ]; then
-        echo "[Gemma 프리스캔 캐시] code-reviewer에 아래 컨텍스트 포함할 것:"
+        echo "[qwen-cli 프리스캔 캐시] code-reviewer에 아래 컨텍스트 포함할 것:"
         cat "$OUTPUT_FILE"
         exit 0
     fi
 fi
 
-# Ollama 서버 살아있는지 빠르게 확인 (3초 타임아웃)
-if ! curl -s --max-time 3 http://leonard.local:11434/api/tags >/dev/null 2>&1; then
-    echo "[Gemma 프리스캔 스킵] Ollama 서버(leonard.local:11434) 접근 불가 — code-reviewer 단독 진행"
+# qwen-cli 바이너리 확인
+QWEN_CLI="$HOME/.local/bin/qwen-cli"
+if [ ! -x "$QWEN_CLI" ]; then
+    echo "[qwen-cli 프리스캔 스킵] $QWEN_CLI 미설치 — code-reviewer 단독 진행"
     exit 0
 fi
 
-echo "[Gemma 리뷰 프리스캔 실행 중] 완료까지 최대 30초..."
+# Ollama 서버 살아있는지 빠르게 확인 (3초 타임아웃)
+if ! curl -s --max-time 3 http://leonard.local:11434/api/tags >/dev/null 2>&1; then
+    echo "[qwen-cli 프리스캔 스킵] Ollama 서버(leonard.local:11434) 접근 불가 — code-reviewer 단독 진행"
+    exit 0
+fi
+
+echo "[qwen-cli 리뷰 프리스캔 실행 중] 완료까지 최대 30초..."
 
 # diff 500줄 컷
 DIFF_TRUNCATED=$(echo "$DIFF" | head -500)
 
-# JSON 페이로드 안전하게 만들기 위해 python 사용
-PAYLOAD=$(python3 -c "
-import json, sys
-diff = sys.stdin.read()
-prompt = f'''다음 코드 변경사항을 간결하게 리뷰해줘. 한국어로 답하고 핵심 문제만 지적:
+# qwen-cli stdin 프롬프트 구성 (reviewer 페르소나가 시스템 프롬프트 담당)
+PROMPT=$(cat <<EOF
+다음 코드 변경사항을 간결하게 리뷰해줘. 한국어로 답하고 핵심 문제만 지적:
 1. 로직 오류 / 엣지 케이스 누락
 2. 보안 취약점
 3. 기존 코드와의 일관성 문제
 
 변경사항:
-{diff}'''
-print(json.dumps({
-    'model': 'gemma4:e4b',
-    'messages': [
-        {'role': 'system', 'content': '한국어로 간결하게 답변. 과장 없이 실제 문제만 지적.'},
-        {'role': 'user', 'content': prompt}
-    ],
-    'stream': False,
-    'keep_alive': '30m'
-}))
-" <<<"$DIFF_TRUNCATED" 2>/dev/null)
+$DIFF_TRUNCATED
+EOF
+)
 
-if [ -z "$PAYLOAD" ]; then
-    echo "[Gemma 프리스캔 실패] 페이로드 생성 오류 — code-reviewer 단독 진행"
-    exit 0
-fi
-
-RESULT=$(curl -s --max-time 30 http://leonard.local:11434/api/chat \
-    -H "Content-Type: application/json" \
-    -d "$PAYLOAD" 2>/dev/null | python3 -c "
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    print(data.get('message', {}).get('content', ''))
-except Exception:
-    pass
-" 2>/dev/null)
+RESULT=$(printf '%s' "$PROMPT" | "$QWEN_CLI" -p - --profile reviewer --num-ctx 8192 --quiet 2>/dev/null)
 
 if [ -n "$RESULT" ]; then
     echo "$RESULT" > "$OUTPUT_FILE"
-    echo "[Gemma 프리스캔 완료] code-reviewer 프롬프트에 아래 컨텍스트 포함할 것:"
+    echo "[qwen-cli 프리스캔 완료] code-reviewer 프롬프트에 아래 컨텍스트 포함할 것:"
     echo "---"
     echo "$RESULT"
 else
-    echo "[Gemma 프리스캔 실패/타임아웃] — code-reviewer 단독 진행"
+    echo "[qwen-cli 프리스캔 실패/타임아웃] — code-reviewer 단독 진행"
 fi
 
 exit 0

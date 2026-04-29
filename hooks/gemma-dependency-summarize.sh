@@ -1,11 +1,12 @@
 #!/bin/zsh
-# PostToolUse(Edit|Write): 의존성 파일 수정 감지 → Gemma가 추가/제거/업그레이드 패키지 한 줄 요약
-# 기존 dependency-change-detect가 Gemini 호출하던 부분을 Gemma로 로컬화
+# PostToolUse(Edit|Write): 의존성 파일 수정 감지 → qwen-cli(writer 페르소나)가 추가/제거/업그레이드 패키지 한 줄 요약
+# 기존 curl + Ollama 직접 호출을 qwen-cli stdin pipe로 교체
 # 출력: hookSpecificOutput.additionalContext로 Claude에 주입
 
 : "${HOME:?}"
 
-OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
+QWEN="$HOME/.local/bin/qwen-cli"
+[ -x "$QWEN" ] || exit 0
 
 INPUT=$(cat)
 
@@ -51,72 +52,23 @@ fi
 # 너무 크면 컷
 DIFF_TRUNCATED=$(echo "$DIFF" | head -150)
 
-# Ollama 확인
-if ! curl -s --max-time 2 "http://${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
-    exit 0
-fi
-
-export DIFF_TRUNCATED
 BASENAME=$(basename "$FILE_PATH")
-export BASENAME
 
-PAYLOAD=$(python3 <<'PYEOF'
-import json, os
-d = os.environ["DIFF_TRUNCATED"]
-fname = os.environ["BASENAME"]
-prompt = f"""의존성 파일 '{fname}'이 변경되었다. diff를 분석해서 한국어로 정리해줘.
+PROMPT=$(printf '의존성 파일 %s 변경. diff 분석해서 한국어로 정리.\n\n출력 형식 (정확히 4줄):\n**추가**: <패키지명@버전 나열, 없으면 "없음">\n**제거**: <패키지명 나열, 없으면 "없음">\n**업그레이드**: <패키지명: 구버전→신버전 나열, 없으면 "없음">\n**주의**: <major version 점프/deprecated 패키지/보안 주의 사항, 없으면 "없음">\n\n규칙:\n- 장식/설명/인사 금지. 위 4줄만.\n- 모르는 패키지는 추측하지 말고 이름만 기록.\n\ndiff:\n%s\n' "$BASENAME" "$DIFF_TRUNCATED")
 
-출력 형식 (정확히):
-**추가**: <패키지명@버전 나열, 없으면 "없음">
-**제거**: <패키지명 나열, 없으면 "없음">
-**업그레이드**: <패키지명: 구버전→신버전 나열, 없으면 "없음">
-**주의**: <major version 점프/deprecated 패키지/보안 주의 사항, 없으면 "없음">
-
-규칙:
-- 장식/설명/인사 금지. 위 4줄만.
-- 모르는 패키지는 추측하지 말고 이름만 기록.
-
-diff:
-{d}
-"""
-print(json.dumps({
-    "model": "gemma4:e4b",
-    "messages": [
-        {"role": "system", "content": "한국어로 4줄만. 설명 금지."},
-        {"role": "user", "content": prompt}
-    ],
-    "stream": False,
-    "keep_alive": "30m",
-    "options": {"num_predict": 3000}
-}))
-PYEOF
-)
-
-if [ -z "$PAYLOAD" ]; then
-    exit 0
-fi
-
-RESULT=$(curl -s --max-time 15 "http://${OLLAMA_HOST}/api/chat" \
-    -H "Content-Type: application/json" \
-    -d "$PAYLOAD" 2>/dev/null | python3 -c "
-import json, sys
-try:
-    print(json.load(sys.stdin).get('message', {}).get('content', ''))
-except Exception:
-    pass
-" 2>/dev/null)
+RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile writer --num-ctx 8192 2>/dev/null)
 
 if [ -z "$RESULT" ]; then
     exit 0
 fi
 
-export GEMMA_RESULT="$RESULT" BASENAME
+export QWEN_RESULT="$RESULT" BASENAME
 python3 -c "
 import json, os
 print(json.dumps({
     'hookSpecificOutput': {
         'hookEventName': 'PostToolUse',
-        'additionalContext': '[Gemma 의존성 변경 요약 — ' + os.environ['BASENAME'] + ']\n' + os.environ['GEMMA_RESULT']
+        'additionalContext': '[qwen-cli 의존성 변경 요약 — ' + os.environ['BASENAME'] + ']\n' + os.environ['QWEN_RESULT']
     }
 }))
 "

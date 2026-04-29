@@ -1,16 +1,18 @@
 #!/bin/zsh
-# PreToolUse(Bash): git commit 감지 → staged diff를 Gemma에 넘겨 커밋 메시지 초안 생성
+# PreToolUse(Bash): git commit 감지 → staged diff를 qwen-cli에 넘겨 커밋 메시지 초안 생성
 # exit 0 + stdout = 비차단 힌트 (사용자/Claude가 최종 결정)
 # 실패/서버다운/타임아웃 시 즉시 스킵 (원본 커밋 흐름 블로킹 없음)
 
 : "${HOME:?}"
 
-OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
+QWEN="$HOME/.local/bin/qwen-cli"
 CACHE_DIR="$HOME/.claude/cache/gemma"
 mkdir -p "$CACHE_DIR"
 
-INPUT=$(cat)
+# qwen-cli 미설치 시 즉시 스킵
+[ -x "$QWEN" ] || exit 0
 
+INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p')
 
 # git commit 명령인지 확인
@@ -19,7 +21,6 @@ if ! echo "$COMMAND" | grep -q 'git commit'; then
 fi
 
 # 이미 -m "메시지"가 있는 경우 = 실제 커밋 실행 단계 → 스킵 (검증 훅이 처리)
-# Claude Code가 넘기는 JSON에서는 내부 따옴표가 \" 형태로 escape되어 있음
 if echo "$COMMAND" | grep -qE '\-m[[:space:]]+(\\?["'"'"'])'; then
     exit 0
 fi
@@ -40,9 +41,9 @@ if [ -z "$STAGED" ]; then
     exit 0
 fi
 
-# 민감 파일 스테이징 감지 시 Gemma 호출 스킵 (유출 위험)
+# 민감 파일 스테이징 감지 시 호출 스킵 (유출 위험)
 if echo "$STAGED" | grep -qE '(\.env$|\.env\.|credentials|\.pem$|\.key$|secrets?\.(json|yaml|yml))'; then
-    echo "[커밋 초안 스킵] 민감 파일 스테이징 감지 — Gemma 호출 안 함"
+    echo "[커밋 초안 스킵] 민감 파일 스테이징 감지 — qwen-cli 호출 안 함"
     exit 0
 fi
 
@@ -57,18 +58,13 @@ if [ -f "$OUTPUT_FILE" ] && [ -f "$CACHED_HASH_FILE" ]; then
     CACHED_HASH=$(cat "$CACHED_HASH_FILE" 2>/dev/null)
     FILE_AGE=$(( $(date +%s) - $(stat -f %m "$OUTPUT_FILE" 2>/dev/null || echo 0) ))
     if [ "$CACHED_HASH" = "$DIFF_HASH" ] && [ "$FILE_AGE" -lt 60 ]; then
-        echo "[커밋 메시지 초안 (Gemma 캐시)]"
+        echo "[커밋 메시지 초안 (qwen-cli 캐시)]"
         echo "---"
         cat "$OUTPUT_FILE"
         echo "---"
         echo "위 초안 참고하되 최종 메시지는 직접 결정."
         exit 0
     fi
-fi
-
-# Ollama 서버 빠르게 확인 (3초 타임아웃)
-if ! curl -s --max-time 3 "http://${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
-    exit 0
 fi
 
 # staged diff + 파일 목록 수집 (500줄 컷)
@@ -79,63 +75,18 @@ if [ -z "$DIFF_TRUNCATED" ]; then
     exit 0
 fi
 
-echo "[Gemma 커밋 초안 생성 중] 최대 15초..."
+echo "[qwen-cli 커밋 초안 생성 중] 최대 15초..."
 
-PAYLOAD=$(python3 -c "
-import json, sys
-data = sys.stdin.read()
-stat, diff = data.split('---DIFF---', 1)
-prompt = f'''다음 staged 변경사항을 분석해서 한국어 커밋 메시지 초안을 작성해줘.
+# qwen-cli stdin pipe — commit 페르소나가 모델/시스템 프롬프트 자동 적용
+PROMPT=$(printf '변경 파일 통계:\n%s\n\n변경 내용:\n%s' "$STAT" "$DIFF_TRUNCATED")
 
-형식:
-<타입>: <한 줄 요약 (70자 이내)>
+RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile commit --num-ctx 8192 2>/dev/null)
+EXIT=$?
 
-<본문 (선택, 왜 바꿨는지 3줄 이내)>
-
-타입 후보: feat / fix / refactor / chore / docs / test / style / perf
-Co-Authored-By 절대 포함하지 말 것.
-
-변경 파일 통계:
-{stat}
-
-변경 내용:
-{diff}
-'''
-print(json.dumps({
-    'model': 'gemma4:e4b',
-    'messages': [
-        {'role': 'system', 'content': '한국어로 간결한 커밋 메시지만 출력. 설명/해설 금지. 바로 쓸 수 있는 형식으로.'},
-        {'role': 'user', 'content': prompt}
-    ],
-    'stream': False,
-    'keep_alive': '30m'
-}))
-" <<EOF 2>/dev/null
-${STAT}
----DIFF---
-${DIFF_TRUNCATED}
-EOF
-)
-
-if [ -z "$PAYLOAD" ]; then
-    exit 0
-fi
-
-RESULT=$(curl -s --max-time 15 "http://${OLLAMA_HOST}/api/chat" \
-    -H "Content-Type: application/json" \
-    -d "$PAYLOAD" 2>/dev/null | python3 -c "
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    print(data.get('message', {}).get('content', ''))
-except Exception:
-    pass
-" 2>/dev/null)
-
-if [ -n "$RESULT" ]; then
+if [ "$EXIT" -eq 0 ] && [ -n "$RESULT" ]; then
     echo "$RESULT" > "$OUTPUT_FILE"
     echo "$DIFF_HASH" > "$CACHED_HASH_FILE"
-    echo "[커밋 메시지 초안 (Gemma)]"
+    echo "[커밋 메시지 초안 (qwen-cli)]"
     echo "---"
     echo "$RESULT"
     echo "---"

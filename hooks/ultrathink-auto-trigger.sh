@@ -92,8 +92,8 @@ if [ "$CODEX_OK" -eq 1 ]; then
 fi
 
 if [ "$GEMMA_OK" -eq 1 ]; then
-    echo "   ✅ **Gemma 호출 필수**: 로컬 프라이빗 분석 — 빠른 검증"
-    echo "      Skill(ask-gemma) — leonard.local:11434"
+    echo "   ✅ **Ollama 호출 필수**: 로컬 프라이빗 분석 — 빠른 검증 (qwen3.5:9b 기본)"
+    echo "      Skill(ask-ollama) — leonard.local:11434"
 fi
 
 if [ "$GEMINI_OK" -eq 0 ] && [ "$CODEX_OK" -eq 0 ] && [ "$GEMMA_OK" -eq 0 ]; then

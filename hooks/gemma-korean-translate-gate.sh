@@ -5,7 +5,8 @@
 
 : "${HOME:?}"
 
-OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
+QWEN="$HOME/.local/bin/qwen-cli"
+[ -x "$QWEN" ] || exit 0
 
 INPUT=$(cat)
 
@@ -34,7 +35,6 @@ esac
 MSG=$(echo "$COMMAND" | python3 -c "
 import sys, re
 s = sys.stdin.read()
-# -m '...' 또는 -m \"...\" 패턴 (escaped 따옴표 포함)
 patterns = [
     r'-m\s+\\\\\"(.+?)\\\\\"',
     r'-m\s+\"(.+?)\"',
@@ -66,55 +66,14 @@ if [ "$WORD_COUNT" -lt 2 ]; then
     exit 0
 fi
 
-# Ollama 확인
-if ! curl -s --max-time 2 "http://${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
-    exit 0
-fi
+# qwen-cli — korean 페르소나가 자동 적용 (qwen3.5:9b)
+PROMPT=$(printf '다음 영문 커밋/PR 메시지를 한국어로 번역.\n\n규칙:\n- Conventional Commits 타입 접두어(feat/fix/refactor 등)는 유지\n- 70자 이내 간결하게\n- 번역 결과만 출력. 설명/따옴표/인사 금지\n\n영문 원본:\n%s' "$MSG")
 
-export MSG
+RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile korean --num-ctx 8192 2>/dev/null)
+EXIT=$?
 
-PAYLOAD=$(python3 <<'PYEOF'
-import json, os
-msg = os.environ["MSG"]
-prompt = f"""다음 영문 커밋/PR 메시지를 한국어로 번역해줘.
-
-규칙:
-- Conventional Commits 타입 접두어(feat/fix/refactor 등)는 유지
-- 70자 이내 간결하게
-- 번역 결과만 출력. 설명/따옴표/인사 금지
-
-영문 원본:
-{msg}
-"""
-print(json.dumps({
-    "model": "gemma4:e4b",
-    "messages": [
-        {"role": "system", "content": "번역 결과 한 줄만 출력."},
-        {"role": "user", "content": prompt}
-    ],
-    "stream": False,
-    "keep_alive": "30m",
-    "options": {"num_predict": 100}
-}))
-PYEOF
-)
-
-if [ -z "$PAYLOAD" ]; then
-    exit 0
-fi
-
-RESULT=$(curl -s --max-time 10 "http://${OLLAMA_HOST}/api/chat" \
-    -H "Content-Type: application/json" \
-    -d "$PAYLOAD" 2>/dev/null | python3 -c "
-import json, sys
-try:
-    print(json.load(sys.stdin).get('message', {}).get('content', ''))
-except Exception:
-    pass
-" 2>/dev/null)
-
-if [ -n "$RESULT" ]; then
-    echo "[한글 번역 초안 (Gemma)] 원본: \"${MSG}\""
+if [ "$EXIT" -eq 0 ] && [ -n "$RESULT" ]; then
+    echo "[한글 번역 초안 (qwen-cli)] 원본: \"${MSG}\""
     echo "  → ${RESULT}"
     echo "팀 컨벤션은 한글. 위 초안 참고해서 재작성 권장."
 fi
