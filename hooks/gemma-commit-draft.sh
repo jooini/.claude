@@ -12,6 +12,10 @@ mkdir -p "$CACHE_DIR"
 # qwen-cli 미설치 시 즉시 스킵
 [ -x "$QWEN" ] || exit 0
 
+# 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
+source "$HOME/.claude/hooks/_lib/ollama-available.sh"
+ollama_available || exit 0
+
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p')
 

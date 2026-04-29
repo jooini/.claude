@@ -50,9 +50,10 @@ if [ ! -x "$QWEN_CLI" ]; then
     exit 0
 fi
 
-# Ollama 서버 살아있는지 빠르게 확인 (3초 타임아웃)
-if ! curl -s --max-time 3 http://leonard.local:11434/api/tags >/dev/null 2>&1; then
-    echo "[qwen-cli 프리스캔 스킵] Ollama 서버(leonard.local:11434) 접근 불가 — code-reviewer 단독 진행"
+# 회사 LAN 외부에서 호출 시 즉시 skip (캐시 5분, 신선 시 0.03초)
+source "$HOME/.claude/hooks/_lib/ollama-available.sh"
+if ! ollama_available; then
+    echo "[qwen-cli 프리스캔 스킵] Ollama 서버 접근 불가 — code-reviewer 단독 진행"
     exit 0
 fi
 

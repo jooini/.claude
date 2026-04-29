@@ -32,9 +32,10 @@ QWEN_CLI="$HOME/.local/bin/qwen-cli"
 if [ ! -x "$QWEN_CLI" ]; then
     exit 0
 fi
-if ! curl -s --max-time 2 "http://${OLLAMA_HOST}/api/tags" >/dev/null 2>&1; then
-    exit 0
-fi
+
+# 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
+source "$HOME/.claude/hooks/_lib/ollama-available.sh"
+ollama_available || exit 0
 
 # 어제 health 리포트 있으면 요약 활용
 YESTERDAY_HEALTH="$HOME/.claude/cache/health-report/${YESTERDAY}.md"

@@ -56,6 +56,10 @@ fi
 QWEN="$HOME/.local/bin/qwen-cli"
 [ -x "$QWEN" ] || exit 0
 
+# 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
+source "$HOME/.claude/hooks/_lib/ollama-available.sh"
+ollama_available || exit 0
+
 # staged diff도 같이 보내서 정확한 타입 추정 도움
 DIFF_STAT=""
 if git rev-parse --is-inside-work-tree &>/dev/null; then
