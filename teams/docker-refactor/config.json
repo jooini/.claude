@@ -1,0 +1,75 @@
+{
+  "name": "docker-refactor",
+  "description": "identity-platform-docker 템플릿 기반 리팩터링",
+  "createdAt": 1773323451703,
+  "leadAgentId": "team-lead@docker-refactor",
+  "leadSessionId": "f71f9995-c611-4195-84aa-c3b38f710a8e",
+  "members": [
+    {
+      "agentId": "team-lead@docker-refactor",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "model": "claude-opus-4-6",
+      "joinedAt": 1773323451703,
+      "tmuxPaneId": "",
+      "cwd": "/Users/leonard/Workspace/identity-platform-docker",
+      "subscriptions": []
+    },
+    {
+      "agentId": "dev-compose@docker-refactor",
+      "name": "dev-compose",
+      "agentType": "general-purpose",
+      "model": "claude-opus-4-6",
+      "prompt": "너는 docker-refactor 팀의 dev-compose다.\n\n## 할 일: Task #2 — docker-compose base.yml + infra.yml 템플릿 생성\n\n~/Workspace/identity-platform-docker 에서 작업한다. 브랜치 refactor/template-based-config에서 작업 중.\n\n### 배경\n8개 환경의 docker-compose.yml을 Docker Compose multi-file merge 패턴으로 리팩터링한다.\n- templates/base.yml: 공통 서비스 (nginx, hub, keycloak, vector)\n- templates/infra.yml: postgres + redis (standard/prod 환경에서 merge)\n\n### 작업 순서\n\n1. 기존 파일 읽기: local/docker-compose.yml, dev/docker-compose.yml, prod/docker-compose.yml, prod-aws/docker-compose.yml 를 Read로 읽어라.\n\n2. base.yml 생성: 모든 환경에 공통인 서비스(nginx, identity-hub, identity-keycloak, vector)를 추출. 환경별로 달라지는 값은 ${VAR} 변수로 처리. Docker Compose의 네이티브 변수 치환을 사용한다.\n\n주요 변수:\n- ${CONTAINER_PREFIX}: container_name prefix (예: local-identity, dev-identity)\n- ${VOLUME_PREFIX}: volume name prefix\n- ${ECR_REGISTRY}: ECR 레지스트리 URL\n- ${IMAGE_TAG}: 이미지 태그\n- ${LOG_MAX_SIZE}, ${LOG_MAX_FILE}: 로깅 설정\n- ${KEYCLOAK_SERVER_URL}, ${KEYCLOAK_INTERNAL_URL} 등 기존 환경변수\n\n주의사항:\n- base.yml에 nginx 서비스는 포함하되, 80 포트만. SSL(443)은 ssl.yml overlay에서 처리.\n- keycloak의 network_mode: host는 idc-override.yml에서 처리. base에서는 일반 networks 사용.\n- vector 서비스의 ClickHouse 관련 환경변수는 ${VECTOR_CLICKHOUSE_ENDPOINT} 등으로 변수화.\n- platform: linux/amd64는 base에 넣지 않음 (local에서만 필요, 별도 처리)\n\n3. infra.yml 생성: postgres + redis 서비스. standard/prod 환경에서 base.yml과 합쳐서 사용.\n\n4. 작성 후 team-lead에게 SendMessage로 완료 보고. TaskUpdate로 task #2를 completed 처리.\n\n코드/문서 검색 시 반드시 mcp__local-rag__query_documents를 1순위로 사용하라.\nRAG 검색 → Grep → Glob → Read 순서를 지켜라.",
+      "color": "blue",
+      "planModeRequired": false,
+      "joinedAt": 1773323547477,
+      "tmuxPaneId": "in-process",
+      "cwd": "/Users/leonard/Workspace/identity-platform-docker",
+      "subscriptions": [],
+      "backendType": "in-process"
+    },
+    {
+      "agentId": "dev-overlay@docker-refactor",
+      "name": "dev-overlay",
+      "agentType": "general-purpose",
+      "model": "claude-opus-4-6",
+      "prompt": "너는 docker-refactor 팀의 dev-overlay다.\n\n## 할 일: Task #3 — docker-compose overlay 템플릿 생성\n\n~/Workspace/identity-platform-docker 에서 작업한다. 브랜치 refactor/template-based-config.\n\n### 작업\n\n1. 기존 파일 읽기: prod/docker-compose.yml, prod-aws/docker-compose.yml, prod-idc/docker-compose.yml 를 Read로 읽어라.\n\n2. templates/ssl.yml 생성: prod 환경 전용. nginx에 443 포트와 certs 볼륨 추가하는 Docker Compose override 파일. base.yml의 nginx 서비스를 확장하는 형태.\n\n3. templates/jgroups.yml 생성: prod-aws/qa-aws 환경 전용. keycloak에 JGroups 포트(7800, 57800)를 추가하는 override.\n\n4. templates/idc-override.yml 생성: prod-idc 환경 전용.\n   - nginx, postgres, redis, vector 서비스 제거 (또는 포함하지 않음)\n   - identity-hub에 ports: 8000:8000, extra_hosts 추가\n   - identity-keycloak에 network_mode: host 설정 (networks 제거)\n   - depends_on에서 postgres/redis 제거\n\n주의: 이 파일들은 Docker Compose merge (-f base.yml -f overlay.yml)로 사용된다. override 문법을 따라야 한다.\n\n5. 완료 후 team-lead에게 SendMessage로 보고. TaskUpdate로 task #3 completed.\n\n코드/문서 검색 시 반드시 mcp__local-rag__query_documents를 1순위로 사용하라.\nRAG 검색 → Grep → Glob → Read 순서를 지켜라.",
+      "color": "green",
+      "planModeRequired": false,
+      "joinedAt": 1773323556465,
+      "tmuxPaneId": "in-process",
+      "cwd": "/Users/leonard/Workspace/identity-platform-docker",
+      "subscriptions": [],
+      "backendType": "in-process"
+    },
+    {
+      "agentId": "dev-templates@docker-refactor",
+      "name": "dev-templates",
+      "agentType": "general-purpose",
+      "model": "claude-opus-4-6",
+      "prompt": "너는 docker-refactor 팀의 dev-templates다.\n\n## 할 일: Task #4 — nginx/vector/init-db 템플릿 생성\n\n~/Workspace/identity-platform-docker 에서 작업한다. 브랜치 refactor/template-based-config.\n\n### 작업\n\n1. nginx 템플릿:\n   - local/nginx/nginx.conf 를 읽고 templates/nginx/nginx.conf 로 복사 (7개 환경 동일)\n   - local/nginx/conf.d/default.conf와 prod/nginx/conf.d/default.conf 읽기\n   - templates/nginx/default.conf.http.template 생성: HTTP 환경용. 변수: ${SERVER_NAME}, ${HUB_UPSTREAM}, ${KC_UPSTREAM}, ${FORWARDED_PROTO}, ${ACCESS_LOG_PREFIX}\n   - templates/nginx/default.conf.ssl.template 생성: prod SSL 환경용. 동일 변수 + SSL 블록 포함\n   - 기존 nginx 디렉토리에 있는 logrotate-nginx, docker-entrypoint 파일도 확인하여 templates/nginx/에 복사 필요한지 판단\n\n2. vector.toml 템플릿:\n   - local/vector/vector.toml 읽기\n   - templates/vector.toml.template 생성: ${BUFFER_WHEN_FULL} 변수 사용\n   - ClickHouse 관련은 이미 환경변수 ${VECTOR_CLICKHOUSE_*}로 되어있으므로 그대로 유지\n\n3. init-db.sql 템플릿:\n   - local/scripts/init-db.sql과 prod-aws/scripts/init-db.sql 읽기\n   - templates/init-db.sql.template 생성: ${KC_DB_USER}, ${KC_DB_PASSWORD}, ${KC_DB_NAME}, ${IDENTITY_DB_USER}, ${IDENTITY_DB_PASSWORD}, ${IDENTITY_DB_NAME} 변수 사용\n\n4. 완료 후 team-lead에게 SendMessage로 보고. TaskUpdate로 task #4 completed.\n\n코드/문서 검색 시 반드시 mcp__local-rag__query_documents를 1순위로 사용하라.\nRAG 검색 → Grep → Glob → Read 순서를 지켜라.",
+      "color": "yellow",
+      "planModeRequired": false,
+      "joinedAt": 1773323566744,
+      "tmuxPaneId": "in-process",
+      "cwd": "/Users/leonard/Workspace/identity-platform-docker",
+      "subscriptions": [],
+      "backendType": "in-process"
+    },
+    {
+      "agentId": "dev-envs@docker-refactor",
+      "name": "dev-envs",
+      "agentType": "general-purpose",
+      "model": "claude-opus-4-6",
+      "prompt": "너는 docker-refactor 팀의 dev-envs다.\n\n## 할 일: Task #5 — envs/ 환경별 변수 파일 8개 생성\n\n~/Workspace/identity-platform-docker 에서 작업한다. 브랜치 refactor/template-based-config.\n\n### 작업\n\n기존 8개 환경의 docker-compose.yml과 env 파일들에서 변수를 추출하여 envs/{env}.env 파일 생성.\n\n1. 읽어야 할 파일들 (환경별):\n   - {env}/docker-compose.yml — container_name prefix, volume prefix, 로그 크기, 포트 등\n   - {env}/identity-hub/env-identity-hub — APP_ENV, DEBUG, LOG_LEVEL 등\n   - {env}/identity-keycloak/env-identity-keycloak — KC 환경변수\n   - .env.example — 전체 변수 목록 참고\n\n2. 각 envs/{env}.env에 포함할 변수:\n\n```\n# 그룹/환경\nCOMPOSE_GROUP=standard|prod|aws|idc\nENV_NAME=local|dev|qa|pp|prod|prod-aws|prod-idc|qa-aws\n\n# Container\nCONTAINER_PREFIX={env}-identity (prod 계열은 identity)\nVOLUME_PREFIX={env} (prod 계열은 identity)\n\n# Images\nECR_REGISTRY=083876261616.dkr.ecr.ap-northeast-2.amazonaws.com\nIMAGE_TAG=0.0.1 (기존 값에서 추출)\n\n# Logging\nLOG_MAX_SIZE=20m|50m\nLOG_MAX_FILE=5|10\n\n# Nginx (envsubst용)\nSERVER_NAME=(기존 conf.d/default.conf에서 추출)\nNGINX_MODE=http|ssl\nHUB_UPSTREAM=(기존 conf.d/default.conf에서 추출)\nKC_UPSTREAM=(기존 conf.d/default.conf에서 추출)\nACCESS_LOG_PREFIX=(기존 conf.d/default.conf에서 추출)\nFORWARDED_PROTO=(기존에서 추출, prod만 https)\n\n# Vector\nBUFFER_WHEN_FULL=drop_newest|block\n\n# Init DB\nKC_DB_USER=(기존 init-db.sql에서 추출)\nKC_DB_PASSWORD=(기존 init-db.sql에서 추출)\nKC_DB_NAME=(기존 init-db.sql에서 추출)\nIDENTITY_DB_USER=(기존 init-db.sql에서 추출)\nIDENTITY_DB_PASSWORD=(기존 init-db.sql에서 추출)\nIDENTITY_DB_NAME=(기존 init-db.sql에서 추출)\n```\n\n3. 기존 docker-compose.yml에서 environment: 블록에 있는 Docker Compose 네이티브 변수(${KEYCLOAK_SERVER_URL} 등)도 envs/{env}.env에 포함. 기존 .env.example을 참고하여 누락 없이.\n\n4. 각 환경 파일별로 실제 기존 값을 정확히 추출하여 넣어라. 추측하지 마라.\n\n5. 완료 후 team-lead에게 SendMessage로 보고. TaskUpdate로 task #5 completed.\n\n코드/문서 검색 시 반드시 mcp__local-rag__query_documents를 1순위로 사용하라.\nRAG 검색 → Grep → Glob → Read 순서를 지켜라.",
+      "color": "purple",
+      "planModeRequired": false,
+      "joinedAt": 1773323581720,
+      "tmuxPaneId": "in-process",
+      "cwd": "/Users/leonard/Workspace/identity-platform-docker",
+      "subscriptions": [],
+      "backendType": "in-process"
+    }
+  ]
+}

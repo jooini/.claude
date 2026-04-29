@@ -1,0 +1,8 @@
+[
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1773381331106@deploy-script-check\",\"from\":\"team-lead\",\"reason\":\"작업 완료, 종료\",\"timestamp\":\"2026-03-13T05:55:31.106Z\"}",
+    "timestamp": "2026-03-13T05:55:31.106Z",
+    "read": true
+  }
+]

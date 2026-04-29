@@ -1,0 +1,80 @@
+[
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"reviewer\",\"timestamp\":\"2026-03-27T04:29:47.924Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-27T04:29:47.924Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "tester",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"tester\",\"timestamp\":\"2026-03-27T04:29:55.736Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-27T04:29:55.736Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"developer\",\"timestamp\":\"2026-03-27T04:31:21.861Z\",\"idleReason\":\"available\",\"summary\":\"[to reviewer] Imperative mapping 전환 완료, 리뷰 요청\"}",
+    "timestamp": "2026-03-27T04:31:21.861Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"reviewer\",\"timestamp\":\"2026-03-27T04:32:45.140Z\",\"idleReason\":\"available\",\"summary\":\"[to developer] Imperative mapping 리뷰 결과 — 이슈 2건\"}",
+    "timestamp": "2026-03-27T04:32:45.140Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"developer\",\"timestamp\":\"2026-03-27T04:33:17.204Z\",\"idleReason\":\"available\",\"summary\":\"[to reviewer] 리뷰 피드백 2건 반영 완료, 테스트 통과\"}",
+    "timestamp": "2026-03-27T04:33:17.204Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"reviewer\",\"timestamp\":\"2026-03-27T04:33:30.591Z\",\"idleReason\":\"available\",\"summary\":\"[to tester] 재리뷰 통과, 테스트 실행 요청\"}",
+    "timestamp": "2026-03-27T04:33:30.591Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "tester",
+    "text": "## 테스트 결과: PASS\n\npytest 44개 전체 통과했습니다.\n\n```\n44 passed in 0.42s\n```\n\n- domain: 18개 PASS\n- application: 12개 PASS\n- infrastructure: 9개 PASS\n- presentation: 5개 PASS\n\n실패 없음. 전체 PASS입니다.",
+    "summary": "pytest 44개 전체 PASS",
+    "timestamp": "2026-03-27T04:33:37.684Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "tester",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"tester\",\"timestamp\":\"2026-03-27T04:33:40.908Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-27T04:33:40.908Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1774586034200@reviewer\",\"from\":\"reviewer\",\"timestamp\":\"2026-03-27T04:33:57.640Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-03-27T04:33:57.640Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1774586033709@developer\",\"from\":\"developer\",\"timestamp\":\"2026-03-27T04:33:57.967Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-03-27T04:33:57.967Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "tester",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1774586034720@tester\",\"from\":\"tester\",\"timestamp\":\"2026-03-27T04:33:58.161Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-03-27T04:33:58.161Z",
+    "color": "yellow",
+    "read": true
+  }
+]

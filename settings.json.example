@@ -1,0 +1,298 @@
+{
+  "cleanupPeriodDays": 90,
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "PATH": "$HOME/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+  },
+  "permissions": {
+    "allow": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/commit-korean-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/commit-no-coauthor.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/pr-create-codex-remind.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/code-edit-pipeline-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/dependency-change-detect.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/agent-start-notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/agent-context-inject.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/agent-knowledge-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/gemini-review-prescan.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/dangerous-command-detect.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/error-codex-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/tool-usage-log.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/branch-switch-detect.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/cwd-change-detect.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/gemini-auto-scan.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/agent-usage-log.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/agent-complete-notify.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/knowledge-change-rebuild.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/node-version-sync.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/session-build-agents.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/session-detect-language.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/stop-notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/stop-pipeline-check.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/precompact-notify.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/ask-notify.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "zsh $HOME/.claude/statusline-agent.sh"
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "code-review-graph@code-review-graph": true,
+    "claude-mem@thedotmack": true,
+    "codex@openai-codex": true,
+    "pyright-lsp@claude-plugins-official": false,
+    "php-lsp@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": false,
+    "gitlab@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-code-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code"
+      }
+    },
+    "code-review-graph": {
+      "source": {
+        "source": "github",
+        "repo": "tirth8205/code-review-graph"
+      }
+    },
+    "thedotmack": {
+      "source": {
+        "source": "github",
+        "repo": "thedotmack/claude-mem"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    }
+  },
+  "alwaysThinkingEnabled": true,
+  "skills": {
+    "userSettings:tool-status": {
+      "path": "$HOME/.claude/skills/tool-status/skill.md"
+    }
+  },
+  "autoApprove": [
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep",
+    "Agent",
+    "Bash(git status*)",
+    "Bash(git log*)",
+    "Bash(git diff*)",
+    "Bash(git add*)",
+    "Bash(git commit*)",
+    "Bash(git branch*)",
+    "Bash(git checkout*)",
+    "Bash(git switch*)",
+    "Bash(git merge*)",
+    "Bash(git fetch*)",
+    "Bash(git pull*)",
+    "Bash(git push *)",
+    "Bash(git stash*)",
+    "Bash(git show*)",
+    "Bash(git blame*)",
+    "Bash(git rev-parse*)",
+    "Bash(git remote*)",
+    "Bash(git tag*)",
+    "Bash(git cherry-pick*)",
+    "Bash(git rebase*)",
+    "Bash(ls *)",
+    "Bash(cd *)",
+    "Bash(npm *)",
+    "Bash(npx *)",
+    "Bash(python *)",
+    "Bash(docker *)",
+    "Bash(ssh *)",
+    "Bash(curl *)",
+    "Bash(uv *)",
+    "Bash(gemini *)",
+    "Bash(codex *)",
+    "Bash(composer *)",
+    "Bash(php *)",
+    "Bash(gradle *)",
+    "Bash(wc *)",
+    "Bash(which *)",
+    "Bash(gh *)",
+    "mcp__local-rag__*",
+    "mcp__plugin_code-review-graph_code-review-graph__*",
+    "mcp__plugin_claude-mem_mcp-search__*",
+    "mcp__memory__*",
+    "mcp__context7__*",
+    "mcp__ssh__*",
+    "mcp__gitlab__*"
+  ],
+  "mcpServers": {
+    "gitlab": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@zereight/mcp-gitlab"
+      ],
+      "env": {
+        "GITLAB_API_URL": "<YOUR_GITLAB_API_URL>"
+      }
+    },
+    "local-rag": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-local-rag"
+      ],
+      "env": {
+        "BASE_DIR": "$HOME",
+        "DB_PATH": "$HOME/Workspace/lancedb",
+        "CACHE_DIR": "$HOME/.claude/cache/rag-models",
+        "MODEL_NAME": "Xenova/multilingual-e5-small"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "meeting-minutes-design-fix",
+  "description": "PO/디자이너 리뷰 피드백 기반 프론트엔드 디자인 수정",
+  "createdAt": 1774594750261,
+  "leadAgentId": "team-lead@meeting-minutes-design-fix",
+  "leadSessionId": "843152cd-b955-421e-b126-920213da13f3",
+  "members": [
+    {
+      "agentId": "team-lead@meeting-minutes-design-fix",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "model": "claude-opus-4-6",
+      "joinedAt": 1774594750261,
+      "tmuxPaneId": "",
+      "cwd": "/Users/leonard/Workspace/meeting-minutes",
+      "subscriptions": []
+    }
+  ]
+}

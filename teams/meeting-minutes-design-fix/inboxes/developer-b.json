@@ -1,0 +1,32 @@
+[
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"3\",\"subject\":\"SPEAKER_COLORS에 bg 클래스 직접 포함 (Tailwind purge 대응)\",\"description\":\"meetings/[id]/page.tsx의 SPEAKER_COLORS 배열에 dot 프로퍼티 추가. 현재 color.border.replace(\\\"border-l-\\\", \\\"bg-\\\")로 동적 생성하는 패턴을 제거하고, 각 색상에 { border, bg, text, dot } 형태로 명시적 bg 클래스를 포함시키기.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-03-27T06:59:57.333Z\"}",
+    "timestamp": "2026-03-27T06:59:57.333Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"4\",\"subject\":\"API 에러 핸들링 + 녹음 취소 확인\",\"description\":\"1) submitFileUpload, submitRecording에서 fetch 응답 상태 확인. 실패 시 인라인 에러 메시지 표시\\n2) cancelRecording 시 confirm() 다이얼로그로 Blob 폐기 전 확인\\n3) error_message null일 때 폴백 텍스트 추가\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-03-27T06:59:57.860Z\"}",
+    "timestamp": "2026-03-27T06:59:57.860Z",
+    "read": false
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"5\",\"subject\":\"JetBrains Mono 정의 제거 + 리스트 hover transition 추가\",\"description\":\"1) globals.css에서 --font-mono: 'JetBrains Mono' 정의를 ui-monospace, monospace로 변경 (로드하지 않는 폰트 참조 제거)\\n2) page.tsx 회의 목록 아이템 hover에 transition-colors 추가 (이미 있는 곳과 일관성)\\n3) 취소 버튼에 border border-slate-200 추가로 클릭 영역 명확화\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-03-27T06:59:58.034Z\"}",
+    "timestamp": "2026-03-27T06:59:58.034Z",
+    "read": false
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1774595836565@developer-b\",\"from\":\"team-lead\",\"reason\":\"태스크 완료. 종료해.\",\"timestamp\":\"2026-03-27T07:17:16.565Z\"}",
+    "timestamp": "2026-03-27T07:17:16.565Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1774595861425@developer-b\",\"from\":\"team-lead\",\"reason\":\"모든 태스크 완료. 종료해줘.\",\"timestamp\":\"2026-03-27T07:17:41.425Z\"}",
+    "timestamp": "2026-03-27T07:17:41.425Z",
+    "read": false
+  }
+]

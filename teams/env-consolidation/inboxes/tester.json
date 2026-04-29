@@ -1,0 +1,8 @@
+[
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1773918190383@tester\",\"from\":\"team-lead\",\"reason\":\"검증 완료. 종료해.\",\"timestamp\":\"2026-03-19T11:03:10.383Z\"}",
+    "timestamp": "2026-03-19T11:03:10.383Z",
+    "read": true
+  }
+]

@@ -1,0 +1,82 @@
+[
+  {
+    "from": "architect-1",
+    "text": "태스크 1~3 모두 완료했습니다.\n\n**생성된 파일:**\n\n1. **Task #1: 전체 시스템 구성도** → `~/Workspace/docs/20260210/sso-architecture/00-system-overview.md`\n   - Mermaid 다이어그램 4개: 프로젝트 간 관계도(graph TD), Docker 컨테이너 배치(graph LR), AUTH_MODE 분기(flowchart), Keycloak SPI 구성도(graph TD)\n   - ER 다이어그램 1개: DB 관계도 (T_Member, T_Member_ExtToken, keycloak_clients, KC 내부 DB)\n   - 네트워크 토폴로지, 컴포넌트별 역할, 데이터 흐름 개요 포함\n\n2. **Task #2: 일반 로그인 SSO 모드** → `~/Workspace/docs/20260210/sso-architecture/01-normal-login-sso.md`\n   - 상세 시퀀스 다이어그램 (6단계, 모든 참여자 포함)\n   - 단계별 상세 설명 (처리 서버, 핵심 로직, 동작)\n   - \"302 Redirect는 항상 Browser 경유\", \"code→token 교환만 서버간 통신\" 명시\n   - 관련 소스 파일 목록 (프론트/Identity Hub/PHP/SPI)\n   - Auth_middleware.php JWT 검증 로직 (JWKS 캐시) 설명\n   - 에러 시나리오 정리\n\n3. **Task #3: 일반 로그인 Legacy 모드** → `~/Workspace/docs/20260210/sso-architecture/02-normal-login-legacy.md`\n   - 시퀀스 다이어그램 (5단계)\n   - PHP 인증 로직 설명 (MD5 해싱, 세션 쿠키)\n   - SSO vs Legacy 비교 테이블 (17개 항목)\n   - 인증 흐름 비교 다이어그램\n   - Legacy 모드의 한계점 정리\n\n다음 태스크 할당 대기합니다.",
+    "summary": "태스크 1~3 완료, 3개 문서 생성 보고",
+    "timestamp": "2026-02-10T01:24:12.910Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "architect-1",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"architect-1\",\"timestamp\":\"2026-02-10T01:24:15.809Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-10T01:24:15.809Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "architect-3",
+    "text": "태스크 7, 8, 9 모두 완료했습니다.\n\n**태스크 7 - 소셜 계정 연결** (`06-social-account-linking.md`)\n- SSO 모드 소셜 계정 연결 시퀀스 다이어그램 (상세 3-Phase 플로우)\n- Federated Identity 데이터 모델 (graph 다이어그램)\n- actSocialMemberLink 상세 로직\n- exact=True 이슈 및 해결\n- T_Member_ExtToken 하위 호환성\n- 연결 해제 플로우\n- 레거시 모드 소셜 연결 (actNaverInterLockWrite)\n- 에러 케이스 및 방지 (잘못된 사용자 삭제, 트랜잭션 순서, 동시성)\n- Mermaid 다이어그램 2개\n\n**태스크 8 - 회원가입 플로우** (`07-signup-flows.md`)\n- Part 1: ID/PW 회원가입 SSO 모드 (Keycloak 경유) + 시퀀스 다이어그램\n- Part 2: ID/PW 회원가입 Legacy 모드 (actMemberWrite) + 시퀀스 다이어그램\n- Part 3: 소셜 회원가입 SSO 모드 (4-Phase 상세 플로우) + 시퀀스 다이어그램\n- Part 4: 소셜 회원가입 Legacy 모드 (viewNaverInterLock) + 시퀀스 다이어그램\n- 레거시 케이스별 처리 테이블\n- SSO vs Legacy 비교 요약\n- Mermaid 다이어그램 4개\n\n**태스크 9 - 로그아웃 및 세션 관리** (`08-logout-session.md`)\n- SSO 로그아웃 시퀀스 다이어그램 (3-Phase: Identity Hub → Keycloak SLO → Frontend 정리)\n- Legacy 로그아웃 시퀀스 다이어그램\n- 토큰 갱신 시퀀스 다이어그램 (성공/실패 분기)\n- LCT 기반 분기 로직\n- Redis 세션 관리 (데이터 구조, 키 패턴)\n- cleanup_old_sessions 로직\n- auth_service.py 오케스트레이션 (서비스 레이어 관계도)\n- Single Logout 설명\n- Superset/Grafana SSO 로그아웃 설정\n- Mermaid 다이어그램 3개\n\n모든 파일은 `~/Workspace/docs/20260210/sso-architecture/` 디렉토리에 생성되었습니다.",
+    "summary": "태스크 7,8,9 모두 완료 보고",
+    "timestamp": "2026-02-10T01:26:19.759Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "architect-3",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"architect-3\",\"timestamp\":\"2026-02-10T01:26:25.250Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-10T01:26:25.250Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "architect-2",
+    "text": "태스크 #4, #5, #6 모두 완료했습니다.\n\n**Task #4: 소셜 로그인 SSO 모드** (`03-social-login-sso.md`)\n- 전체 시퀀스 다이어그램 (5 Phase: 로그인 시작 → Keycloak Broker → 콜백 → 후처리)\n- mIdx 유무 분기 플로우차트\n- First Broker Login Flow 플로우차트\n- 네이버/카카오/애플 차이점 비교 테이블\n- Custom SPI (Naver/Kakao) 동작 설명\n- Identity Hub 콜백, Federated Identity 조회, T_Member_ExtToken 하위 호환성\n- 관련 소스 파일 목록 (Identity Hub, PHP Backend, Frontend, Custom SPI)\n\n**Task #5: 소셜 로그인 Legacy 모드** (`04-social-login-legacy.md`)\n- 전체 시퀀스 다이어그램 (SDK 인증 → ExtToken 조회 → 연결/가입 분기)\n- viewNaverInterLock 페이지 설명 (연결/가입 선택 UI)\n- actNaverInterLockWrite 처리 로직 (link/register 분기)\n- SSO vs Legacy 비교 테이블 (15개 항목)\n- 관련 소스 파일 목록 (파일:라인:역할)\n\n**Task #6: JIT Migration 플로우** (`05-jit-migration.md`)\n- 전체 시퀀스 다이어그램 (SSO 로그인 → JIT SPI → Legacy API → KC User 생성)\n- Keycloak Authentication Flow 내 SPI 위치 플로우차트\n- SSL 바이패스 및 네트워크 경로 상세 (Docker → host.docker.internal)\n- MD5 → pbkdf2 비밀번호 재해싱 과정\n- 에러 케이스 5가지 (사용자 없음, 비밀번호 불일치, 이메일 중복, SSL 오류, 타임아웃)\n- 관련 소스 파일 목록\n\nMermaid 다이어그램 총 6개 작성 완료.",
+    "summary": "태스크 #4, #5, #6 문서 작성 완료",
+    "timestamp": "2026-02-10T01:26:35.483Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "architect-2",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"architect-2\",\"timestamp\":\"2026-02-10T01:26:41.060Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-10T01:26:41.060Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "architect-3",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"architect-3\",\"timestamp\":\"2026-02-10T01:26:44.938Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-10T01:26:44.938Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "architect-3",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"architect-3\",\"timestamp\":\"2026-02-10T01:27:09.155Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-10T01:27:09.155Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "architect-3",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"architect-3\",\"timestamp\":\"2026-02-10T01:27:32.126Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-10T01:27:32.126Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "architect-3",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"architect-3\",\"timestamp\":\"2026-02-10T01:27:52.109Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-10T01:27:52.109Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "architect-3",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"architect-3\",\"timestamp\":\"2026-02-10T01:28:22.747Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-10T01:28:22.747Z",
+    "color": "yellow",
+    "read": true
+  }
+]

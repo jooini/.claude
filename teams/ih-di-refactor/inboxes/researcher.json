@@ -1,0 +1,14 @@
+[
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"1\",\"subject\":\"서비스 간 의존성 현황 분석 및 DI 전환 계획 수립\",\"description\":\"모든 서비스 파일의 모듈 싱글턴 import 관계를 분석하고, 생성자 주입으로 전환할 구체적 계획을 세운다. 순환 의존성 여부도 확인.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-03-13T04:35:12.187Z\"}",
+    "timestamp": "2026-03-13T04:35:12.187Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1773379856271@researcher\",\"from\":\"team-lead\",\"reason\":\"분석 완료. 수고했습니다.\",\"timestamp\":\"2026-03-13T05:30:56.271Z\"}",
+    "timestamp": "2026-03-13T05:30:56.271Z",
+    "read": true
+  }
+]

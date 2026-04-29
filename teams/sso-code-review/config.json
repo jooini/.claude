@@ -1,0 +1,80 @@
+{
+  "name": "sso-code-review",
+  "description": "SSO 관련 코드 리뷰 - identity-hub, maxai-b2c-backend, identity-keycloak, keycloak SPI 프로젝트",
+  "createdAt": 1770684624780,
+  "leadAgentId": "team-lead@sso-code-review",
+  "leadSessionId": "7563a853-7900-471c-9b78-1778aa64acf4",
+  "members": [
+    {
+      "agentId": "team-lead@sso-code-review",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "model": "claude-opus-4-6",
+      "joinedAt": 1770684624780,
+      "tmuxPaneId": "",
+      "cwd": "/Users/leonard/Workspace",
+      "subscriptions": []
+    },
+    {
+      "agentId": "identity-hub-reviewer@sso-code-review",
+      "name": "identity-hub-reviewer",
+      "agentType": "code-reviewer",
+      "model": "claude-opus-4-6",
+      "prompt": "identity-hub 프로젝트(/Users/leonard/Workspace/identity-hub/)의 SSO 관련 코드를 리뷰해주세요. 한글로 작성해주세요.\n\n리뷰 대상 파일들:\n- app/api/v1/endpoints/oauth.py\n- app/api/v1/endpoints/token.py\n- app/api/v1/endpoints/session.py\n- app/services/oauth_service.py\n- app/services/auth_service.py\n- app/services/keycloak_service.py\n- app/services/session_service.py\n- app/services/client_config_service.py\n- app/core/security.py\n- app/core/audit.py\n- app/utils/redirect.py\n- app/utils/jwt.py\n- tests/ 디렉토리의 테스트 파일들\n\n리뷰 관점:\n1. 코드 품질 (가독성, 구조, 네이밍, 중복 코드)\n2. 보안 (인증/인가, 입력 검증, XSS/CSRF/Open Redirect 방지, 시크릿 관리)\n3. 에러 처리 (예외 처리, 로깅 품질)\n4. 성능 (비동기 처리, N+1 쿼리, 캐시 전략)\n5. 테스트 커버리지 및 품질\n\n각 파일별로 주요 이슈, 개선 제안, 잘된 점을 구분하여 정리해주세요.\n심각도 분류: Critical(즉시 수정) / Major(중요) / Minor(개선 권장) / Info(참고)\n\n마지막에 전체 요약을 포함해주세요.",
+      "color": "blue",
+      "planModeRequired": false,
+      "joinedAt": 1770684676971,
+      "tmuxPaneId": "%4",
+      "cwd": "/Users/leonard/Workspace",
+      "subscriptions": [],
+      "backendType": "tmux",
+      "isActive": true,
+      "mode": "acceptEdits"
+    },
+    {
+      "agentId": "b2c-backend-reviewer@sso-code-review",
+      "name": "b2c-backend-reviewer",
+      "agentType": "code-reviewer",
+      "model": "claude-opus-4-6",
+      "prompt": "maxai-b2c-backend 프로젝트(/Users/leonard/Workspace/maxai-b2c-backend/)의 SSO 관련 코드를 리뷰해주세요. 한글로 작성해주세요.\n\n리뷰 대상 파일들:\n\nPHP Backend:\n- application/controllers/Member.php (특히 actSocialMemberWrite, actSocialMemberLink, actPostLogin, createMemberExtToken 메서드)\n- application/libraries/KeycloakAdmin_lib.php\n- application/libraries/KeycloakJwt_lib.php (JWT 검증 + JWKS 캐시)\n- application/hooks/Auth_middleware.php (JWT 인증 미들웨어)\n- application/config/keycloak.php\n\nFrontend (Vue):\n- maxAI/src/views/member/MemberLogin.vue\n- maxAI/src/views/member/MemberLoginOnBoarding.vue\n- maxAI/src/views/callback/AuthCallback.vue\n- maxAI/src/views/callback/SocialAuthCallback.vue\n- maxAI/src/views/callback/SocialMobileAuth.vue\n\n리뷰 관점:\n1. 코드 품질 (가독성, 구조, 네이밍)\n2. 보안 (JWT 검증 로직, CSRF 방지, XSS 방지, 시크릿 관리)\n3. 에러 처리 (예외 처리, 사용자 피드백)\n4. 레거시 호환성 (T_Member_ExtToken, AUTH_MODE 분기)\n5. 프론트엔드 상태 관리 및 라우팅\n\n각 파일별로 주요 이슈, 개선 제안, 잘된 점을 구분하여 정리해주세요.\n심각도 분류: Critical / Major / Minor / Info",
+      "color": "green",
+      "planModeRequired": false,
+      "joinedAt": 1770684682480,
+      "tmuxPaneId": "%5",
+      "cwd": "/Users/leonard/Workspace",
+      "subscriptions": [],
+      "backendType": "tmux",
+      "isActive": true
+    },
+    {
+      "agentId": "keycloak-spi-reviewer@sso-code-review",
+      "name": "keycloak-spi-reviewer",
+      "agentType": "code-reviewer",
+      "model": "claude-opus-4-6",
+      "prompt": "Keycloak 관련 커스텀 SPI 프로젝트들을 리뷰해주세요. 한글로 작성해주세요.\n\n대상 프로젝트:\n1. /Users/leonard/Workspace/identity-keycloak/ (Keycloak 테마/설정, Dockerfile, providers/)\n2. /Users/leonard/Workspace/keycloak-kakao-social-provider/ (카카오 SPI - Kotlin)\n3. /Users/leonard/Workspace/keycloak-naver-social-provider/ (네이버 SPI - 있으면)\n4. /Users/leonard/Workspace/keycloak-jit-user-migration/ (JIT Migration SPI - Java)\n\n주요 리뷰 파일:\n- Kakao SPI: KakaoIdentityProvider.kt, KakaoIdentityProviderFactory.kt\n- JIT Migration: JitUserMigrationAuthenticator.java\n- identity-keycloak: Dockerfile, 테마 파일들\n\n리뷰 관점:\n1. 코드 품질 (Java/Kotlin 컨벤션, 구조)\n2. 보안 (SSL 바이패스 정당성, 비밀번호 처리, 민감 데이터 로깅)\n3. Keycloak 26 호환성\n4. 에러 처리 및 로깅\n5. 빌드 설정 (Gradle/Maven)\n\n각 프로젝트별로 주요 이슈, 개선 제안, 잘된 점을 정리해주세요.\n심각도 분류: Critical / Major / Minor / Info",
+      "color": "yellow",
+      "planModeRequired": false,
+      "joinedAt": 1770684687888,
+      "tmuxPaneId": "%6",
+      "cwd": "/Users/leonard/Workspace",
+      "subscriptions": [],
+      "backendType": "tmux",
+      "isActive": true
+    },
+    {
+      "agentId": "infra-reviewer@sso-code-review",
+      "name": "infra-reviewer",
+      "agentType": "code-reviewer",
+      "model": "claude-opus-4-6",
+      "prompt": "maxai-docker 프로젝트(/Users/leonard/Workspace/maxai-docker/)의 SSO 인프라 구성을 리뷰해주세요. 한글로 작성해주세요.\n\n리뷰 대상 파일들:\n- .env.dev (환경변수, 시크릿 관리)\n- dev/docker-compose.yml (SSO 서비스 구성)\n- dev/nginx/ (nginx.conf, conf.d/, Dockerfile.nginx, docker-entrypoint)\n- dev/php83/ (docker-entrypoint, env-maxai-b2c-backend)\n- dev/scripts/init-db.sql\n- start.sh, stop.sh, restart.sh\n- appspec.yml (CodeDeploy)\n- scripts/codedeploy/ (stop_application.sh, after_install.sh, start_application.sh, validate_service.sh)\n- .gitlab-ci.yml (CI 파이프라인)\n\n리뷰 관점:\n1. 보안 (시크릿 노출 여부, 네트워크 격리, 포트 노출)\n2. Docker 구성 (서비스 의존성, 헬스체크, 리소스 제한, 볼륨 마운트)\n3. CI/CD (빌드 최적화, 배포 안정성, 롤백 전략)\n4. 운영 안정성 (로그 관리, 모니터링, 백업 전략)\n5. 환경 분리 (dev/staging/prod 설정 분리)\n\n각 영역별로 주요 이슈, 개선 제안을 정리해주세요.\n심각도 분류: Critical / Major / Minor / Info",
+      "color": "purple",
+      "planModeRequired": false,
+      "joinedAt": 1770684694185,
+      "tmuxPaneId": "%7",
+      "cwd": "/Users/leonard/Workspace",
+      "subscriptions": [],
+      "backendType": "tmux",
+      "isActive": true
+    }
+  ]
+}

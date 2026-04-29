@@ -1,0 +1,19 @@
+{
+  "name": "post-logout-uri",
+  "description": "identity-hub에 allowed_post_logout_redirect_uris 필드 추가",
+  "createdAt": 1774419929476,
+  "leadAgentId": "team-lead@post-logout-uri",
+  "leadSessionId": "c95b5403-361a-409c-8a74-e6a07a4c8d92",
+  "members": [
+    {
+      "agentId": "team-lead@post-logout-uri",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "model": "claude-opus-4-6",
+      "joinedAt": 1774419929476,
+      "tmuxPaneId": "",
+      "cwd": "/Users/leonard/Workspace/identity-platform-docker",
+      "subscriptions": []
+    }
+  ]
+}

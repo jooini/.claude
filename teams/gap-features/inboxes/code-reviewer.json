@@ -1,0 +1,15 @@
+[
+  {
+    "from": "code-reviewer",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"14\",\"subject\":\"code-reviewer\",\"description\":\"Identity Hub Admin Dashboard에 추가/수정된 모든 코드를 리뷰해주세요.\\n\\n## 프로젝트\\n\\n- 프로젝트: `/Users/leonard/Workspace/iden\",\"assignedBy\":\"code-reviewer\",\"timestamp\":\"2026-02-19T11:12:27.718Z\"}",
+    "timestamp": "2026-02-19T11:12:27.718Z",
+    "color": "purple",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1771499662020@code-reviewer\",\"from\":\"team-lead\",\"reason\":\"리뷰 완료. 수고하셨습니다.\",\"timestamp\":\"2026-02-19T11:14:22.020Z\"}",
+    "timestamp": "2026-02-19T11:14:22.020Z",
+    "read": true
+  }
+]

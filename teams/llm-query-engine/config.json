@@ -1,0 +1,19 @@
+{
+  "name": "llm-query-engine",
+  "description": "자연어를 ClickHouse 쿼리로 변환하는 웹 도구 개발 - FastAPI+React+LLM 통합",
+  "createdAt": 1776214341910,
+  "leadAgentId": "team-lead@llm-query-engine",
+  "leadSessionId": "b77b33a8-c5a4-4c61-8de2-5f058c59f1c1",
+  "members": [
+    {
+      "agentId": "team-lead@llm-query-engine",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "model": "claude-sonnet-4-20250514",
+      "joinedAt": 1776214341910,
+      "tmuxPaneId": "",
+      "cwd": "/Users/leonard/Workspace",
+      "subscriptions": []
+    }
+  ]
+}

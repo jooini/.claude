@@ -1,0 +1,212 @@
+# Knowledge 카탈로그 (170개)
+
+워크숍에 포함된 **170개 Knowledge 파일** 전체 목록입니다. 각 파일은 해당 역할의 AI 에이전트에게 전문성을 부여하는 참조 문서로, 실무 기반 노하우와 패턴을 담고 있습니다.
+
+> **총 52,333줄** | 7개 역할 카테고리 | 170개 파일
+
+***
+
+## 📋 Product Owner (24개 · 4,774줄)
+
+| #  | 파일                         | 주제            | 줄 수  |
+| -- | -------------------------- | ------------- | ---- |
+| 1  | `ab-testing`               | 실험 설계와 분석     | 207줄 |
+| 2  | `analytics`                | 제품 분석         | 187줄 |
+| 3  | `backlog-management`       | 백로그 관리        | 156줄 |
+| 4  | `business-model`           | 비즈니스 모델       | 183줄 |
+| 5  | `case-studies`             | 제품 사례 분석      | 176줄 |
+| 6  | `communication`            | 제품 커뮤니케이션     | 182줄 |
+| 7  | `competitive-intelligence` | 경쟁 분석         | 171줄 |
+| 8  | `cross-functional`         | 크로스펑셔널 협업     | 153줄 |
+| 9  | `decision-making`          | 의사결정          | 196줄 |
+| 10 | `growth`                   | 성장 전략         | 201줄 |
+| 11 | `market-research`          | 시장 조사         | 195줄 |
+| 12 | `metrics`                  | 제품 지표         | 234줄 |
+| 13 | `prd-writing`              | 제품 요구사항 문서 작성 | 252줄 |
+| 14 | `prioritization`           | 우선순위 결정       | 217줄 |
+| 15 | `product-discovery`        | 제품 발견         | 222줄 |
+| 16 | `product-leadership`       | 제품 리더십        | 171줄 |
+| 17 | `product-strategy`         | 제품 전략         | 258줄 |
+| 18 | `product-vision`           | 제품 비전 수립      | 195줄 |
+| 19 | `roadmap`                  | 로드맵 수립        | 212줄 |
+| 20 | `sprint-planning`          | 스프린트 운영       | 156줄 |
+| 21 | `stakeholder-management`   | 이해관계자 관리      | 204줄 |
+| 22 | `startup-operations`       | 스타트업 PO 운영    | 238줄 |
+| 23 | `user-research`            | 사용자 조사        | 253줄 |
+| 24 | `ux-principles`            | UX 기본 원칙      | 155줄 |
+
+## 🕸 Frontend Developer (25개 · 4,738줄)
+
+| #  | 파일                   | 주제                          | 줄 수  |
+| -- | -------------------- | --------------------------- | ---- |
+| 1  | `accessibility`      | 접근성 (a11y)                  | 179줄 |
+| 2  | `analytics`          | 이벤트 트래킹 구현                  | 134줄 |
+| 3  | `architecture`       | 프로젝트 구조와 개발 프로세스            | 241줄 |
+| 4  | `async-patterns`     | 비동기 처리 아키텍처                 | 353줄 |
+| 5  | `build-optimization` | 빌드 최적화                      | 141줄 |
+| 6  | `ci-cd`              | 파이프라인 가이드                   | 122줄 |
+| 7  | `code-quality`       | Frontend Fundamentals 4대 원칙 | 400줄 |
+| 8  | `component-patterns` | 컴포넌트 설계 패턴                  | 132줄 |
+| 9  | `data-fetching`      | 데이터 페칭 전략                   | 135줄 |
+| 10 | `design-system`      | 디자인 시스템                     | 275줄 |
+| 11 | `error-handling`     | 에러 처리 전략                    | 163줄 |
+| 12 | `forms`              | 폼 설계 가이드                    | 159줄 |
+| 13 | `git-workflow`       | 협업 워크플로우                    | 135줄 |
+| 14 | `i18n`               | 다국어 지원                      | 165줄 |
+| 15 | `libraries`          | 주요 라이브러리                    | 226줄 |
+| 16 | `monitoring`         | 에러 모니터링 & 성능 메트릭            | 123줄 |
+| 17 | `performance`        | 프론트엔드 성능 최적화                | 259줄 |
+| 18 | `routing`            | 라우팅 전략                      | 136줄 |
+| 19 | `security`           | 프론트엔드 보안                    | 112줄 |
+| 20 | `seo`                | 검색 엔진 최적화                   | 129줄 |
+| 21 | `server-actions`     | 서버 액션 (Next.js 14+)         | 189줄 |
+| 22 | `state-management`   | 상태 관리                       | 370줄 |
+| 23 | `styling`            | 스타일 전략                      | 105줄 |
+| 24 | `testing`            | 테스트 전략                      | 215줄 |
+| 25 | `typescript`         | 타입 안전성                      | 140줄 |
+
+## 🔧 Backend Developer (25개 · 8,483줄)
+
+| #  | 파일                     | 주제                                         | 줄 수  |
+| -- | ---------------------- | ------------------------------------------ | ---- |
+| 1  | `api-design`           | RESTful API 설계 원칙                          | 365줄 |
+| 2  | `architecture`         | 백엔드 아키텍처 패턴                                | 323줄 |
+| 3  | `caching`              | Caching                                    | 366줄 |
+| 4  | `concurrency`          | Concurrency                                | 418줄 |
+| 5  | `cost-optimization`    | Cost Optimization                          | 252줄 |
+| 6  | `data-patterns`        | Data Patterns                              | 335줄 |
+| 7  | `database`             | PostgreSQL Schema Design & Management      | 309줄 |
+| 8  | `debugging`            | Debugging                                  | 236줄 |
+| 9  | `deployment`           | Deployment                                 | 333줄 |
+| 10 | `distributed-systems`  | Distributed Systems                        | 348줄 |
+| 11 | `domain-driven-design` | Domain-Driven Design (DDD)                 | 399줄 |
+| 12 | `drizzle-orm`          | Type-safe SQL Toolkit                      | 314줄 |
+| 13 | `error-handling`       | 에러 처리 전략                                   | 403줄 |
+| 14 | `message-queues`       | Message Queues & Event-Driven Architecture | 445줄 |
+| 15 | `microservices`        | Microservices                              | 290줄 |
+| 16 | `networking`           | Networking                                 | 306줄 |
+| 17 | `nodejs-internals`     | Node.js Internals                          | 388줄 |
+| 18 | `observability`        | 로깅, 메트릭, 트레이싱                              | 339줄 |
+| 19 | `performance`          | Performance                                | 369줄 |
+| 20 | `postgresql`           | 인덱싱, 쿼리 최적화, 고급 기능                         | 284줄 |
+| 21 | `resilience`           | Resilience                                 | 397줄 |
+| 22 | `security`             | 인증, 인가, 보안 패턴                              | 292줄 |
+| 23 | `system-design`        | System Design                              | 407줄 |
+| 24 | `technical-leadership` | Technical Leadership                       | 243줄 |
+| 25 | `testing`              | 백엔드 테스트 전략                                 | 322줄 |
+
+## 🎨 Designer (24개 · 5,204줄)
+
+| #  | 파일                         | 주제                | 줄 수  |
+| -- | -------------------------- | ----------------- | ---- |
+| 1  | `accessibility`            | 접근성               | 255줄 |
+| 2  | `ai-design`                | AI 시대 디자인 패턴      | 58줄  |
+| 3  | `color-theory`             | 색상 이론             | 195줄 |
+| 4  | `component-design`         | 컴포넌트 설계           | 199줄 |
+| 5  | `data-visualization`       | 데이터 시각화           | 224줄 |
+| 6  | `design-critique`          | 디자인 크리틱           | 211줄 |
+| 7  | `design-leadership`        | 디자인 리더십           | 234줄 |
+| 8  | `design-principles`        | 디자인 원칙            | 157줄 |
+| 9  | `design-process`           | 디자인 프로세스          | 228줄 |
+| 10 | `design-system`            | 디자인 시스템           | 216줄 |
+| 11 | `design-tokens`            | 디자인 토큰            | 302줄 |
+| 12 | `developer-handoff`        | 개발자 핸드오프          | 265줄 |
+| 13 | `form-design`              | 폼 디자인             | 191줄 |
+| 14 | `inclusive-design`         | 포용적 디자인           | 205줄 |
+| 15 | `information-architecture` | 정보 구조             | 164줄 |
+| 16 | `interaction-design`       | 인터랙션 디자인          | 223줄 |
+| 17 | `layout-grid`              | 레이아웃과 그리드 시스템     | 254줄 |
+| 18 | `responsive-design`        | 반응형 디자인           | 243줄 |
+| 19 | `shadcn-patterns`          | shadcn/ui 컴포넌트 패턴 | 321줄 |
+| 20 | `typography`               | 타이포그래피            | 202줄 |
+| 21 | `user-flows`               | 유저 플로우            | 220줄 |
+| 22 | `ux-research`              | 사용자 리서치           | 187줄 |
+| 23 | `ux-writing`               | UX 라이팅            | 243줄 |
+| 24 | `wireframing`              | 와이어프레임            | 207줄 |
+
+## 🧪 QA Engineer (24개 · 6,355줄)
+
+| #  | 파일                             | 주제                                          | 줄 수  |
+| -- | ------------------------------ | ------------------------------------------- | ---- |
+| 1  | `accessibility-testing`        | 접근성 테스트 (Accessibility Testing)             | 274줄 |
+| 2  | `api-testing`                  | API 테스트 (API Testing)                       | 289줄 |
+| 3  | `bug-management`               | 버그 관리 (Bug Management)                      | 189줄 |
+| 4  | `ci-cd-testing`                | CI/CD 테스트 파이프라인 (CI/CD Testing)             | 293줄 |
+| 5  | `code-review`                  | 코드 리뷰 (Code Review)                         | 268줄 |
+| 6  | `database-testing`             | 데이터베이스 테스트 (Database Testing)               | 292줄 |
+| 7  | `e2e-testing`                  | E2E 테스트 (End-to-End Testing)                | 307줄 |
+| 8  | `exploratory-testing`          | 탐색적 테스트 (Exploratory Testing)               | 198줄 |
+| 9  | `integration-testing`          | 통합 테스트 (Integration Testing)                | 303줄 |
+| 10 | `mobile-testing`               | 모바일 테스트 (Mobile Testing)                    | 235줄 |
+| 11 | `performance-testing`          | 성능 테스트 (Performance Testing)                | 304줄 |
+| 12 | `qa-leadership`                | QA 리더십 (QA Leadership)                      | 232줄 |
+| 13 | `qa-metrics`                   | QA 메트릭 (QA Metrics)                         | 255줄 |
+| 14 | `regression-strategy`          | 회귀 테스트 전략 (Regression Strategy)             | 224줄 |
+| 15 | `security-testing`             | 보안 테스트 (Security Testing)                   | 302줄 |
+| 16 | `static-analysis`              | 정적 분석 (Static Analysis)                     | 269줄 |
+| 17 | `test-automation-architecture` | 테스트 자동화 아키텍처 (Test Automation Architecture) | 355줄 |
+| 18 | `test-design`                  | 테스트 케이스 설계 기법 (Test Design Techniques)      | 246줄 |
+| 19 | `test-environments`            | 테스트 환경 관리 (Test Environments)               | 263줄 |
+| 20 | `test-planning`                | 테스트 계획 수립 (Test Planning)                   | 232줄 |
+| 21 | `test-strategy`                | 테스트 전략 (Test Strategy)                      | 195줄 |
+| 22 | `type-safety`                  | TypeScript 타입 안전성 (Type Safety)             | 321줄 |
+| 23 | `unit-testing`                 | 단위 테스트 (Unit Testing)                       | 304줄 |
+| 24 | `visual-testing`               | 시각적 회귀 테스트 (Visual Regression Testing)      | 205줄 |
+
+## 📊 Data Analyst (24개 · 9,374줄)
+
+| #  | 파일                        | 주제                      | 줄 수  |
+| -- | ------------------------- | ----------------------- | ---- |
+| 1  | `ab-testing-stats`        | A/B Testing Statistics  | 114줄 |
+| 2  | `advanced-sql`            | Advanced SQL            | 381줄 |
+| 3  | `causal-inference`        | Causal Inference        | 146줄 |
+| 4  | `cohort-analysis`         | Cohort Analysis         | 101줄 |
+| 5  | `dashboard-design`        | Dashboard Design        | 271줄 |
+| 6  | `data-cleaning`           | Data Cleaning           | 659줄 |
+| 7  | `data-modeling`           | Data Modeling           | 556줄 |
+| 8  | `data-quality`            | Data Quality            | 97줄  |
+| 9  | `data-validation`         | Data Validation         | 783줄 |
+| 10 | `data-visualization`      | Data Visualization      | 223줄 |
+| 11 | `data-warehousing`        | Data Warehousing        | 256줄 |
+| 12 | `dbt-patterns`            | dbt Patterns            | 232줄 |
+| 13 | `descriptive-stats`       | Descriptive Statistics  | 752줄 |
+| 14 | `etl-pipelines`           | ETL Pipelines           | 951줄 |
+| 15 | `funnel-analysis`         | Funnel Analysis         | 122줄 |
+| 16 | `hypothesis-testing`      | Hypothesis Testing      | 737줄 |
+| 17 | `machine-learning-basics` | Machine Learning Basics | 193줄 |
+| 18 | `pandas-numpy`            | Pandas & NumPy          | 571줄 |
+| 19 | `product-metrics`         | Product Metrics         | 124줄 |
+| 20 | `query-optimization`      | Query Optimization      | 440줄 |
+| 21 | `regression`              | Regression Analysis     | 368줄 |
+| 22 | `storytelling-with-data`  | Storytelling with Data  | 295줄 |
+| 23 | `time-series`             | Time Series Analysis    | 498줄 |
+| 24 | `window-functions`        | Window Functions        | 504줄 |
+
+## ⚙️ Ops Lead (24개 · 13,441줄)
+
+| #  | 파일                        | 주제                                        | 줄 수  |
+| -- | ------------------------- | ----------------------------------------- | ---- |
+| 1  | `client-communication`    | Client Communication - 고객 소통 및 관계 관리      | 547줄 |
+| 2  | `client-onboarding`       | Client Onboarding - 고객 온보딩 및 성공 전략        | 482줄 |
+| 3  | `escalation-handling`     | Escalation Handling - 에스컬레이션 관리 및 갈등 해결   | 500줄 |
+| 4  | `sla-management`          | SLA Management - 서비스 수준 관리 및 성과 보장        | 499줄 |
+| 5  | `content-performance`     | Content Performance - 콘텐츠 성과 분석 및 최적화     | 537줄 |
+| 6  | `content-qc`              | Content QC - 콘텐츠 품질 관리 및 검수               | 542줄 |
+| 7  | `content-workflow`        | Content Workflow - 콘텐츠 제작 워크플로우 및 프로세스 관리 | 540줄 |
+| 8  | `editorial-calendar`      | Editorial Calendar - 에디토리얼 캘린더 및 콘텐츠 스케줄링 | 505줄 |
+| 9  | `meeting-facilitation`    | 미팅 퍼실리테이션 및 커뮤니케이션 설계                     | 539줄 |
+| 10 | `stakeholder-updates`     | 이해관계자 업데이트 및 진행상황 추적                      | 633줄 |
+| 11 | `team-coordination`       | 팀 간 협조 및 업무 연계 관리                         | 589줄 |
+| 12 | `automation-tools`        | 자동화 도구 및 워크플로우 패턴                         | 768줄 |
+| 13 | `documentation-standards` | 문서화 표준 및 지식 관리 체계                         | 711줄 |
+| 14 | `process-optimization`    | 프로세스 최적화: Lean Six Sigma 방법론              | 754줄 |
+| 15 | `agile-methodology`       | Agile Methodology - 애자일 방법론 실무 가이드        | 340줄 |
+| 16 | `project-planning`        | Project Planning - 프로젝트 기획 및 계획 수립        | 309줄 |
+| 17 | `resource-allocation`     | Resource Allocation - 리소스 배분 및 용량 계획      | 425줄 |
+| 18 | `risk-management`         | Risk Management - 프로젝트 위험 관리 실무 가이드       | 455줄 |
+| 19 | `executive-summaries`     | Executive Summary 작성 및 C-Level 커뮤니케이션     | 439줄 |
+| 20 | `kpi-dashboards`          | KPI 대시보드 설계 및 구현                          | 306줄 |
+| 21 | `performance-reporting`   | Performance Reporting - 성과 리포팅 및 비즈니스 메트릭 | 509줄 |
+| 22 | `operational-strategy`    | 운영 전략 수립 및 실행                             | 809줄 |
+| 23 | `scaling-operations`      | 운영 확장 및 성장 관리                             | 816줄 |
+| 24 | `vendor-management`       | 벤더 관리 및 전략적 파트너십                          | 887줄 |

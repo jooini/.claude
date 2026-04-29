@@ -1,0 +1,19 @@
+{
+  "name": "ih-di-refactor",
+  "description": "Identity Hub 서비스 간 DI 생성자 주입 전환",
+  "createdAt": 1773376461517,
+  "leadAgentId": "team-lead@ih-di-refactor",
+  "leadSessionId": "764079c9-3abd-485c-92de-76a94586f03b",
+  "members": [
+    {
+      "agentId": "team-lead@ih-di-refactor",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "model": "claude-opus-4-6",
+      "joinedAt": 1773376461517,
+      "tmuxPaneId": "",
+      "cwd": "/Users/leonard/Workspace/identity-hub",
+      "subscriptions": []
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+# 캐시/로그/세션 데이터 (변경 추적 불필요)
+projects/
+plugins/
+cache/
+file-history/
+telemetry/
+transcripts/
+shell-snapshots/
+session-env/
+paste-cache/
+todos/
+tasks/
+sessions/
+debug/
+statsig/
+ide/
+lancedb/
+.obsidian/
+.idea/
+workspace-root/
+intent/
+
+# 큰 단발성 파일
+history.jsonl
+*.log
+.DS_Store
+
+# 백업 디렉토리 자체는 추적 안함 (별도 보관)
+backups/
+
+# 빌드 산출물
+agents/.last-build

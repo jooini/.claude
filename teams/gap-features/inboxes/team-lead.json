@@ -1,0 +1,132 @@
+[
+  {
+    "from": "api-key-dev",
+    "text": "API Key 관리 기능 구현이 완료되었습니다.\n\n## 변경된 파일\n\n### 신규 파일\n1. `src/lib/types/api-key.ts` - ApiKey, ApiKeyCreateRequest, ApiKeyCreateResponse 타입 정의\n2. `src/lib/api/api-keys.ts` - listApiKeys, createApiKey, revokeApiKey API 클라이언트 함수\n3. `src/app/(dashboard)/api-keys/page.tsx` - API Key 관리 페이지 (CRUD UI)\n\n### 수정 파일\n4. `src/lib/types/index.ts` - `export * from \"./api-key\"` 추가\n5. `src/components/layout/app-sidebar.tsx` - `KeyRound` 아이콘 import 및 NAV_ITEMS에 \"API Key 관리\" 항목 추가\n\n## 구현 내용\n- API Key 목록 조회 (Table: 서비스명, Key Prefix, 설명, 상태 Badge, 만료일, 마지막 사용, 생성일)\n- API Key 생성 Dialog (서비스명 필수, 설명 선택, 만료일 datetime-local 선택)\n- 생성 성공 시 별도 Dialog에서 API Key 값 표시 + 클립보드 복사 버튼\n- 비활성화: AlertDialog 확인 후 revokeApiKey() 호출\n- 에러 처리: 409 -> \"이미 활성 키가 존재합니다\", 기타 에러 toast.error\n- 새로고침 버튼, 로딩/빈 상태 처리\n- clients/page.tsx 패턴을 정확히 따름\n\n## 자체 검증\n- 접근성: 모든 아이콘 버튼에 aria-label 추가 (비활성화, API Key 복사), 폼에 htmlFor+id 연결\n- 반응형: 기존 패턴(flex-1 flex-col gap-6 p-6)을 따름\n- 에러/로딩/빈 상태: 모두 처리 완료\n- 날짜 null 처리: formatDate 함수에서 null/undefined -> \"-\" 반환\n\n## 커밋\n- `ec9159e` feat: API Key 타입 및 API 클라이언트 추가\n- `d926dc1` feat: API Key 관리 페이지 추가\n\n## 참고사항\n- 다른 에이전트(kc-client-dev)가 app-sidebar.tsx에 `AppWindow` import를 추가했는데, 충돌 없이 함께 반영되었습니다.\n- lint/build 모두 통과 (기존 pre-existing 에러만 존재, 새 파일에는 에러 없음)",
+    "summary": "API Key 관리 기능 구현 완료 보고",
+    "timestamp": "2026-02-19T10:58:48.788Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "api-key-dev",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"api-key-dev\",\"timestamp\":\"2026-02-19T10:58:51.897Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T10:58:51.897Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "api-key-dev",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"api-key-dev\",\"timestamp\":\"2026-02-19T10:58:56.095Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T10:58:56.095Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "KC 클라이언트 관리 기능 구현이 완료되었습니다.\n\n## 구현 파일\n\n### 신규 파일\n1. **`/Users/leonard/Workspace/identity-hub-frontend/src/lib/types/keycloak-client.ts`** - KeycloakClient, KeycloakClientCreate, KeycloakClientResponse 타입 정의\n2. **`/Users/leonard/Workspace/identity-hub-frontend/src/lib/api/keycloak-clients.ts`** - listKeycloakClients, getKeycloakClient, getKeycloakClientSecret, createKeycloakClient API 함수\n3. **`/Users/leonard/Workspace/identity-hub-frontend/src/app/(dashboard)/keycloak-clients/page.tsx`** - KC 클라이언트 관리 페이지 (목록, 생성 다이얼로그, 상세 다이얼로그, 시크릿 조회)\n\n### 수정 파일\n4. **`/Users/leonard/Workspace/identity-hub-frontend/src/lib/types/index.ts`** - keycloak-client export 추가\n5. **`/Users/leonard/Workspace/identity-hub-frontend/src/components/layout/app-sidebar.tsx`** - AppWindow 아이콘 + \"KC 클라이언트\" 네비게이션 항목 추가\n\n## 커밋\n- `094015a` - feat: Keycloak Client 타입 및 API 클라이언트 추가\n- `566ab1d` - feat: KC 클라이언트 관리 페이지 추가\n\n## 자체 검증 결과\n- ESLint: 신규 파일 전부 통과 (sidebar의 기존 set-state-in-effect 경고는 이전부터 존재하는 이슈)\n- Next.js Build: 성공 (`/keycloak-clients` 라우트 정상 등록)\n- 접근성: 모든 버튼에 aria-label, Label에 htmlFor, Dialog에 Title/Description 포함\n- 반응형: Dialog에 max-h-[90vh] overflow-y-auto, 테이블 셀에 truncate 적용\n- 에러/로딩/빈 상태: 전부 처리 완료\n- 시크릿 조회: Confidential 클라이언트만 노출, Eye 토글 + 복사 기능\n\n## 참고 사항\n- api-key-dev 에이전트가 sidebar와 types/index.ts를 먼저 커밋했기 때문에, 해당 파일들의 변경사항은 이미 포함되어 있었습니다. 충돌 없이 정상 병합되었습니다.",
+    "summary": "KC 클라이언트 기능 구현 완료 보고",
+    "timestamp": "2026-02-19T11:00:36.231Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T11:00:39.901Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T11:00:39.901Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T11:00:43.572Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T11:00:43.572Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T11:00:46.730Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T11:00:46.730Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T11:00:53.541Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T11:00:53.541Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "api-key-dev",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1771498852059@api-key-dev\",\"from\":\"api-key-dev\",\"timestamp\":\"2026-02-19T11:00:56.182Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-02-19T11:00:56.182Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1771498853008@kc-client-dev\",\"from\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T11:00:57.729Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-02-19T11:00:57.729Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "page-improve-dev",
+    "text": "## 기존 페이지 개선 완료 보고\n\n3개 Part 모두 구현 완료, lint + build 통과, 커밋 완료했습니다.\n\n---\n\n### Part A: 클라이언트 설정 개선 (Task 5)\n**커밋:** `6f71e20` - `feat: 클라이언트 설정 검색, 비활성 필터, 페이지네이션 추가`\n\n**수정 파일:**\n- `/Users/leonard/Workspace/identity-hub-frontend/src/lib/api/clients.ts` - `listClientConfigs`에 `search`, `include_inactive` 파라미터 추가\n- `/Users/leonard/Workspace/identity-hub-frontend/src/app/(dashboard)/clients/page.tsx` - 검색 Input, 비활성 포함 Switch, 페이지네이션 UI 추가\n\n**변경 내용:**\n- Client ID 검색 Input (CardHeader 영역)\n- \"비활성 포함\" Switch 토글\n- 페이지네이션 (이전/다음 버튼, 현재/전체 페이지 표시, audit/page.tsx 패턴 따름)\n- 검색어/필터 변경 시 page를 1로 초기화\n- fetchConfigs에 page, search, includeInactive 의존성 추가\n\n---\n\n### Part B: 사용자 상세 - Federated Identity 추가 (Task 6)\n**커밋:** `1272836` - `feat: 사용자 상세 Federated Identity 추가 기능`\n\n**수정 파일:**\n- `/Users/leonard/Workspace/identity-hub-frontend/src/lib/api/users.ts` - `addFederatedIdentity` 함수 추가\n- `/Users/leonard/Workspace/identity-hub-frontend/src/app/(dashboard)/users/[userId]/page.tsx` - IDP 연결 추가 버튼 및 Dialog 추가\n\n**변경 내용:**\n- users.ts에 `addFederatedIdentity(realm, userId, data)` POST API 추가\n- Identity 탭의 CardHeader를 flex row로 변경하고 \"IDP 연결 추가\" 버튼 추가\n- Dialog: Provider ID, Provider User ID, Provider Username 3개 필드 폼\n- 성공 시 toast + 목록 자동 갱신(fetchIdentities), 폼 초기화\n- Dialog/DialogContent/DialogHeader/DialogTitle/DialogDescription/DialogFooter 컴포넌트 import 추가\n- Plus 아이콘 import 추가\n\n---\n\n### Part C: Realm 개선 (Task 7)\n**커밋:** `1c50d1f` - `feat: Realm 새로고침 개선 및 상세 보기 추가`\n\n**수정 파일:**\n- `/Users/leonard/Workspace/identity-hub-frontend/src/lib/context/realm-context.tsx` - `refreshRealms` 추가\n- `/Users/leonard/Workspace/identity-hub-frontend/src/app/(dashboard)/realms/page.tsx` - 새로고침 개선 + 상세 보기\n\n**변경 내용:**\n- RealmContextType에 `refreshRealms: () => Promise<void>` 추가\n- fetch 로직을 `fetchRealms` useCallback으로 추출, `refreshRealms`로 외부 노출\n- Provider value에 `refreshRealms` 전달\n- realms/page.tsx: `window.location.reload()` -> `refreshRealms()` 변경\n- Realm 생성 성공 후 `toast.info(\"새로고침해주세요\")` 제거 -> `await refreshRealms()` 호출\n- 각 Realm 행에 \"상세\" 버튼 추가 (Info 아이콘)\n- 상세 클릭 시 `getRealm(r.realm)` 호출, Dialog에 key-value 쌍으로 전체 필드 표시\n- formatDetailValue 헬퍼로 boolean/null/object 값 포맷팅\n\n---\n\n### 발견한 이슈/주의사항\n1. **기존 lint 에러 2건** (내 수정 파일 아님):\n   - `src/app/callback/page.tsx:35` - useEffect 내 setState 직접 호출 (react-hooks/set-state-in-effect)\n   - `src/components/layout/app-sidebar.tsx:66` - useEffect 내 setState 직접 호출 (react-hooks/set-state-in-effect)\n   \n   이 2건은 기존 코드의 문제이며, 내가 수정한 6개 파일은 모두 lint를 통과합니다.\n\n2. **realm-context.tsx의 fetchRealms에 `realm` 의존성**: `useCallback`의 deps에 `realm`이 들어가지만 `useEffect`에서는 초기 로드 한 번만 실행하도록 `// eslint-disable-next-line react-hooks/exhaustive-deps`를 유지했습니다. `refreshRealms`를 호출할 때마다 최신 `realm` 값이 반영됩니다.\n\n3. **Realm 상세 다이얼로그의 데이터 타입**: `getRealm`의 반환 타입이 `Realm`인데, 실제 API가 더 많은 필드를 내려줄 수 있으므로 `Record<string, unknown>`으로 캐스팅하여 모든 필드를 표시하도록 했습니다.\n\n### 빌드 결과\n`npx next build` 성공 - 모든 페이지 정상 빌드됨.",
+    "summary": "3개 Part 구현 완료, lint+build 통과",
+    "timestamp": "2026-02-19T11:10:13.557Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "page-improve-dev",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"page-improve-dev\",\"timestamp\":\"2026-02-19T11:10:25.020Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T11:10:25.020Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "page-improve-dev",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"page-improve-dev\",\"timestamp\":\"2026-02-19T11:10:35.507Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T11:10:35.507Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "page-improve-dev",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1771499429214@page-improve-dev\",\"from\":\"page-improve-dev\",\"timestamp\":\"2026-02-19T11:10:40.225Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-02-19T11:10:40.225Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "code-reviewer",
+    "text": "\n# Code Review Report - Identity Hub Admin Dashboard\n\n**Branch:** `feature/redesign`  \n**Review scope:** 7 commits, 14 files (6 new, 8 modified)\n\n---\n\n## 1. `/Users/leonard/Workspace/identity-hub-frontend/src/lib/types/api-key.ts`\n\n- [PASS] 타입 정의: `ApiKey`, `ApiKeyCreateRequest`, `ApiKeyCreateResponse` 세 인터페이스 모두 깔끔하게 정의됨\n- [PASS] snake_case 필드명이 백엔드 API 스키마와 일관됨\n- [PASS] optional/nullable 필드가 `string | null`로 명시적 처리\n\n---\n\n## 2. `/Users/leonard/Workspace/identity-hub-frontend/src/lib/api/api-keys.ts`\n\n- [PASS] 타입 임포트 및 API 패턴이 기존 `clients.ts`, `users.ts`와 일관됨\n- [PASS] `encodeURIComponent(serviceName)`으로 URL 경로 인젝션 방지 -- 좋은 패턴\n- [PASS] 간결한 구조, 불필요한 코드 없음\n\n---\n\n## 3. `/Users/leonard/Workspace/identity-hub-frontend/src/app/(dashboard)/api-keys/page.tsx`\n\n- [PASS] 패턴 일관성: `Card > CardHeader > Table` 구조, `Dialog/AlertDialog`, `toast.error/success` 패턴 모두 기존 페이지와 동일\n- [PASS] 로딩/빈 상태 처리 완전\n- [PASS] API Key 생성 후 결과 다이얼로그에서 \"한 번만 표시\" 경고 -- 보안 관점에서 적절\n- [PASS] 클립보드 복사 실패 시 에러 처리\n- [PASS] `ApiError` 상태 코드 409에 대한 구체적 에러 메시지 분기 처리\n\n**이슈 없음.**\n\n---\n\n## 4. `/Users/leonard/Workspace/identity-hub-frontend/src/lib/types/keycloak-client.ts`\n\n- 🟡 **[WARN] 네이밍 불일치 (Important):**\n  - `KeycloakClient` 인터페이스는 camelCase (`clientId`, `publicClient`, `redirectUris`)\n  - `KeycloakClientCreate`는 snake_case (`client_id`, `public_client`, `redirect_uris`)\n  - `KeycloakClientResponse`도 snake_case (`client_id`, `public_client`)\n  \n  **원인 분석:** `KeycloakClient`는 Keycloak Admin API 직접 응답(camelCase)을 매핑하고, `KeycloakClientCreate`/`KeycloakClientResponse`는 Identity Hub BFF API(snake_case)를 매핑하는 것으로 보임. 의도적 설계라면 파일 상단에 주석으로 명시하는 것을 권장.\n\n---\n\n## 5. `/Users/leonard/Workspace/identity-hub-frontend/src/lib/api/keycloak-clients.ts`\n\n- 🟡 **[WARN] API 경로 불일치 (Important):**\n  - `listKeycloakClients`: `/admin/realms/${realm}/clients` (Keycloak 프록시 경로)\n  - `getKeycloakClient`: `/clients/${realm}/${clientId}` (BFF 경로)\n  - `createKeycloakClient`: `/clients` (BFF 경로)\n  - `getKeycloakClientSecret`: `/clients/${realm}/${clientId}/secret` (BFF 경로)\n  \n  한 파일 내에서 두 가지 다른 API 계층을 혼용하고 있음. 정상 동작하더라도 유지보수 시 혼란 발생 가능. 이것이 의도적 설계인지 확인 필요.\n\n- 🟡 **[WARN] URL 인코딩 누락 (Important):**\n  - `realm`과 `clientId` 파라미터에 `encodeURIComponent` 미적용. 특수문자 포함 시 URL 깨짐 가능.\n  - `api-keys.ts`에서는 `encodeURIComponent(serviceName)`을 적용하고 있어 불일치.\n\n---\n\n## 6. `/Users/leonard/Workspace/identity-hub-frontend/src/app/(dashboard)/keycloak-clients/page.tsx`\n\n- [PASS] 전체 패턴이 다른 페이지들과 일관됨\n- [PASS] 상세 다이얼로그에서 Confidential 클라이언트만 시크릿 조회 섹션 표시 -- 적절\n- [PASS] `e.stopPropagation()` 사용으로 행 클릭과 버튼 클릭 이벤트 분리\n- [PASS] `DialogContent`에 `max-h-[90vh] overflow-y-auto` -- 긴 폼 대응\n\n- 🟢 **[SUGGESTION] 생성 폼 state 과다:**\n  - 10개의 개별 `useState` 호출 (line 61-70). `useReducer` 또는 form state object로 통합하면 `resetCreateForm`도 단순해짐.\n  - 현재 상태에서 동작 문제는 없으며, 기존 패턴을 따르고 있으므로 즉시 변경 불필요.\n\n---\n\n## 7. `/Users/leonard/Workspace/identity-hub-frontend/src/lib/types/index.ts`\n\n- [PASS] barrel export 패턴. `api-key`와 `keycloak-client` 추가됨.\n- [PASS] 기존 패턴과 동일\n\n---\n\n## 8. `/Users/leonard/Workspace/identity-hub-frontend/src/components/layout/app-sidebar.tsx`\n\n- [PASS] NAV_ITEMS에 `API Key 관리`와 `KC 클라이언트` 추가됨\n- [PASS] 아이콘(`KeyRound`, `AppWindow`) 적절\n- [PASS] 메뉴 순서 논리적: 대시보드 > 사용자 > 클라이언트 > Realm > 역할 > 감사로그 > API Key > KC 클라이언트\n\n- 🟢 **[SUGGESTION] 메뉴 그룹핑:** 항목이 8개로 늘어남. 향후 \"인증/보안\" / \"시스템 관리\" 등으로 그룹 분리 고려.\n\n---\n\n## 9. `/Users/leonard/Workspace/identity-hub-frontend/src/lib/api/clients.ts`\n\n- [PASS] `listClientConfigs`에 검색, 페이지네이션, 비활성 포함 파라미터 추가됨\n- [PASS] `URLSearchParams` 활용 패턴 적절\n- [PASS] CRUD 함수 전체 완비\n\n---\n\n## 10. `/Users/leonard/Workspace/identity-hub-frontend/src/app/(dashboard)/clients/page.tsx`\n\n- [PASS] 검색, 비활성 필터, 페이지네이션 UI 추가됨\n- [PASS] `setPage(1)` -- 검색/필터 변경 시 페이지 리셋\n- [PASS] secret masking 처리 (`maskSecret` 함수)\n\n- 🔴 **[CRITICAL] Client Secret 평문 노출 (Security):**\n  - Line 358-361: `config.client_secret`이 눈 아이콘 토글로 평문 표시됨.\n  - 이 `client_secret`은 API 응답에서 직접 오는 것으로, **테이블 목록 API가 시크릿을 평문으로 반환한다면** 심각한 보안 문제.\n  - BFF(`/client-configs`) API가 목록 조회 시 시크릿을 마스킹해서 반환하는지, 또는 전체 값을 반환하는지 확인 필요.\n  - **만약 전체 시크릿이 반환된다면:** 목록에서는 마스킹된 값만 표시하고, 전체 시크릿은 별도 상세 API로 조회하는 방식 권장.\n\n- 🟡 **[WARN] 검색 debounce 미적용 (Performance):**\n  - Line 228-231: `onChange` 이벤트마다 `setSearch`가 호출되고, `fetchConfigs`의 `useCallback` 의존성에 `search`가 포함되어 있어 `useEffect`로 인해 키 입력마다 API 호출 발생.\n  - `useDebouncedValue` 또는 `setTimeout` 디바운싱 적용 권장 (300ms).\n\n- 🟡 **[WARN] IIFE 패턴 (Readability):**\n  - Line 419-446: 페이지네이션을 IIFE `(() => { ... })()` 내에서 렌더링. 별도 컴포넌트로 추출하거나 `useMemo`로 `totalPages`를 계산하는 것이 더 깔끔함.\n\n---\n\n## 11. `/Users/leonard/Workspace/identity-hub-frontend/src/lib/api/users.ts`\n\n- [PASS] `getFederatedIdentities`, `addFederatedIdentity`, `deleteFederatedIdentity` 추가됨\n- [PASS] `countUsers` 추가됨\n- [PASS] 타입 안전성 유지\n\n- 🟡 **[WARN] URL 인코딩 일관성 (Security):**\n  - `searchUsers`에서 `encodeURIComponent(query)`는 phone 검색에만 적용됨 (line 23).\n  - 다른 검색 파라미터(`username`, `email` 등)는 `URLSearchParams`를 사용하므로 자동 인코딩됨 -- 실제로는 안전함.\n  - 다만 `realm`, `userId`, `providerId` 등의 경로 파라미터에는 `encodeURIComponent` 미적용. `api-keys.ts`와 불일치.\n\n---\n\n## 12. `/Users/leonard/Workspace/identity-hub-frontend/src/app/(dashboard)/users/[userId]/page.tsx`\n\n- [PASS] 탭 기반 레이아웃 (프로필/비밀번호/역할/IDP) -- 깔끔한 UX\n- [PASS] Federated Identity CRUD 완전 구현\n- [PASS] 사용자 삭제 시 `AlertDialog` 확인 단계\n- [PASS] 로딩/에러/빈 상태 모두 처리\n\n- 🟡 **[WARN] 에러 침묵 처리 (Error Handling):**\n  - Line 132-134 (`fetchRoles`): `catch { // silently fail }`\n  - Line 141-143 (`fetchIdentities`): `catch { // silently fail }`\n  - 역할/IDP 조회 실패 시 사용자가 이유를 알 수 없음. 최소한 `console.error`라도 남기거나, 해당 탭에 에러 상태 표시 권장.\n\n- 🟡 **[WARN] `handleDeleteUser`에서 `setDeleting(false)` 누락 경로 (Bug):**\n  - Line 251-263: 성공 시 `router.push(\"/users\")`로 이동하므로 `setDeleting(false)`가 불필요하지만, 실패 시에만 `setDeleting(false)` 호출. 정상 동작하나, `finally` 블록에서 일관되게 처리하는 것이 패턴 통일상 나음.\n\n- 🟢 **[SUGGESTION] IDP 삭제 시 확인 다이얼로그 부재:**\n  - Line 527-537: IDP 삭제 버튼이 즉시 삭제를 실행함 (`handleDeleteIdentity`). 다른 삭제 동작들은 `AlertDialog`로 확인하는데, IDP 삭제는 확인 없이 바로 실행. 실수로 클릭 시 되돌릴 수 없음.\n\n---\n\n## 13. `/Users/leonard/Workspace/identity-hub-frontend/src/lib/context/realm-context.tsx`\n\n- [PASS] `refreshRealms` 함수 추가로 외부에서 Realm 목록 갱신 가능\n- [PASS] localStorage 기반 realm 유지\n\n- 🟡 **[WARN] `fetchRealms`의 `useCallback` 의존성에 `realm` 포함 (Bug Risk):**\n  - Line 41-58: `fetchRealms`가 `realm`에 의존. `realm`이 변경되면 `fetchRealms`가 재생성됨. 그러나 `useEffect` (line 60-63)에서는 `eslint-disable` 주석으로 `fetchRealms`를 의존성에서 제외함.\n  - 현재 `fetchRealms`는 마운트 시 한 번만 실행되므로 실질적 문제는 없지만, `fetchRealms` 내부에서 `realm`을 참조하는 이유(fallback 체크)와 의도적으로 `useEffect` 의존성을 제외한 것의 관계가 미묘함.\n  - `refreshRealms`를 호출하면 그 시점의 최신 `realm`으로 fallback 체크가 수행되므로 동작 자체는 올바름.\n\n---\n\n## 14. `/Users/leonard/Workspace/identity-hub-frontend/src/app/(dashboard)/realms/page.tsx`\n\n- [PASS] `refreshRealms` 활용한 새로고침 기능\n- [PASS] Realm 상세 다이얼로그 추가 -- key-value 형태로 모든 필드 표시\n- [PASS] Realm 선택 기능\n\n- 🟡 **[WARN] `detailData` 타입이 `Record<string, unknown>` (Type Safety):**\n  - Line 42: `detailData`가 `Record<string, unknown>`으로 선언되어 있고, line 84에서 `as unknown as Record<string, unknown>` 캐스팅.\n  - `getRealm`의 반환 타입은 `Realm`인데 이를 `Record<string, unknown>`으로 캐스팅하여 임의의 key-value를 렌더링.\n  - **의도:** Keycloak Realm 응답에는 `Realm` 타입에 정의되지 않은 필드가 많으므로 모두 보여주려는 것으로 판단. 그러나 API 함수의 반환 타입(`Realm`)과 실제 사용이 불일치함.\n  - **권장:** `getRealm`의 반환 타입을 `Record<string, unknown>`으로 변경하거나, 별도의 \"raw detail\" API 함수를 만드는 것이 타입 안전성에 나음.\n\n---\n\n## Overall Summary\n\n### 판정: **CONDITIONAL PASS -- 권장 수정 사항 있음**\n\n### 좋은 점\n- 모든 페이지가 동일한 구조/패턴을 따름 (Card > Table, Dialog/AlertDialog, toast, Loader2)\n- shadcn/ui 컴포넌트 활용이 일관됨\n- 에러 처리가 대부분의 API 호출에 적용됨\n- `any` 타입 사용 없음 (한 곳의 `Record<string, unknown>` 제외)\n- API Key 생성 후 \"한 번만 표시\" UX가 보안 관점에서 적절\n- `encodeURIComponent` 사용 (api-keys.ts)\n\n### 수정 우선순위\n\n| 우선순위 | 파일 | 이슈 | 분류 |\n|---------|------|------|------|\n| **1 (Critical)** | `clients/page.tsx` | client_secret 평문 노출 가능성 -- BFF API 응답 확인 후 마스킹 처리 필요 | Security |\n| **2 (Important)** | `keycloak-clients.ts` | `realm`/`clientId` 경로 파라미터 `encodeURIComponent` 미적용 | Security |\n| **3 (Important)** | `clients/page.tsx` | 검색 입력 debounce 미적용 -- 키 입력마다 API 호출 | Performance |\n| **4 (Important)** | `users/[userId]/page.tsx` | `fetchRoles`/`fetchIdentities` 에러 침묵 처리 | Error Handling |\n| **5 (Important)** | `keycloak-client.ts` (types) | camelCase/snake_case 혼재 -- 주석 설명 권장 | Maintainability |\n| **6 (Important)** | `keycloak-clients.ts` | API 경로 두 계층 혼용 (`/admin/realms/...` vs `/clients/...`) | Maintainability |\n| **7 (Important)** | `realms/page.tsx` | `detailData`의 타입 안전성 (`as unknown as Record<string, unknown>`) | Type Safety |\n| **8 (Suggestion)** | `users/[userId]/page.tsx` | IDP 삭제 시 확인 다이얼로그 부재 | UX |\n| **9 (Suggestion)** | `app-sidebar.tsx` | 메뉴 8개 -- 향후 그룹 분리 고려 | UX |\n| **10 (Suggestion)** | `clients/page.tsx` | 페이지네이션 IIFE 패턴 -- 별도 추출 권장 | Readability |\n\n### 배포 판단\n- **#1 (client_secret 노출)** 은 BFF API가 실제로 시크릿 전문을 반환하는지 확인이 필요. 만약 이미 마스킹된 값만 반환한다면 이슈 해소.\n- **#2 (encodeURIComponent)** 는 realm/clientId에 특수문자가 실무상 거의 없다면 위험도가 낮으나, 방어적으로 적용 권장.\n- **#3 (debounce)** 는 사용성에 직접적 영향이 있으므로 배포 전 적용 권장.\n- 나머지는 후속 PR에서 개선 가능.\n",
+    "summary": "전체 14개 파일 코드 리뷰 결과 보고",
+    "timestamp": "2026-02-19T11:14:06.286Z",
+    "color": "purple",
+    "read": true
+  },
+  {
+    "from": "code-reviewer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"code-reviewer\",\"timestamp\":\"2026-02-19T11:14:16.343Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T11:14:16.343Z",
+    "color": "purple",
+    "read": true
+  },
+  {
+    "from": "code-reviewer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"code-reviewer\",\"timestamp\":\"2026-02-19T11:14:25.170Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-02-19T11:14:25.170Z",
+    "color": "purple",
+    "read": true
+  },
+  {
+    "from": "code-reviewer",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1771499662020@code-reviewer\",\"from\":\"code-reviewer\",\"timestamp\":\"2026-02-19T11:14:28.344Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-02-19T11:14:28.344Z",
+    "color": "purple",
+    "read": true
+  }
+]

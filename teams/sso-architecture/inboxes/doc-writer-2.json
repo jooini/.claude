@@ -1,0 +1,23 @@
+[
+  {
+    "from": "architect-3",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"7\",\"subject\":\"소셜 계정 연결 다이어그램 작성\",\"description\":\"소셜 계정 연결(Account Linking) 시퀀스 다이어그램을 ~/Workspace/docs/20260210/sso-architecture/06-social-account-linking.md에 작성. 기존 계정에 소셜 계정 연결/해제 플로우.\",\"assignedBy\":\"architect-3\",\"timestamp\":\"2026-02-10T01:21:18.438Z\"}",
+    "timestamp": "2026-02-10T01:21:18.438Z",
+    "color": "yellow",
+    "read": false
+  },
+  {
+    "from": "architect-3",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"8\",\"subject\":\"회원가입 플로우 다이어그램 작성\",\"description\":\"회원가입 SSO/Legacy 모드 시퀀스 다이어그램을 ~/Workspace/docs/20260210/sso-architecture/07-signup-flows.md에 작성. 두 모드를 섹션으로 나눠서 작성.\",\"assignedBy\":\"architect-3\",\"timestamp\":\"2026-02-10T01:22:47.937Z\"}",
+    "timestamp": "2026-02-10T01:22:47.937Z",
+    "color": "yellow",
+    "read": false
+  },
+  {
+    "from": "architect-3",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"9\",\"subject\":\"로그아웃 및 세션 관리 다이어그램 작성\",\"description\":\"로그아웃 및 세션 관리 시퀀스 다이어그램을 ~/Workspace/docs/20260210/sso-architecture/08-logout-session.md에 작성. Single Logout, 세션 정리 플로우.\",\"assignedBy\":\"architect-3\",\"timestamp\":\"2026-02-10T01:24:27.972Z\"}",
+    "timestamp": "2026-02-10T01:24:27.972Z",
+    "color": "yellow",
+    "read": false
+  }
+]

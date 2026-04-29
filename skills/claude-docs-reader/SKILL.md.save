@@ -1,0 +1,12 @@
+---
+name: claude-docs-reader
+description: ~/.claude의 md 파일들을 읽고 Claude Code 사용 히스토리와 설정을 파악합니다. claude 히스토리, claude 설정, .claude 문서 분석 요청에 사용됩니다.
+---
+
+# Claude Docs Reader
+
+## 사용법
+
+1. ~/.claude 디렉토리에서 md 파일 목록 확인
+2. 각 파일 내용을 읽어 분석
+3. 히스토리와 설정 요약 제공

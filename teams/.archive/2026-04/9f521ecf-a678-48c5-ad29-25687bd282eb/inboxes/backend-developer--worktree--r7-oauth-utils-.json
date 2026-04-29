@@ -1,0 +1,8 @@
+[
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"2\",\"subject\":\"R7: OAuth 유틸 추출\",\"description\":\"oauth_service.py의 _generate_pkce/_verify_nonce/_extract_user_info을 app/utils/oauth_utils.py로 이관. public 메서드 시그니처 불변. 검증: ruff + pytest.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-04-23T10:18:28.751Z\"}",
+    "timestamp": "2026-04-23T10:18:28.751Z",
+    "read": false
+  }
+]

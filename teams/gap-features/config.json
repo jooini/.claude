@@ -1,0 +1,19 @@
+{
+  "name": "gap-features",
+  "description": "Identity Hub Frontend - 백엔드 갭 기능 구현 팀",
+  "createdAt": 1771495992462,
+  "leadAgentId": "team-lead@gap-features",
+  "leadSessionId": "8aa11f31-122f-41c5-8b49-429d5fc12538",
+  "members": [
+    {
+      "agentId": "team-lead@gap-features",
+      "name": "team-lead",
+      "agentType": "team-lead",
+      "model": "claude-opus-4-6",
+      "joinedAt": 1771495992462,
+      "tmuxPaneId": "",
+      "cwd": "/Users/leonard/Workspace/identity-hub-frontend",
+      "subscriptions": []
+    }
+  ]
+}

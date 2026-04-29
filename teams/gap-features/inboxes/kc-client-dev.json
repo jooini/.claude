@@ -1,0 +1,43 @@
+[
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"8\",\"subject\":\"Create Keycloak Client types\",\"description\":\"Create src/lib/types/keycloak-client.ts and update src/lib/types/index.ts\",\"assignedBy\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T10:15:26.185Z\"}",
+    "timestamp": "2026-02-19T10:15:26.185Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"9\",\"subject\":\"Create Keycloak Client API functions\",\"description\":\"Create src/lib/api/keycloak-clients.ts with list, get, getSecret, create functions\",\"assignedBy\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T10:53:52.534Z\"}",
+    "timestamp": "2026-02-19T10:53:52.534Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"10\",\"subject\":\"Update app-sidebar.tsx with KC client nav item\",\"description\":\"Add AppWindow icon import and KC 클라이언트 nav item to NAV_ITEMS array\",\"assignedBy\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T10:54:14.065Z\"}",
+    "timestamp": "2026-02-19T10:54:14.065Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"11\",\"subject\":\"Create KC clients dashboard page\",\"description\":\"Create src/app/(dashboard)/keycloak-clients/page.tsx with list, create dialog, detail dialog, secret viewing\",\"assignedBy\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T10:55:42.631Z\"}",
+    "timestamp": "2026-02-19T10:55:42.631Z",
+    "color": "green",
+    "read": false
+  },
+  {
+    "from": "kc-client-dev",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"12\",\"subject\":\"Run lint and build, then commit\",\"description\":\"Run npx next lint && npx next build, fix any issues, then commit in two separate commits\",\"assignedBy\":\"kc-client-dev\",\"timestamp\":\"2026-02-19T10:58:06.807Z\"}",
+    "timestamp": "2026-02-19T10:58:06.807Z",
+    "color": "green",
+    "read": false
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1771498853008@kc-client-dev\",\"from\":\"team-lead\",\"reason\":\"작업 완료 확인. 수고하셨습니다.\",\"timestamp\":\"2026-02-19T11:00:53.008Z\"}",
+    "timestamp": "2026-02-19T11:00:53.008Z",
+    "read": true
+  }
+]

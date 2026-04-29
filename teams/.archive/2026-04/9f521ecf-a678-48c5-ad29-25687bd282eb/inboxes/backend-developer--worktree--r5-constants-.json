@@ -1,0 +1,8 @@
+[
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"3\",\"subject\":\"R5: 매직 넘버 → core/constants.py 이관\",\"description\":\"TTL·timeout·retry count 등 산재된 매직 넘버를 app/core/constants.py로 추출. 동작 동일, 값 변경 없음. 검증: ruff + pytest.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-04-23T10:18:28.751Z\"}",
+    "timestamp": "2026-04-23T10:18:28.751Z",
+    "read": false
+  }
+]

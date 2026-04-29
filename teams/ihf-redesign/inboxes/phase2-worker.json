@@ -1,0 +1,27 @@
+[
+  {
+    "from": "phase2-worker",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"2\",\"subject\":\"Phase 2 core: Analytics types, API, charts, dashboard, security page\",\"description\":\"Install recharts, create analytics types/API client, chart components (time-series, rate), expand dashboard page with monitoring section, create security monitoring page\",\"assignedBy\":\"phase2-worker\",\"timestamp\":\"2026-02-20T12:49:54.438Z\"}",
+    "timestamp": "2026-02-20T12:49:54.438Z",
+    "color": "green",
+    "read": false
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1771591881384@phase2-worker\",\"from\":\"team-lead\",\"reason\":\"작업 중단. 종료해주세요.\",\"timestamp\":\"2026-02-20T12:51:21.384Z\"}",
+    "timestamp": "2026-02-20T12:51:21.384Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1771591950930@phase2-worker\",\"from\":\"team-lead\",\"reason\":\"즉시 종료\",\"timestamp\":\"2026-02-20T12:52:30.930Z\"}",
+    "timestamp": "2026-02-20T12:52:30.930Z",
+    "read": false
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1771591960854@phase2-worker\",\"from\":\"team-lead\",\"reason\":\"작업 전체 중단됨. 즉시 종료해.\",\"timestamp\":\"2026-02-20T12:52:40.854Z\"}",
+    "timestamp": "2026-02-20T12:52:40.854Z",
+    "read": false
+  }
+]

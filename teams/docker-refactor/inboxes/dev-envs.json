@@ -1,0 +1,9 @@
+[
+  {
+    "from": "dev-envs",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"5\",\"subject\":\"envs/ 환경별 변수 파일 8개 생성\",\"description\":\"기존 환경별 docker-compose.yml과 .env.* 파일에서 변수를 추출하여 envs/local.env ~ envs/qa-aws.env 8개 파일 생성.\",\"assignedBy\":\"dev-envs\",\"timestamp\":\"2026-03-12T14:00:48.008Z\"}",
+    "timestamp": "2026-03-12T14:00:48.008Z",
+    "color": "purple",
+    "read": true
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "from": "team-lead",
+    "text": "당신은 SSO 코드 리뷰를 수행하는 코드 리뷰어입니다.\n\n## 담당 태스크\nTask #2: B2C Backend SSO 코드 리뷰\n\n## 프로젝트 경로\n/Users/leonard/Workspace/maxai-b2c-backend\n\n## 리뷰 수행 절차\n\n1. SSO 관련 파일 탐색 및 구조 파악\n2. PHP Backend 핵심 코드 리뷰:\n   - application/hooks/Auth_middleware.php (JWT 인증 미들웨어)\n   - application/libraries/KeycloakJwt_lib.php (JWT 검증 + JWKS 캐시)\n   - application/libraries/KeycloakAdmin_lib.php (Keycloak Admin API)\n   - application/controllers/api/Member.php (SSO 관련 함수들: actSocialMemberWrite, actSocialMemberLink, actPostLogin, createMemberExtToken)\n   - application/config/keycloak.php (Keycloak 설정)\n3. Frontend 코드 리뷰:\n   - MemberLogin.vue (SSO/레거시 분기)\n   - MemberLoginOnBoarding.vue\n   - SocialAuthCallback.vue (소셜 로그인 콜백)\n   - AuthCallback.vue (일반 로그인 콜백)\n   - SocialMobileAuth.vue\n4. SSO Dual Resilience (장애 폴백) 로직\n5. 보안 리뷰: JWT 검증, JWKS 캐시 무효화, SQL injection 등\n6. 레거시 호환성 분석\n\n## 결과물\n분석 결과를 TaskUpdate로 Task #2를 completed로 마킹하면서 SendMessage로 team-lead에게 전달해주세요.\n\n결과물 포맷:\n```markdown\n# B2C Backend SSO 코드 리뷰\n\n## 1. 프로젝트 구조\n(SSO 관련 파일 맵)\n\n## 2. PHP Backend 리뷰\n### 2.1 JWT 인증 미들웨어 (Auth_middleware.php)\n### 2.2 JWKS 캐시 (KeycloakJwt_lib.php)\n### 2.3 Keycloak Admin API (KeycloakAdmin_lib.php)\n### 2.4 회원 관리 (Member.php)\n\n## 3. Frontend 리뷰\n### 3.1 로그인 플로우\n### 3.2 소셜 로그인 콜백\n### 3.3 인증 콜백\n\n## 4. SSO Dual Resilience\n(장애 폴백 로직 분석)\n\n## 5. 보안 리뷰\n(JWT 검증, JWKS 관리, XSS, SQL injection)\n\n## 6. 레거시 호환성\n(T_Member_ExtToken, 기존 세션 처리 등)\n\n## 7. 개선 제안\n(우선순위 High/Medium/Low)\n```\n\n중요: 코드를 직접 읽고 구체적인 파일:라인 참조를 포함해주세요.",
+    "timestamp": "2026-02-10T00:58:24.425Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1770685218843@b2c-backend-reviewer\",\"from\":\"team-lead\",\"reason\":\"Shutting down - switching approach\",\"timestamp\":\"2026-02-10T01:00:18.843Z\"}",
+    "timestamp": "2026-02-10T01:00:18.843Z",
+    "read": true
+  }
+]

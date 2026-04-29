@@ -1,0 +1,36 @@
+[
+  {
+    "from": "team-lead",
+    "text": "당신에게 주어진 태스크를 수행해주세요. 네트워크/인프라 전문가 관점에서 SSO Fallback Monitor의:\n\n1. 현재 네트워크 모니터링의 한계점 5개\n2. 멀티 환경(dev/QA/PP/Prod) 확장 시 고려사항 5개\n3. 네트워크 레벨 모니터링 추가 제안 5개\n4. SSH 터널링 개선 방안 3개\n5. 보안 관점 개선 3개\n\n각 항목에 우선순위(Must/Should/Nice)를 포함해서 정리한 후, 저에게 메시지로 보내주세요. TaskUpdate로 task #5를 in_progress로 바꾸고 작업해주세요.",
+    "summary": "네트워크 분석 태스크 수행 요청",
+    "timestamp": "2026-02-16T02:55:22.144Z",
+    "read": true
+  },
+  {
+    "from": "network-expert",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"5\",\"subject\":\"네트워크 전문가 관점 검토\",\"description\":\"SSH 터널링, nginx 프록시, 폴백 메커니즘, 헬스체크 등 네트워크 관련 모니터링 개선점을 검토한다. 멀티 환경(dev/QA/PP/prod) 확장성도 고려한다.\",\"assignedBy\":\"network-expert\",\"timestamp\":\"2026-02-16T02:56:38.678Z\"}",
+    "timestamp": "2026-02-16T02:56:38.678Z",
+    "color": "green",
+    "read": false
+  },
+  {
+    "from": "team-lead",
+    "text": "분석 결과를 아직 받지 못했습니다. 네트워크/인프라 전문가 관점에서 SSO Fallback Monitor의 분석 결과를 지금 바로 정리해서 저에게 메시지로 보내주세요.\n\n다시 한번 정리:\n1. 현재 네트워크 모니터링의 한계점 5개\n2. 멀티 환경(dev/QA/PP/Prod) 확장 시 고려사항 5개\n3. 네트워크 레벨 모니터링 추가 제안 5개\n4. SSH 터널링 개선 방안 3개\n5. 보안 관점 개선 3개\n\n각 항목에 우선순위(Must/Should/Nice)를 포함해주세요.",
+    "summary": "분석 결과 즉시 전달 요청",
+    "timestamp": "2026-02-16T02:56:47.595Z",
+    "read": false
+  },
+  {
+    "from": "team-lead",
+    "text": "결과를 기다리고 있습니다. 지금 바로 분석 결과를 메시지로 보내주세요. 완벽하지 않아도 됩니다. 현재까지 정리된 내용을 보내주세요.",
+    "summary": "결과 즉시 전달 재요청",
+    "timestamp": "2026-02-16T02:57:38.280Z",
+    "read": false
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1771210664566@network-expert\",\"from\":\"team-lead\",\"reason\":\"응답 시간 초과. 종료합니다.\",\"timestamp\":\"2026-02-16T02:57:44.566Z\"}",
+    "timestamp": "2026-02-16T02:57:44.566Z",
+    "read": true
+  }
+]

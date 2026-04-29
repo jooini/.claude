@@ -1,0 +1,42 @@
+{
+    "version": 1,
+    "workspaces": [
+        {
+            "name": "identity-hub",
+            "path": "$HOME/Workspace/identity-hub",
+            "stack": "FastAPI + Python 3.11",
+            "agents": ["backend-developer", "code-tester", "code-reviewer"]
+        },
+        {
+            "name": "identity-hub-frontend",
+            "path": "$HOME/Workspace/identity-hub-frontend",
+            "stack": "React + Next.js",
+            "agents": ["frontend-developer", "designer", "code-tester"]
+        },
+        {
+            "name": "maxai-b2c-backend",
+            "path": "$HOME/Workspace/maxai-b2c-backend",
+            "stack": "CodeIgniter 3 + PHP 8.3",
+            "agents": ["backend-developer", "code-tester", "code-reviewer"]
+        },
+        {
+            "name": "identity-keycloak",
+            "path": "$HOME/Workspace/identity-keycloak",
+            "stack": "Keycloak 26 + Kotlin SPI",
+            "agents": ["backend-developer", "code-tester"]
+        },
+        {
+            "name": "sso-fallback-monitor",
+            "path": "$HOME/Workspace/sso-fallback-monitor",
+            "stack": "FastAPI + Chart.js",
+            "agents": ["backend-developer", "frontend-developer", "code-tester"]
+        }
+    ],
+    "defaultAgents": ["code-reviewer", "code-tester"],
+    "parallelLimit": 4,
+    "managerSurface": {
+        "enabled": true,
+        "autoDispatch": true,
+        "maxConcurrentAgents": 4
+    }
+}

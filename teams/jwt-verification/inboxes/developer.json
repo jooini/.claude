@@ -1,0 +1,53 @@
+[
+  {
+    "from": "developer",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"1\",\"subject\":\"JWKSCache + verify_jwt 구현 (app/utils/jwt.py)\",\"description\":\"app/utils/jwt.py에 JWKSCache 클래스와 verify_jwt 함수를 추가한다.\\n\\n- JWKSCache: 모듈 레벨 싱글턴, realm별 JWKS 인메모리 캐시 (TTL 1시간)\\n- get_signing_key(realm, kid): 캐시에서 kid로 키 검색, 없으면 httpx로 Keycloak JWKS 재조회 (1회만)\\n- verify_jwt(token, jwks_key, issuer, audience): python-jose로 RS256 서명+iss+aud+exp 검증\\n- 기존 parse_jwt_payload, extract_realm_from_token은 그대로 유지\\n\\nJWKS URL: {KEYCLOAK_INTERNAL_URL}/realms/{realm}/protocol/openid-connect/certs\\npython-jose[cryptography] 사용 (이미 requirements.txt에 있음)\",\"assignedBy\":\"developer\",\"timestamp\":\"2026-03-17T13:52:08.847Z\"}",
+    "timestamp": "2026-03-17T13:52:08.847Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"2\",\"subject\":\"verify_bearer_token 교체 + require_role 추가 (app/core/security.py)\",\"description\":\"app/core/security.py의 verify_bearer_token을 실제 JWT 검증 로직으로 교체하고, require_role dependency factory를 추가한다.\\n\\nverify_bearer_token:\\n1. Bearer 토큰 추출\\n2. 헤더에서 kid 파싱, 페이로드에서 iss 파싱 (검증 전 — realm 추론용)\\n3. iss에서 realm 추출 → settings.ADMIN_REALM과 비교 (불일치 시 401)\\n4. JWKSCache.get_signing_key(realm, kid)로 signing key 조회\\n5. verify_jwt()로 서명+iss+aud+exp 검증\\n6. 검증된 payload 반환 (sub, username, email + realm_access)\\n\\nrequire_role(role: str):\\n- dependency factory\\n- verify_bearer_token에 의존\\n- payload[\\\"realm_access\\\"][\\\"roles\\\"]에서 role 확인\\n- 없으면 HTTPException 403\\n\\nTask 1 완료 후 작업 가능\",\"assignedBy\":\"developer\",\"timestamp\":\"2026-03-17T13:53:23.417Z\"}",
+    "timestamp": "2026-03-17T13:53:23.417Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"3\",\"subject\":\"config.py 환경변수 추가 + router.py 인가 적용\",\"description\":\"1. app/core/config.py에 환경변수 추가:\\n   - ADMIN_REALM: str = \\\"master\\\"\\n   - ADMIN_CLIENT_ID: str = \\\"\\\"\\n\\n2. app/api/v1/router.py 변경:\\n   - from app.core.security import verify_bearer_token, require_role\\n   - _auth = [Depends(require_role(\\\"admin\\\"))]\\n\\nTask 2 완료 후 작업 가능\",\"assignedBy\":\"developer\",\"timestamp\":\"2026-03-17T13:53:48.638Z\"}",
+    "timestamp": "2026-03-17T13:53:48.638Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "리뷰 완료. 수정 필요한 항목입니다.\n\n---\n\n## 🔴 Critical (반드시 수정)\n\n### C-1. app/api/v1/router.py:19 — users 라우터에 인증 없음\n```python\n# 현재 (버그)\napi_router.include_router(users.router, prefix=\"/users\", tags=[\"Users\"])\n\n# 수정\napi_router.include_router(users.router, prefix=\"/users\", tags=[\"Users\"], dependencies=_auth)\n```\nusers.py는 사용자 삭제, 비밀번호 변경, 역할 할당 등 고권한 작업을 포함하므로 반드시 인증 필요.\n\n### C-2. app/core/config.py:40 — ADMIN_CLIENT_ID 기본값 빈 문자열\n```python\n# 현재 (취약)\nADMIN_CLIENT_ID: str = \"\"\n\n# 수정\nADMIN_CLIENT_ID: str  # 기본값 제거 — 미설정 시 서버 시작 실패\n```\n빈 문자열이면 JWT aud 검증이 사실상 무력화됩니다.\n\n---\n\n## 🟡 Important (수정 권장)\n\n### I-1. app/utils/jwt.py:33 — _fetch_jwks race condition\n캐시 만료 시 동시 요청이 Keycloak에 중복 요청을 보냅니다. `get_signing_key`에 asyncio.Lock + double-check 패턴 적용이 필요합니다.\n\n```python\nimport asyncio\n\nclass JWKSCache:\n    def __init__(self, ttl: int = 3600):\n        self._cache: dict[str, dict] = {}\n        self._timestamps: dict[str, float] = {}\n        self._ttl = ttl\n        self._lock: asyncio.Lock | None = None\n\n    def _get_lock(self) -> asyncio.Lock:\n        if self._lock is None:\n            self._lock = asyncio.Lock()\n        return self._lock\n\n    async def get_signing_key(self, realm: str, kid: str) -> dict | None:\n        if not self._is_expired(realm):\n            key = self._find_key(realm, kid)\n            if key:\n                return key\n        async with self._get_lock():\n            if not self._is_expired(realm):  # double-check\n                return self._find_key(realm, kid)\n            await self._fetch_jwks(realm)\n        return self._find_key(realm, kid)\n```\n\n### I-2. app/utils/jwt.py:57 — 싱글턴 TTL 하드코딩\n`JWKSCache()`를 `settings`에서 TTL을 받아 초기화하거나, config에 `JWKS_CACHE_TTL: int = 3600`을 추가하고 `jwks_cache = JWKSCache(ttl=settings.JWKS_CACHE_TTL)`로 변경하세요.\n\n### I-3. app/core/security.py:43 — issuer pre-check endswith → exact match\n```python\n# 현재 (prefix injection 가능)\nif not iss or not iss.endswith(f\"/realms/{settings.ADMIN_REALM}\"):\n\n# 수정\nif iss != expected_issuer:\n```\njose의 issuer 검증이 최종 방어선이지만, JWKS 조회 전에도 정확히 차단해야 합니다.\n\n---\n\nC-1, C-2, I-3 세 항목은 보안에 직결되므로 반드시 수정 후 재확인 요청해주세요.",
+    "summary": "Critical 2건 + Important 3건 수정 요청",
+    "timestamp": "2026-03-17T13:56:31.891Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "tester",
+    "text": "테스트 실행 실패: `ADMIN_CLIENT_ID` 환경변수 누락\n\n## 에러\n```\npydantic_core._pydantic_core.ValidationError: 1 validation error for Settings\nADMIN_CLIENT_ID\n  Field required [type=missing, ...]\n```\n\n## 원인\nconfig.py:40에 `ADMIN_CLIENT_ID: str`가 필수 필드로 추가되었지만, `.env.local`에 해당 환경변수가 설정되지 않았습니다. 테스트 시 `ENV_FILE` 기본값이 `.env.local`이므로, 이 파일에 `ADMIN_CLIENT_ID` 값이 있어야 합니다.\n\n## 수정 요청\n`.env.local`에 `ADMIN_CLIENT_ID` 환경변수를 추가해주세요. 예:\n```\nADMIN_CLIENT_ID=identity-hub-admin\n```\n\n또는 config.py에서 기본값을 설정하는 것도 방법입니다:\n```python\nADMIN_CLIENT_ID: str = \"identity-hub-admin\"\n```\n\n수정 후 알려주시면 테스트 재실행하겠습니다.",
+    "summary": "ADMIN_CLIENT_ID 환경변수 누락으로 테스트 실패",
+    "timestamp": "2026-03-17T14:03:48.262Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "tester",
+    "text": "테스트 결과: **51 failed, 297 passed, 2 skipped**\n\n실패를 3가지 카테고리로 분류했습니다:\n\n---\n\n## 1. 403 Forbidden (42건) - 새 인가 로직 때문\n\n**영향 파일**: test_api_admin.py (9건), test_api_clients.py (8건), test_api_users.py (22건), test_onboard_endpoint.py (3건)\n\n**원인**: router.py에 `require_role` 인가가 적용되었는데, conftest.py의 `override_verify_bearer_token`이 기존 단순 dict만 반환합니다:\n```python\nasync def override_verify_bearer_token():\n    return {\"sub\": \"test-user-id\", \"username\": \"testuser\", \"email\": \"test@test.com\"}\n```\n\n새 `require_role` 데코레이터가 `realm_access.roles` 등을 체크하는데, 테스트의 mock 유저에 role 정보가 없어서 403이 반환됩니다.\n\n**수정 필요**: conftest.py의 `override_verify_bearer_token`이 반환하는 dict에 role 정보를 포함해야 합니다. 예:\n```python\nasync def override_verify_bearer_token():\n    return {\n        \"sub\": \"test-user-id\",\n        \"username\": \"testuser\",\n        \"email\": \"test@test.com\",\n        \"realm_access\": {\"roles\": [\"admin\"]},\n    }\n```\n또는 `require_role` 의존성도 별도로 override해야 할 수 있습니다. router.py에서 `require_role`이 어떻게 적용되었는지에 따라 달라집니다.\n\n---\n\n## 2. test_security.py (4건) - JWT 토큰에 kid 헤더 누락\n\n**실패 테스트**: test_expired_token, test_valid_token_returns_user_info, test_valid_token_without_optional_fields, test_token_without_exp_is_valid\n\n**원인**: 새 `verify_bearer_token`이 JWT 헤더에서 `kid`를 확인하는데, 기존 테스트가 `jwt.encode()`로 토큰을 생성할 때 `kid` 헤더를 포함하지 않습니다. 결과: \"Token missing kid\" 에러.\n\n**수정 필요**: test_security.py의 토큰 생성을 새 JWKS 기반 검증 로직에 맞게 업데이트해야 합니다. `kid` 헤더 포함 + JWKS mock 설정이 필요합니다.\n\n---\n\n## 3. test_auth_session_cleanup.py (5건) - NameError: 'session_service'\n\n**에러 로그**:\n```\nNameError: name 'session_service' is not defined. Did you mean: 'SessionService'?\n```\n**위치**: `app/services/auth_service.py:232`\n\n**원인**: `cleanup_old_sessions` 메서드에서 `session_service`라는 변수를 참조하지만 정의되지 않았습니다. `self._session` 또는 다른 속성명을 사용해야 할 것 같습니다. 이것은 **새 코드의 버그**입니다.\n\n---\n\n## 요약\n\n| 카테고리 | 건수 | 원인 | 심각도 |\n|---------|------|------|--------|\n| 403 Forbidden | 42건 | conftest mock에 role 정보 미포함 | 테스트 수정 필요 |\n| Token missing kid | 4건 | test_security.py가 새 JWT 로직에 미대응 | 테스트 수정 필요 |\n| NameError session_service | 5건 | auth_service.py 버그 | **코드 버그 수정 필요** |\n\n수정 후 알려주시면 재실행하겠습니다.",
+    "summary": "51건 실패 분석: 403(42건), kid누락(4건), NameError(5건)",
+    "timestamp": "2026-03-17T14:07:25.800Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1773756567384@developer\",\"from\":\"team-lead\",\"reason\":\"작업 완료. 수고했다.\",\"timestamp\":\"2026-03-17T14:09:27.384Z\"}",
+    "timestamp": "2026-03-17T14:09:27.384Z",
+    "read": true
+  }
+]

@@ -1,0 +1,29 @@
+output_dir: ~/Workspace/weaversbrain/weaversbrain/Projects/sso-architecture
+hub_file: DOCS_INTEGRATED.md
+
+projects:
+  - name: identity-hub
+    path: ~/Workspace/identity-hub
+    branch: develop
+    tech: "FastAPI + Python 3.11"
+    doc_file: DOCS_identity-hub.md
+    claude_md: ~/.claude/identity-hub/CLAUDE.md
+
+  - name: identity-keycloak
+    path: ~/Workspace/identity-keycloak
+    branch: main
+    tech: "Keycloak 26 + FreeMarker"
+    doc_file: DOCS_identity-keycloak.md
+    claude_md: ~/Workspace/identity-keycloak/CLAUDE.md
+
+  - name: maxai-b2c-backend
+    path: ~/Workspace/maxai-b2c-backend
+    branch: feature/sso
+    tech: "CodeIgniter 3 + PHP 8.3 + Vue.js"
+    doc_file: DOCS_maxai-b2c-backend.md
+    claude_md: ~/.claude/maxai-b2c-backend/CLAUDE.md
+
+operations:
+  doc_file: DOCS_operations.md
+  sources:
+    - ~/Workspace/weaversbrain/weaversbrain/Projects/sso-architecture/

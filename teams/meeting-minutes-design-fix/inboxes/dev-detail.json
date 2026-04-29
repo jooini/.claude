@@ -1,0 +1,15 @@
+[
+  {
+    "from": "team-lead",
+    "text": "완료 상태 보고해줘. meetings/[id]/page.tsx 수정 결과.",
+    "summary": "상세 페이지 수정 결과 확인",
+    "timestamp": "2026-03-27T08:02:06.424Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1774598696274@dev-detail\",\"from\":\"team-lead\",\"reason\":\"완료. 종료.\",\"timestamp\":\"2026-03-27T08:04:56.274Z\"}",
+    "timestamp": "2026-03-27T08:04:56.274Z",
+    "read": true
+  }
+]

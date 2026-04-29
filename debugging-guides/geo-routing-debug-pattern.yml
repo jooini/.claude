@@ -1,0 +1,185 @@
+# 지리적 라우팅 디버깅 패턴 - AI 통합 가이드
+# Pattern ID: GEO_ROUTING_DEBUG
+# Version: 1.0
+# Date: 2026-04-14
+# Applicable AIs: Claude, Gemini, Codex
+
+metadata:
+  pattern_id: "GEO_ROUTING_DEBUG"
+  category: "infrastructure"
+  subcategory: "geo_routing"
+  severity: "high"
+  confidence: 95
+  last_updated: "2026-04-14"
+  case_study: "2026-04-14-stt-garbled-text"
+
+# 패턴 인식 신호들
+trigger_signals:
+  primary_indicators:
+    - "일부 사용자만 영향"
+    - "부분적 장애"
+    - "특정 지역만 문제"
+    - "재현 안됨"
+  secondary_indicators:
+    - "앱 재설치 효과없음"
+    - "캐시 삭제 효과없음"
+    - "내부 테스트 정상"
+    - "랜덤하게 발생"
+    - "엑세스 로그가 없음" # 🚨 결정적 신호
+  technical_markers:
+    - "국가별 분기"
+    - "IP 기반 라우팅"
+    - "CDN 설정"
+    - "Lambda@Edge"
+
+# 즉시 확인할 질문들
+immediate_questions:
+  user_context:
+    - "해외에 계신 사용자분들인가요?"
+    - "VPN 사용 중이신가요?"
+    - "특정 지역/국가에서만 발생하나요?"
+  technical_context:
+    - "국가별 서버 분기 설정이 있나요?"
+    - "CDN/CloudFront 사용 중인가요?"
+    - "Lambda@Edge 함수가 있나요?"
+    - "지역별 백엔드 서버가 다른가요?"
+
+# 즉시 실행할 검색 커맨드들
+search_commands:
+  priority_1:
+    - cmd: "grep -r -i 'country\\|region\\|KR\\|DEFAULT' ~/Workspace/ | grep -i 'url\\|domain'"
+      purpose: "국가별 분기 설정 찾기"
+    - cmd: "find ~/Workspace -name '*lambda*' -o -name '*edge*' | grep -i 'b2c\\|settings'"
+      purpose: "Lambda@Edge 함수 찾기"
+  priority_2:
+    - cmd: "grep -r 'maxaiapp\\.com\\|maxai\\.co\\.kr' ~/Workspace/"
+      purpose: "도메인 분기 설정 찾기"
+    - cmd: "find ~/Workspace -name '*nginx*' -o -name '*.conf' | grep -i 'server\\|upstream'"
+      purpose: "서버 설정 파일 찾기"
+
+# 파일 위치별 체크리스트
+file_locations:
+  aws_lambda:
+    path: "wb-aws-lambda/maxai-b2c-settings/"
+    files:
+      - "index-prod.js"
+      - "index-dev.js"
+      - "index-qa.js"
+    check_for:
+      - "API_BASE_URLS"
+      - "B2C_LAUNCH_URLS"
+      - "viewerCountry"
+      - "DEFAULT vs KR"
+  android_constants:
+    path: "maxai-android/**/AppConstants.kt"
+    check_for:
+      - "WebView.Url"
+      - "환경별 URL"
+      - "getUrlByType"
+  nginx_config:
+    patterns: ["*.conf", "nginx.conf", "server.conf"]
+    check_for:
+      - "upstream"
+      - "geo $"
+      - "map $remote_addr"
+      - "country 분기"
+
+# 단계별 디버깅 플로우
+debugging_flow:
+  step_1_immediate:
+    title: "지역/IP 분기 확인"
+    actions:
+      - "VPN으로 다른 국가 IP 테스트"
+      - "CloudFront 헤더 확인: curl -H 'CloudFront-Viewer-Country: US'"
+      - "지역별 분기 로직 코드 확인"
+    time_limit: "15분"
+  step_2_analysis:
+    title: "분기 로직 검증"
+    actions:
+      - "각 환경별(PROD/DEV/QA) 분기 확인"
+      - "DEFAULT 케이스가 올바른 서버 가리키는지 확인"
+      - "조건문 로직 오류 검사"
+    time_limit: "15분"
+  step_3_testing:
+    title: "지역별 재현 테스트"
+    actions:
+      - "개발자도구에서 헤더 시뮬레이션"
+      - "실제 해외 IP로 curl 테스트"
+      - "각 분기별 응답 비교"
+    time_limit: "10분"
+  step_4_fix:
+    title: "임시/영구 수정"
+    actions:
+      - "임시: 모든 분기를 정상 서버로 통일"
+      - "영구: 잘못된 분기 로직 수정"
+      - "배포 후 각국 IP로 검증"
+    time_limit: "20분"
+
+# 일반적인 오류 패턴들
+common_bugs:
+  wrong_default_server:
+    pattern: "DEFAULT: 'https://OLD-SERVER.com'"
+    description: "DEFAULT 분기가 구버전/잘못된 서버 가리킴"
+    fix: "DEFAULT를 KR과 동일한 정상 서버로 수정"
+  condition_logic_error:
+    pattern: "country === 'KR' ? NEW : OLD"
+    description: "조건 로직에서 비KR 사용자를 구버전으로 분기"
+    fix: "조건 로직 수정 또는 OLD를 NEW와 동일하게"
+  missing_fallback:
+    pattern: "switch(country) { case 'KR': ... }"
+    description: "default 케이스 없어서 undefined 동작"
+    fix: "default 케이스 추가"
+
+# AI별 특화 지침
+ai_specific_guidelines:
+  claude:
+    behavior:
+      - "즉시 국가/IP 분기 의심하고 질문"
+      - "VPN 테스트 먼저 제안"
+      - "코드 분석은 마지막에"
+    skills_to_use:
+      - "systematic-debugging" # 체계적 디버깅 스킬
+      - "mem-search" # 과거 사례 검색
+  gemini:
+    focus_areas:
+      - "코드베이스 전체 스캔으로 분기 로직 찾기"
+      - "패턴 분석으로 유사 설정 발견"
+      - "대규모 로그 분석"
+  codex:
+    approach:
+      - "분기 로직 코드 리뷰 중점"
+      - "테스트 케이스 생성으로 각 분기 검증"
+      - "수정 코드 제안"
+
+# 성공 기준
+success_criteria:
+  immediate_fix:
+    - "모든 지역에서 동일한 정상 동작"
+    - "VPN 테스트로 검증 완료"
+  monitoring:
+    - "CloudWatch/로그에서 분기 동작 확인"
+    - "실제 사용자 피드백 수집"
+  prevention:
+    - "분기 로직에 대한 테스트 케이스 추가"
+    - "배포 전 지역별 검증 프로세스 수립"
+
+# 관련 사례 및 학습
+case_studies:
+  "2026-04-14-stt-garbled-text":
+    duration: "13시간"
+    wrong_approach: "코드 분석, 인코딩 체인, nginx 캐싱"
+    correct_approach: "Lambda@Edge 국가 분기 확인"
+    resolution: "DEFAULT URL을 KR과 동일하게 수정"
+    lesson: "일부 사용자 이슈는 지역 분기부터 의심"
+
+# 예방 조치
+prevention_measures:
+  deployment:
+    - "분기 로직 변경 시 모든 케이스 테스트"
+    - "VPN으로 각국 IP 배포 전 검증"
+  monitoring:
+    - "지역별 에러율 모니터링"
+    - "분기별 트래픽 분포 확인"
+  documentation:
+    - "분기 로직 변경 시 문서 업데이트"
+    - "지역별 서버 매핑 문서 유지"

@@ -1,0 +1,44 @@
+[
+  {
+    "from": "architect-1",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"1\",\"subject\":\"전체 시스템 구성도 작성\",\"description\":\"SSO 프로젝트 전체 시스템 구성도를 ~/Workspace/docs/20260210/sso-architecture/00-system-overview.md에 작성. 프로젝트 간 관계, 네트워크, 컴포넌트 배치도 포함.\",\"assignedBy\":\"architect-1\",\"timestamp\":\"2026-02-10T01:19:51.433Z\"}",
+    "timestamp": "2026-02-10T01:19:51.433Z",
+    "color": "blue",
+    "read": false
+  },
+  {
+    "from": "architect-2",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"4\",\"subject\":\"소셜 로그인 SSO 모드 다이어그램 작성\",\"description\":\"소셜 로그인(Naver/Kakao/Apple) SSO 모드 시퀀스 다이어그램을 ~/Workspace/docs/20260210/sso-architecture/03-social-login-sso.md에 작성. Keycloak IDP Broker 경유 플로우.\",\"assignedBy\":\"architect-2\",\"timestamp\":\"2026-02-10T01:20:37.544Z\"}",
+    "timestamp": "2026-02-10T01:20:37.544Z",
+    "color": "green",
+    "read": false
+  },
+  {
+    "from": "architect-1",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"2\",\"subject\":\"일반 로그인 SSO 모드 다이어그램 작성\",\"description\":\"일반 로그인(ID/PW) SSO 모드 시퀀스 다이어그램을 ~/Workspace/docs/20260210/sso-architecture/01-normal-login-sso.md에 작성. Browser→Frontend→Identity Hub→Keycloak 전체 플로우.\",\"assignedBy\":\"architect-1\",\"timestamp\":\"2026-02-10T01:21:39.363Z\"}",
+    "timestamp": "2026-02-10T01:21:39.363Z",
+    "color": "blue",
+    "read": false
+  },
+  {
+    "from": "architect-2",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"5\",\"subject\":\"소셜 로그인 Legacy 모드 다이어그램 작성\",\"description\":\"소셜 로그인 Legacy 모드 시퀀스 다이어그램을 ~/Workspace/docs/20260210/sso-architecture/04-social-login-legacy.md에 작성. Native SDK 직접 인증 + T_Member_ExtToken 플로우.\",\"assignedBy\":\"architect-2\",\"timestamp\":\"2026-02-10T01:22:54.030Z\"}",
+    "timestamp": "2026-02-10T01:22:54.030Z",
+    "color": "green",
+    "read": false
+  },
+  {
+    "from": "architect-1",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"3\",\"subject\":\"일반 로그인 Legacy 모드 다이어그램 작성\",\"description\":\"일반 로그인(ID/PW) Legacy 모드 시퀀스 다이어그램을 ~/Workspace/docs/20260210/sso-architecture/02-normal-login-legacy.md에 작성. Browser→Frontend→PHP Backend 직접 인증 플로우.\",\"assignedBy\":\"architect-1\",\"timestamp\":\"2026-02-10T01:22:59.033Z\"}",
+    "timestamp": "2026-02-10T01:22:59.033Z",
+    "color": "blue",
+    "read": false
+  },
+  {
+    "from": "architect-2",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"6\",\"subject\":\"JIT Migration 플로우 다이어그램 작성\",\"description\":\"JIT User Migration 시퀀스 다이어그램을 ~/Workspace/docs/20260210/sso-architecture/05-jit-migration.md에 작성. Legacy 사용자가 SSO 모드에서 첫 로그인 시 마이그레이션 과정.\",\"assignedBy\":\"architect-2\",\"timestamp\":\"2026-02-10T01:24:23.056Z\"}",
+    "timestamp": "2026-02-10T01:24:23.056Z",
+    "color": "green",
+    "read": false
+  }
+]

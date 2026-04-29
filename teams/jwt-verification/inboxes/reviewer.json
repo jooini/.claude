@@ -1,0 +1,30 @@
+[
+  {
+    "from": "team-lead",
+    "text": "developer가 Task 1-3 구현 완료했다. 리뷰 시작해라.\n\n변경 파일:\n- app/utils/jwt.py — JWKSCache + verify_jwt_token 추가\n- app/core/security.py — verify_bearer_token 교체 + require_role 추가\n- app/core/config.py — ADMIN_REALM, ADMIN_CLIENT_ID 추가\n- app/api/v1/router.py — _auth를 require_role(\"admin\")으로 변경\n\n보안 관점 집중: JWT 검증 우회, JWKS 캐시 race condition, role 체크 우회, 에러 메시지 민감정보 노출, 기존 코드 호환성.\n\n문제 있으면 developer에게 직접 SendMessage로 피드백해라.",
+    "summary": "리뷰 시작 요청 — 4개 파일 변경됨",
+    "timestamp": "2026-03-17T13:55:31.119Z",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"4\",\"subject\":\"코드 리뷰\",\"description\":\"Task 1-3 구현 결과를 리뷰한다:\\n- JWT 검증 로직의 보안 허점 확인\\n- JWKS 캐시 로직 검증 (race condition, 메모리 누수 등)\\n- role 체크 우회 가능성\\n- 에러 메시지에 민감 정보 노출 여부\\n- 기존 코드와의 호환성\\n\\n문제 있으면 developer에게 SendMessage로 피드백\",\"assignedBy\":\"reviewer\",\"timestamp\":\"2026-03-17T13:55:35.141Z\"}",
+    "timestamp": "2026-03-17T13:55:35.141Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "리뷰 피드백 5건 모두 반영 완료했습니다.\n\n## C-1: users 라우터 인증 추가\n- `router.py:19` — `dependencies=_auth` 추가\n\n## C-2: ADMIN_CLIENT_ID 기본값 제거\n- `config.py:40` — `ADMIN_CLIENT_ID: str` (기본값 없음, 미설정 시 서버 시작 실패)\n\n## I-1: _fetch_jwks race condition 해결\n- `jwt.py` — `asyncio.Lock` + double-check 패턴 적용\n- `_get_lock()` 메서드 추가, `get_signing_key()`에서 lock 획득 후 재확인\n\n## I-2: 싱글턴 TTL 설정 가능하게 변경\n- `config.py` — `JWKS_CACHE_TTL: int = 3600` 추가\n- `jwt.py` — lazy init 프록시 패턴으로 `settings.JWKS_CACHE_TTL` 사용\n\n## I-3: issuer exact match로 변경\n- `security.py:43` — `if iss != expected_issuer:` (endswith → exact match)\n\n재확인 부탁드립니다.",
+    "summary": "리뷰 피드백 5건 모두 반영 완료",
+    "timestamp": "2026-03-17T14:01:14.645Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1773756567802@reviewer\",\"from\":\"team-lead\",\"reason\":\"리뷰 완료. 수고했다.\",\"timestamp\":\"2026-03-17T14:09:27.802Z\"}",
+    "timestamp": "2026-03-17T14:09:27.802Z",
+    "read": true
+  }
+]

@@ -1,0 +1,49 @@
+{
+  "projects": {
+    "vault": {
+      "last_commit": null,
+      "last_indexed_at": "2026-04-12T11:30:00+0900",
+      "note": "vault is not a git repo, uses mtime fallback. Full: 989/992 files indexed"
+    },
+    "identity-hub": {
+      "last_commit": "f33d681d8b7ba9e984bee0a4d5757dc08fb7d3d6",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    },
+    "maxai-b2c-backend": {
+      "last_commit": "3ee75a17abcddd7f5498c477a8204c381b926647",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    },
+    "identity-keycloak": {
+      "last_commit": "7d4c66d40ebaf0025421ed50240d48c3343c55a0",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    },
+    "identity-hub-frontend": {
+      "last_commit": "676330bb858e22ea8d2526e589860fe6525f0618",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    },
+    "identity-hub-python-sdk": {
+      "last_commit": "811454a7b63cfebc72b00c49105c069d1822d376",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    },
+    "keycloak-kakao-social-provider": {
+      "last_commit": "83a06e9b0f017edcf7f849c7d20eb3a78837efe3",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    },
+    "sso-fallback-monitor": {
+      "last_commit": "fd139912a11734306ecc1584ce15b7f9dfd588e1",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    },
+    "identity-platform-docker": {
+      "last_commit": "33ccfd08bd8c9fd6afe13394d6874bf6e25ff568",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    },
+    "maxai-docker": {
+      "last_commit": "867b5cf6e4eb013e23d63b0bdea785c9b4cd544f",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    },
+    "speakingmax-backend": {
+      "last_commit": "f735427b3b18dd4b63a542d3484789e8680d16ca",
+      "last_indexed_at": "2026-04-12T11:10:00+0900"
+    }
+  }
+}

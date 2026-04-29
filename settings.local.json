@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh search:*)",
+      "Bash(gh pr:*)",
+      "Bash(ssh dev-sso:*)",
+      "Bash(ls /Users/leonard/.claude/hooks/*.sh)",
+      "Bash(find ~/Workspace/speakingmax-backend -maxdepth 2 -name \"*.toml\" -o -name \"*.json\" -o -name \"*.gradle*\" -o -name \"composer.*\" -o -name \"docker-compose*\" -o -name \"compose.*\" -o -name \"*.yml\" -o -name \"Dockerfile\" -o -name \"*.env*\" -o -name \"requirements*.txt\" -o -name \"pom.xml\" 2>/dev/null | grep -v node_modules | grep -v .git | head -40)",
+      "Bash(zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/identity-hub 2>&1 | head -8 && echo \"---\" && zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/maxai-b2c-backend 2>&1 | head -8 && echo \"---\" && zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/identity-hub-frontend 2>&1 | head -8)",
+      "Bash(zsh -c '\nsetopt null_glob\ndir=\"$HOME/Workspace/maxai-b2c-backend\"\n_find_file\\(\\) {\n    local base=\"$1\" name=\"$2\"\n    [[ -f \"$base/$name\" ]] && { echo \"$base/$name\"; return; }\n    find \"$base\" -maxdepth 2 -name \"$name\" -not -path \"*/.git/*\" -not -path \"*/node_modules/*\" -not -path \"*/vendor/*\" 2>/dev/null | head -1\n}\necho \"pyproject: $\\(_find_file \"$dir\" \"pyproject.toml\"\\)\"\necho \"gradle: $\\(_find_file \"$dir\" \"build.gradle.kts\"\\)\"\necho \"pom: $\\(_find_file \"$dir\" \"pom.xml\"\\)\"\necho \"package: $\\(_find_file \"$dir\" \"package.json\"\\)\"\necho \"composer: $\\(_find_file \"$dir\" \"composer.json\"\\)\"\n')",
+      "Bash(zsh -n /Users/leonard/.claude/scripts/init-claude-config.sh 2>&1)",
+      "Bash(zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/maxai-b2c-backend 2>&1 | head -10 && echo \"===\" && zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/speakingmax-backend 2>&1 | head -10 && echo \"===\" && zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/identity-hub 2>&1 | head -10 && echo \"===\" && zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/identity-hub-frontend 2>&1 | head -10)",
+      "Bash(chmod +x ~/Workspace/scripts/geo-debug.sh)",
+      "Bash(chmod +x ~/Workspace/scripts/country-test.sh)"
+    ]
+  }
+}

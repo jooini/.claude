@@ -1,0 +1,199 @@
+[
+  {
+    "from": "researcher",
+    "text": "## 서비스 의존성 그래프 분석 결과\n\n### 서비스 의존성 그래프\n\n```\nCacheService\n  → (없음 — 리프 서비스, Redis 직접 연결)\n\nAuditService\n  → (없음 — 리프 서비스, 파일 로깅만)\n\nKeycloakBaseService\n  → (없음 — 리프 서비스, Keycloak Admin API 직접 연결)\n\nUserKeycloakService (extends KeycloakBaseService)\n  → (없음 — 상속만)\n\nAdminKeycloakService (extends KeycloakBaseService)\n  → (없음 — 상속만)\n\nRoleKeycloakService (extends KeycloakBaseService)\n  → (없음 — 상속만)\n\nKeycloakService (extends User+Admin+Role KeycloakService)\n  → (없음 — 통합 하위호환 클래스, 상속만)\n\nKeycloakOIDCService\n  → (없음 — 리프 서비스, httpx 기반 직접 HTTP 통신)\n\nSessionService\n  → cache_service (self.cache로 저장)\n    사용 메서드: set, get, getdel, delete\n\nClientConfigService\n  → cache_service (모듈 싱글턴 직접 호출)\n    사용 메서드: get, set, delete\n  → keycloak_client_repository (모듈 싱글턴 직접 호출)\n    사용 메서드: get_by_client_and_realm, create, update, soft_delete, list_all, count\n\nAuthService\n  → cache_service (모듈 싱글턴 직접 호출)\n    사용 메서드: acquire_lock, release_lock\n  → client_config_service (모듈 싱글턴 직접 호출)\n    사용 메서드: get_client, get_client_secret\n  → keycloak_oidc_service (모듈 싱글턴 직접 호출)\n    사용 메서드: logout, refresh_token, verify_password, token_request\n  → keycloak_service (모듈 싱글턴 직접 호출)\n    사용 메서드: get_openid_client\n  → session_service (모듈 싱글턴 직접 호출)\n    사용 메서드: get_session, delete_session, update_session, exchange_auth_code\n  → user_auth_repository (모듈 싱글턴 직접 호출)\n    사용 메서드: get_by_session_state, get_active_by_keycloak_user_id, get_active_by_m_idx, mark_logged_out, update_refresh_token, upsert\n\nOAuthService\n  → auth_service (모듈 싱글턴 직접 호출)\n    사용 메서드: cleanup_old_sessions, save_user_authentication\n  → client_config_service (모듈 싱글턴 직접 호출)\n    사용 메서드: get_client\n  → keycloak_oidc_service (모듈 싱글턴 직접 호출)\n    사용 메서드: exchange_code\n  → session_service (모듈 싱글턴 직접 호출)\n    사용 메서드: create_session, create_auth_code\n\nOnboardService\n  → audit_service (모듈 싱글턴 직접 호출)\n    사용 메서드: log_event\n  → client_config_service (모듈 싱글턴 직접 호출)\n    사용 메서드: get_client, create_client, delete_client\n  → keycloak_service (모듈 싱글턴 직접 호출)\n    사용 메서드: create_client, get_client_secret, delete_client\n\nUserService\n  → keycloak_service (모듈 싱글턴 직접 호출)\n    사용 메서드: create_user, get_user, get_user_by_username, get_users, search_users_by_phone, get_user_by_midx, update_user, delete_user, set_user_password, assign_realm_role_to_user, get_user_realm_roles, add_federated_identity, get_federated_identities, delete_federated_identity, remove_realm_role_from_user, get_user_sessions, delete_user_session\n\nWithdrawalService\n  → keycloak_service (모듈 싱글턴 직접 호출)\n    사용 메서드: get_user, get_federated_identities, get_user_realm_roles, delete_user\n  → withdrawal_repository (모듈 싱글턴 직접 호출)\n    사용 메서드: create, find_by_email_and_type\n```\n\n### app/core/audit.py 싱글턴 참조\n\n```\naudit.py\n  → audit_service (모듈 싱글턴 직접 import)\n    사용 메서드: log_event\n    참조 방식: from app.services.audit_service import audit_service\n```\n\n### 순환 의존성 여부\n\n**있음 — OAuthService ↔ AuthService**\n\n```\nOAuthService → auth_service (cleanup_old_sessions, save_user_authentication)\nAuthService → (OAuthService를 직접 import하지는 않음)\n```\n\n정확히 말하면 **코드 레벨 순환 import는 없음**. OAuthService가 AuthService의 싱글턴을 import하고, AuthService는 OAuthService를 import하지 않으므로 Python import 순환은 발생하지 않는다.\n\n그러나 **논리적으로** OAuthService와 AuthService가 서로의 기능에 의존하는 구조:\n- OAuthService → AuthService.cleanup_old_sessions, save_user_authentication\n- AuthService는 OAuthService를 직접 참조하지 않지만, 두 서비스가 동일한 하위 서비스들(session_service, client_config_service, keycloak_oidc_service)을 공유\n\n**결론: 순환 import 없음. 의존 방향은 단방향 (OAuthService → AuthService).**\n\n### 생성자 주입 전환 시 조립 순서\n\n의존성이 없는 것부터 → 의존하는 것 순서:\n\n```\nLevel 0 (리프 — 외부 의존 없음):\n  1. CacheService\n  2. AuditService\n  3. KeycloakOIDCService\n  4. KeycloakService (= UserKeycloak + AdminKeycloak + RoleKeycloak)\n\nLevel 1 (Level 0에만 의존):\n  5. SessionService          → CacheService\n  6. ClientConfigService     → CacheService\n\nLevel 2 (Level 0~1에 의존):\n  7. UserService             → KeycloakService\n  8. WithdrawalService       → KeycloakService\n  9. AuthService             → CacheService, ClientConfigService, KeycloakOIDCService, KeycloakService, SessionService\n\nLevel 3 (Level 2에 의존):\n  10. OAuthService           → AuthService, ClientConfigService, KeycloakOIDCService, SessionService\n  11. OnboardService         → AuditService, ClientConfigService, KeycloakService\n```\n\n### dependencies.py 현재 구조\n\n- 모든 서비스를 `@lru_cache`로 감싼 팩토리 함수 + `_dep()` 래퍼 패턴\n- 생성자에 의존성을 주입하지 않고 `Service()`로 빈 생성\n- 서비스 내부에서 모듈 레벨 싱글턴을 직접 import해서 사용\n- `keycloak_oidc_service`만 예외적으로 모듈 싱글턴을 직접 반환 (`@lru_cache` 없음)\n\n### 테스트 싱글턴 직접 참조 목록\n\n```\ntests/unit/test_auth_session_cleanup.py:\n  → auth_service (13회, 각 테스트 함수 내부에서 from app.services.auth_service import auth_service)\n\ntests/unit/test_auth_service_keycloak_user_id.py:\n  → auth_service (7회, 각 테스트 함수 내부에서 from app.services.auth_service import auth_service)\n  → oauth_service (1회, from app.services.oauth_service import oauth_service)\n```\n\n**참고**: 대부분의 테스트는 `@patch` 데코레이터로 모듈 경로를 패치하는 방식이며, 위 2개 파일만 싱글턴 인스턴스를 직접 import해서 메서드를 호출한다.\n",
+    "summary": "서비스 의존성 그래프 분석 완료",
+    "timestamp": "2026-03-13T04:36:19.956Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "researcher",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"researcher\",\"timestamp\":\"2026-03-13T04:36:22.733Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T04:36:22.733Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "researcher",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"researcher\",\"timestamp\":\"2026-03-13T04:36:34.010Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T04:36:34.010Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"developer\",\"timestamp\":\"2026-03-13T04:39:37.388Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T04:39:37.388Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"developer\",\"timestamp\":\"2026-03-13T04:39:37.791Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T04:39:37.791Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "테스트 수정 완료. 전체 348개 테스트 통과 (0 errors, 0 failures).\n\n수정한 파일 목록:\n\n**단위 테스트 (3개):**\n- `tests/unit/test_auth_service_methods.py` — `AuthService()` → `_make_auth_service()` (6개 mock dependency 주입), 모든 `@patch(\"app.services.auth_service.xxx_service\")` 제거하고 `service._xxx` 직접 설정 방식으로 전환\n- `tests/unit/test_client_config_service.py` — `ClientConfigService()` → `ClientConfigService(cache_service=, keycloak_client_repository=)`, `@patch` 제거하고 `self.mock_cache`, `self.mock_repo` 직접 사용\n- `tests/unit/test_onboard_service.py` — `OnboardService()` → `_make_onboard_service()`, `@patch(\"app.services.onboard_service.xxx\")` 제거하고 `onboard_service._keycloak`, `._audit`, `._client_config` 직접 설정\n\n**통합 테스트 (3개):**\n- `tests/integration/test_callback_success.py` — `@patch(\"app.services.oauth_service.xxx\")` 제거 → `_make_oauth_service()` + `dependency_overrides[oauth_service_dep]` 패턴으로 전환\n- `tests/integration/test_oauth_callback.py` — 동일 패턴 (`@patch` → `dependency_overrides`)\n- `tests/integration/test_auth_logout.py` — `@patch(\"app.services.auth_service.xxx\")` 제거 → `_make_auth_service()` + `dependency_overrides[auth_service_dep]` 패턴\n- `tests/integration/test_api_auth.py` — `@patch(\"app.services.auth_service.session_service\")`, `@patch(\"app.services.oauth_service.client_config_service\")` → `dependency_overrides` 패턴\n\n테스트 결과: `348 passed, 2 skipped, 6 warnings in 1.98s`",
+    "summary": "테스트 전체 수정 완료, 348개 통과",
+    "timestamp": "2026-03-13T05:23:09.877Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"developer\",\"timestamp\":\"2026-03-13T05:23:11.613Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T05:23:11.613Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"reviewer\",\"timestamp\":\"2026-03-13T05:26:55.260Z\",\"idleReason\":\"available\",\"summary\":\"[to developer] DI 전환 코드 리뷰 결과\"}",
+    "timestamp": "2026-03-13T05:26:55.260Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "\n코드 리뷰 완료. developer에게 상세 피드백 전달했음.\n\n**판정: NOT READY — Critical 2개 수정 필요**\n\n## Critical 이슈\n\n1. **app/core/audit.py:71-74** — `AuditContext.log()`가 `get_audit_service()`를 직접 호출하여 FastAPI DI를 우회. 테스트의 `dependency_overrides[audit_service_dep]`가 이 경로에 적용 안 됨.\n\n2. **app/services/keycloak_service.py:72** — 하위호환 주석에서 `@patch(\"app.services.keycloak_service.KeycloakAdmin\")` 호환 유지가 목적이라 명시했으나, `dependencies.py`의 `get_keycloak_service()`는 모듈 싱글턴이 아닌 `KeycloakService()` 새 인스턴스를 반환. `@patch` 경로가 실제 동작하는 인스턴스에 적용되지 않아 의도와 코드 불일치.\n\n## Important 이슈\n\n3. `get_keycloak_oidc_service()`에 `@lru_cache` 누락 — 다른 팩토리와 패턴 불일치\n4. 테스트 내 inline `try/finally` override와 fixture 기반 override 패턴 혼재\n\ndeveloper 수정 후 재리뷰 예정.\n",
+    "summary": "코드 리뷰 완료 — NOT READY",
+    "timestamp": "2026-03-13T05:27:08.770Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"reviewer\",\"timestamp\":\"2026-03-13T05:27:12.238Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T05:27:12.238Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"developer\",\"timestamp\":\"2026-03-13T05:29:01.389Z\",\"idleReason\":\"available\",\"summary\":\"[to reviewer] Critical 2개 수정 완료, 재리뷰 요청\"}",
+    "timestamp": "2026-03-13T05:29:01.389Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "리뷰 지적사항 전부 수정 완료. 348 passed, 0 errors.\n\n**Critical #1** (audit.py DI 우회) — 이전 턴에서 이미 수정됨:\n- `AuditContext`에 `_audit_service: AuditService` 필드 추가\n- `audit_context()` 팩토리에서 `Depends(_get_audit_service_dep)`로 주입\n- `log()`에서 `self._audit_service.log_event()` 직접 호출\n\n**Critical #2** (keycloak_service 인스턴스 불일치) — 이전 턴에서 이미 수정됨:\n- `get_keycloak_service()`가 `keycloak_service` 모듈 싱글턴 반환하도록 변경\n- `@lru_cache` 제거 (싱글턴이므로 불필요)\n\n**Important #3** (lru_cache 일관성) — 이번에 추가 수정:\n- `get_keycloak_oidc_service()`에 `@lru_cache` 추가\n\n**Important #4** (테스트 override 패턴 혼재) — 스킵 (지시대로)\n\n수정 파일:\n- `app/core/audit.py` — AuditService DI 주입 패턴\n- `app/core/dependencies.py` — keycloak_service 싱글턴 반환 + lru_cache 일관성",
+    "summary": "리뷰 지적 Critical 2 + Important 1 수정 완료",
+    "timestamp": "2026-03-13T05:29:30.908Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"developer\",\"timestamp\":\"2026-03-13T05:29:33.309Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T05:29:33.309Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"reviewer\",\"timestamp\":\"2026-03-13T05:29:49.978Z\",\"idleReason\":\"available\",\"summary\":\"[to developer] 재리뷰 — Critical 해소, 주석 오류 1건 수정 필요\"}",
+    "timestamp": "2026-03-13T05:29:49.978Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "주석 오류 수정 완료. `app/core/audit.py:127-131` — \"또는 audit_service_dep을 override하면 자동 반영\" 부분을 삭제하고 \"이 함수를 직접 override해야 한다\"로 수정했다. reviewer CONDITIONAL PASS 조건 충족.",
+    "summary": "주석 오류 수정 완료, 리뷰 통과",
+    "timestamp": "2026-03-13T05:30:05.840Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"developer\",\"timestamp\":\"2026-03-13T05:30:07.337Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T05:30:07.337Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "\n재리뷰 완료.\n\n## 확인 결과\n\n**Critical #1 (AuditContext DI 우회)**: 해소 확인. `_audit_service` 필드 주입 + `_get_audit_service_dep` 패턴 정상.\n\n**Critical #2 (keycloak_service 싱글턴 불일치)**: 해소 확인. `get_keycloak_service()`가 `keycloak_service` 모듈 싱글턴 반환, 주석에 의도 명시.\n\n**Important #3 (get_keycloak_oidc_service @lru_cache 누락)**: 추가 확인. `@lru_cache`가 모듈 싱글턴 반환 함수에 붙어 있어도 동작에는 문제없다. `_dep()` 래퍼에는 `@lru_cache`가 없으므로 `dependency_overrides` 충돌도 없음.\n\n## 미수정 항목\n\n**app/core/audit.py:132** — 이전 재리뷰에서 지적한 주석 오류가 그대로 남아있다:\n\n```\n또는 audit_service_dep을 override하면 이 래퍼를 통해 자동 반영된다.\n```\n\n이 문장은 틀렸다. `Depends(_get_audit_service_dep)`를 override하려면 `dependency_overrides[_get_audit_service_dep]`로 등록해야 하며 `audit_service_dep`과는 별개다. 해당 줄 삭제 필요.\n\n## 판정\n\n**CONDITIONAL PASS — audit.py:132 주석 1줄 삭제 후 배포 가능**\n\n런타임/테스트 동작에는 영향 없는 주석 오류이므로 재리뷰 없이 삭제 후 머지해도 됨.\n",
+    "summary": "재리뷰 완료 — CONDITIONAL PASS, 주석 1줄만 남음",
+    "timestamp": "2026-03-13T05:30:18.476Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"reviewer\",\"timestamp\":\"2026-03-13T05:30:23.051Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T05:30:23.051Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "developer",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1773379855382@developer\",\"from\":\"developer\",\"timestamp\":\"2026-03-13T05:30:58.019Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-03-13T05:30:58.019Z",
+    "color": "green",
+    "read": true
+  },
+  {
+    "from": "researcher",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1773379856271@researcher\",\"from\":\"researcher\",\"timestamp\":\"2026-03-13T05:30:59.481Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-03-13T05:30:59.481Z",
+    "color": "blue",
+    "read": true
+  },
+  {
+    "from": "reviewer",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1773379855713@reviewer\",\"from\":\"reviewer\",\"timestamp\":\"2026-03-13T05:31:02.066Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-03-13T05:31:02.066Z",
+    "color": "yellow",
+    "read": true
+  },
+  {
+    "from": "deploy-script-check",
+    "text": "## 배포 스크립트 검증 결과\n\n### 1. 전체 배포 흐름 (deploy-codedeploy.sh)\n\n흐름은 정상적입니다:\n1. `render.sh` 실행 → `generated/{env}/` 생성\n2. `generated/{env}/`, `scripts/`, `templates/`, `envs/`, 주요 .sh 파일들을 임시 디렉토리로 복사\n3. `.deploy_env` 마커 파일 생성 (환경 감지용)\n4. `.env.{env}` 파일에 `DEPLOY_PROJECTS` 주입\n5. zip 패키지 → S3 업로드 → CodeDeploy 배포 생성 → 모니터링\n\n**S3 경로**: `s3://wb-sso/deployments/sso/{패키지명}.zip`\n**배포 그룹명**: `sso-{env}-app` / `sso-{env}-dg` (환경 접미사에서 `-aws`, `-idc` 등 제거: `prod-aws` → `sso-prod-app`)\n\n### 2. appspec.yml - 정상\n\nlifecycle hooks 5단계 정의, 모두 `runas: root`:\n- ApplicationStop (120s) → BeforeInstall (60s) → AfterInstall (300s) → ApplicationStart (300s) → ValidateService (180s)\n\ndestination: `/home/ubuntu/identity`\n\n### 3. CodeDeploy Hook 스크립트 분석\n\n#### stop_application.sh - 정상\n- `.deploy_env`에서 환경 감지\n- `generated/{env}/docker-compose.yml` 확인 후 `stop.sh` 호출\n- `set -e` 주석처리 (의도적 — 실패해도 계속 진행)\n- 백업 생성, 마지막 3개만 유지\n\n#### before_install.sh - 경미한 문제\n- `.env` 파일을 `/etc/sso/`에 보존\n- **문제**: 42행에서 `$WORK_DIR/$ENV` 디렉토리 백업을 시도하지만, 현재 구조는 `$WORK_DIR/generated/$ENV`입니다. 이 경로 불일치는 실제로는 해당 디렉토리가 존재하지 않아서 그냥 건너뛰므로 배포 실패를 유발하지는 않습니다.\n\n#### after_install.sh - 정상 (핵심 스크립트)\n- `/etc/sso/.env.{env}`에서 .env 복원\n- 기존 컨테이너 stop (stop.sh 호출)\n- `render.sh` 재실행 → `generated/{env}/` 재생성\n- SSM placeholder 해석\n- `.env` → `generated/{env}/.env`로 복사\n- `/etc/sso/instance.env` (JGROUPS_EXTERNAL_ADDR 등) 병합\n- ECR 로그인, Docker 볼륨/네트워크 생성, 이미지 pull\n- **generated/ 기반 전환 올바르게 완료됨**\n\n#### start_application.sh - 정상\n- `start.sh {env} all` 또는 특정 서비스 시작\n- `SKIP_ECR_LOGIN=true` 설정 (after_install에서 이미 로그인)\n\n#### validate_service.sh - 정상\n- `generated/{env}/` 디렉토리에서 docker compose ps 확인\n- nginx healthcheck (`/healthcheck`) 최대 30회 * 5초 = 150초\n\n### 4. start.sh / stop.sh - generated/ 경로 참조\n\n둘 다 `generated/$ENV` 경로를 올바르게 참조합니다.\n\n- `start.sh`: `ENV_DIR=\"generated/$ENV\"` 사용, `cd \"$env_dir\"` 후 docker compose 실행\n- `stop.sh`: 동일하게 `generated/$ENV` 사용\n\n### 5. 발견된 문제점\n\n#### 문제 A: before_install.sh 경로 불일치 (경미)\n- 42행: `if [ -d \"$WORK_DIR/$ENV\" ]` → 이전 구조(env 디렉토리가 루트에 있던 시절)의 잔재\n- `generated/$ENV`로 수정해야 하지만, 실제 영향은 없음 (해당 디렉토리가 없으면 건너뜀)\n\n#### 문제 B: upload-to-s3.sh가 generated/ 미지원 (경미)\n- 48행: `${SCRIPT_DIR}/${ENV}` 디렉토리 존재를 확인 — 이전 구조 기준\n- 이 스크립트는 CodeDeploy 배포와 별개이므로 현재 문제와 무관\n\n#### 문제 C: 중복 stop 호출\n- `stop_application.sh`에서 stop → `after_install.sh`에서도 다시 stop\n- 기능적 문제는 아니지만 불필요한 중복입니다\n\n### 6. \"인스턴스 2 건너뜀\" 문제 판단\n\n**스크립트 문제가 아닌 인프라 문제일 가능성이 높습니다.**\n\n이유:\n1. 스크립트 자체는 논리적으로 문제없음. 인스턴스 1이 성공했다면 동일 패키지로 인스턴스 2도 성공해야 함\n2. OneAtATime 전략에서 \"건너뜀(Skipped)\"은 보통 다음 원인:\n   - **CodeDeploy Agent가 인스턴스 2에서 실행되지 않거나 응답하지 않음**\n   - **인스턴스 태그가 배포 그룹과 불일치** (인스턴스가 배포 대상으로 인식되었지만 Agent가 없는 경우)\n   - **인스턴스가 Unhealthy 상태** (ASG 또는 ELB health check 실패)\n   - **이전 배포가 인스턴스 2에서 실패 후 정리되지 않은 상태**\n\n**확인 필요 사항**:\n```bash\n# 인스턴스 2에서 CodeDeploy Agent 상태 확인\nsudo systemctl status codedeploy-agent\n\n# Agent 로그 확인\ntail -100 /var/log/aws/codedeploy-agent/codedeploy-agent.log\n\n# 배포 그룹의 인스턴스 목록 확인\naws deploy list-deployment-instances --deployment-id {ID} --region ap-northeast-2\n\n# 각 인스턴스 상태 확인\naws deploy get-deployment-instance --deployment-id {ID} --instance-id {i-xxx} --region ap-northeast-2\n```\n\n### 요약\n\n| 항목 | 상태 |\n|------|------|\n| deploy-codedeploy.sh | 정상 |\n| appspec.yml | 정상 |\n| stop_application.sh | 정상 |\n| before_install.sh | 경미한 경로 불일치 (영향 없음) |\n| after_install.sh (generated/ 전환) | 정상 |\n| start_application.sh | 정상 |\n| validate_service.sh | 정상 |\n| start.sh / stop.sh (generated/ 참조) | 정상 |\n| 인스턴스 2 건너뜀 | **인프라 문제 (Agent/태그)** |\n",
+    "summary": "배포 스크립트 검증 완료 - 스크립트 정상, 인스턴스 건너뜀은 인프라 문제",
+    "timestamp": "2026-03-13T05:48:19.838Z",
+    "color": "orange",
+    "read": true
+  },
+  {
+    "from": "terraform-check",
+    "text": "Terraform CodeDeploy 설정 분석 완료. 결과 정리:\n\n## 1. CodeDeploy 배포 그룹 설정\n\n**파일**: `environments/prod/sso/compute.tf:127-142`\n\n| 항목 | 값 |\n|------|-----|\n| app_name | `${local.name_prefix}-app` (예: sso-prod-app) |\n| deployment_group_name | `${local.name_prefix}-dg` (예: sso-prod-dg) |\n| **deployment_config_name** | **기본값 `CodeDeployDefault.OneAtATime`** (compute.tf에서 별도 지정 안 함 → 모듈 변수 default 적용) |\n| deployment_type | `IN_PLACE` |\n| deployment_option | `WITH_TRAFFIC_CONTROL` (ALB 연동) |\n| auto_rollback | enabled, `DEPLOYMENT_FAILURE` 이벤트 시 |\n\n## 2. 인스턴스 연결 방식: **ASG 기반** (태그 기반 아님)\n\n```hcl\nautoscaling_groups = [module.asg.asg_name]\n```\n\n- CodeDeploy 배포 그룹이 **ASG 이름으로 연결**되어 있음\n- `ec2_tag_set`은 사용하지 않음\n- ASG에 속한 인스턴스가 자동으로 배포 대상이 됨\n- 즉, 두 인스턴스(`i-0cd34fbbb0aa38340`, `i-0da23d1568884b56b`)는 ASG 멤버로서 배포 대상에 포함됨\n\n## 3. ASG 설정\n\n**파일**: `environments/prod/sso/variables.tf:124-140`\n\n| 항목 | 값 |\n|------|-----|\n| min_size | **2** |\n| max_size | **4** |\n| desired_capacity | **2** (변수 기본값, tfvars.example도 동일) |\n| health_check_type | `ELB` |\n| health_check_grace_period | 300초 |\n| CPU scaling | enabled, target 70% |\n\n**중요**: ASG 모듈(`modules/compute/asg/main.tf:117-119`)에 `lifecycle { ignore_changes = [desired_capacity] }` 설정이 있음. 이는 커밋 `a3a8994`에서 추가됨. Terraform이 desired_capacity 변경을 무시하므로, AWS 콘솔이나 스케일링에서 변경된 값이 유지됨.\n\n## 4. 최근 변경 이력 (3/12~3/13)\n\n3/12~13에 변경된 파일은 전부 **networking.tf** (ALB 로그, S3, SG egress 관련)이며, **CodeDeploy나 ASG 관련 변경은 없음**.\n\n가장 최근 ASG 관련 커밋은 `a3a8994` (RDS prevent_destroy 추가 및 ASG desired_capacity ignore 설정) — 날짜는 더 이전.\n\n## 5. \"Skipped\" 문제 분석\n\n`CodeDeployDefault.OneAtATime` + IN_PLACE + 2대 인스턴스 조합에서:\n- **OneAtATime**은 한 번에 1대씩 배포하고, 최소 1대는 정상 유지해야 함\n- 2대 중 1대 성공 후 나머지 1대가 \"Skipped\"되는 것은 `OneAtATime`의 정상 동작일 수 있음 — **하지만** 일반적으로는 2대 모두 배포되어야 함\n- Skipped가 발생하는 주요 원인:\n  1. 두 번째 인스턴스가 ASG에서 **Unhealthy** 또는 **InService가 아닌** 상태\n  2. CodeDeploy Agent가 두 번째 인스턴스에서 미실행/비정상\n  3. 배포 시점에 두 번째 인스턴스가 아직 ASG에 완전히 등록되지 않은 상태\n\n**확인 권장**: AWS 콘솔에서 두 번째 인스턴스의 ASG InService 상태와 CodeDeploy Agent 상태를 확인하세요.",
+    "summary": "Terraform CodeDeploy/ASG 설정 분석 완료",
+    "timestamp": "2026-03-13T05:48:26.215Z",
+    "color": "purple",
+    "read": true
+  },
+  {
+    "from": "deploy-script-check",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"deploy-script-check\",\"timestamp\":\"2026-03-13T05:48:26.919Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T05:48:26.919Z",
+    "color": "orange",
+    "read": true
+  },
+  {
+    "from": "terraform-check",
+    "text": "{\"type\":\"idle_notification\",\"from\":\"terraform-check\",\"timestamp\":\"2026-03-13T05:48:28.551Z\",\"idleReason\":\"available\"}",
+    "timestamp": "2026-03-13T05:48:28.551Z",
+    "color": "purple",
+    "read": true
+  },
+  {
+    "from": "terraform-check",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1773381330573@terraform-check\",\"from\":\"terraform-check\",\"timestamp\":\"2026-03-13T05:55:33.756Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-03-13T05:55:33.756Z",
+    "color": "purple",
+    "read": true
+  },
+  {
+    "from": "deploy-script-check",
+    "text": "{\"type\":\"shutdown_approved\",\"requestId\":\"shutdown-1773381331106@deploy-script-check\",\"from\":\"deploy-script-check\",\"timestamp\":\"2026-03-13T05:55:34.386Z\",\"paneId\":\"in-process\",\"backendType\":\"in-process\"}",
+    "timestamp": "2026-03-13T05:55:34.386Z",
+    "color": "orange",
+    "read": true
+  }
+]

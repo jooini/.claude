@@ -1,0 +1,39 @@
+[
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"1\",\"subject\":\"녹음/업로드 상태 충돌 방지\",\"description\":\"녹음 중이거나 녹음 제목 입력 중일 때 파일 업로드 영역 비활성화. 반대로 파일 제목 입력 중일 때 녹음 버튼 비활성화. page.tsx에서 recording, pendingRecordingBlob, pendingFile 상태를 교차 체크하여 상호 배타적으로 만들기.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-03-27T06:59:56.842Z\"}",
+    "timestamp": "2026-03-27T06:59:56.842Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"task_assignment\",\"taskId\":\"2\",\"subject\":\"접근성 개선 — label, aria-live, 색상 대비\",\"description\":\"1) 제목 입력 input에 aria-label=\\\"회의 제목\\\" 추가 (파일 업로드, 녹음 완료 둘 다)\\n2) text-slate-400 → text-slate-500으로 교체 (WCAG AA 대비 충족). 대상: 날짜, 재생시간, 트랜스크립트 메타, 빈 상태 서브텍스트 등\\n3) 스텝퍼 위에 aria-live=\\\"polite\\\" + sr-only 영역 추가하여 상태 변화 알림\\n4) 녹음 중 버튼 aria-label에 현재 상태 포함\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-03-27T06:59:57.004Z\"}",
+    "timestamp": "2026-03-27T06:59:57.004Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "태스크 #1, #2 완료 상태 보고해줘. 어디까지 했어?",
+    "summary": "태스크 진행 상태 확인",
+    "timestamp": "2026-03-27T07:12:12.151Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1774595836048@developer-a\",\"from\":\"team-lead\",\"reason\":\"태스크 완료. 종료해.\",\"timestamp\":\"2026-03-27T07:17:16.048Z\"}",
+    "timestamp": "2026-03-27T07:17:16.048Z",
+    "read": true
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1774595867273@developer-a\",\"from\":\"team-lead\",\"reason\":\"모든 태스크 완료. 종료해줘.\",\"timestamp\":\"2026-03-27T07:17:47.273Z\"}",
+    "timestamp": "2026-03-27T07:17:47.273Z",
+    "read": false
+  },
+  {
+    "from": "team-lead",
+    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1774595884860@developer-a\",\"from\":\"team-lead\",\"reason\":\"종료 요청. 승인해줘.\",\"timestamp\":\"2026-03-27T07:18:04.860Z\"}",
+    "timestamp": "2026-03-27T07:18:04.860Z",
+    "read": false
+  }
+]

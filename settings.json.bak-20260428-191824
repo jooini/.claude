@@ -1,0 +1,495 @@
+{
+  "cleanupPeriodDays": 90,
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "PATH": "/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "CCGUI_CLI_LOGIN_AUTHORIZED": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
+  "permissions": {
+    "defaultMode": "auto",
+    "allow": [
+      "Bash(ls *)",
+      "Bash(/bin/ls *)",
+      "Bash(cat *)",
+      "Bash(/bin/cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(/usr/bin/wc *)",
+      "Bash(wc *)",
+      "Bash(file *)",
+      "Bash(stat *)",
+      "Bash(find *)",
+      "Bash(/usr/bin/find *)",
+      "Bash(grep *)",
+      "Bash(/usr/bin/grep *)",
+      "Bash(rg *)",
+      "Bash(awk *)",
+      "Bash(sed -n *)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git remote*)",
+      "Bash(git -C * status*)",
+      "Bash(git -C * log*)",
+      "Bash(git -C * diff*)",
+      "Bash(cd *)",
+      "Bash(pwd)",
+      "Bash(echo *)",
+      "Bash(/bin/echo *)",
+      "Bash(date)",
+      "Bash(/bin/date *)",
+      "Bash(which *)",
+      "Bash(env)",
+      "Bash(printenv *)",
+      "Bash(python3 -c *)",
+      "Bash(/usr/bin/python3 *)",
+      "Bash(node -e *)",
+      "Bash(uv tree*)",
+      "Bash(uv pip list*)",
+      "Bash(uv --version)",
+      "Bash(npm list*)",
+      "Bash(npm --version)",
+      "Bash(npm ls*)",
+      "Bash(docker ps*)",
+      "Bash(docker images*)",
+      "Bash(docker logs *)",
+      "Bash(docker compose ps*)",
+      "Bash(docker compose config*)",
+      "Bash(curl -s http://leonard.local:11434/*)",
+      "Bash(curl -s http://localhost:*)",
+      "Bash(curl -s http://127.0.0.1:*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr list*)",
+      "Bash(gh issue view*)",
+      "Bash(gh issue list*)",
+      "Bash(gh repo view*)",
+      "mcp__local-rag__query_documents",
+      "mcp__local-rag__status",
+      "mcp__local-rag__list_files",
+      "mcp__local-rag__read_chunk_neighbors",
+      "mcp__plugin_claude-mem_mcp-search__search",
+      "mcp__plugin_claude-mem_mcp-search__smart_search",
+      "mcp__plugin_claude-mem_mcp-search__smart_outline",
+      "mcp__plugin_claude-mem_mcp-search__smart_unfold",
+      "mcp__plugin_claude-mem_mcp-search__timeline",
+      "mcp__plugin_claude-mem_mcp-search__get_observations",
+      "Bash(gemini -p *)",
+      "Read",
+      "Glob",
+      "Grep"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-commit-draft.sh",
+            "if": "Bash(git commit*)",
+            "timeout": 20,
+            "statusMessage": "Gemma 커밋 초안 생성 중..."
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
+            "timeout": 12,
+            "statusMessage": "Gemma 한글 번역 검사 중..."
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-commit-convention.sh",
+            "if": "Bash(git commit*)",
+            "timeout": 12,
+            "statusMessage": "Gemma 커밋 규약 검사 중..."
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/commit-korean-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/commit-no-coauthor.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/pr-create-codex-remind.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/dependency-change-detect.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/agent-start-notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/agent-context-inject.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/agent-knowledge-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemini-review-prescan.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-review-prescan.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/dangerous-command-detect.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/error-codex-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/tool-usage-log.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/branch-switch-detect.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/cwd-change-detect.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemini-auto-scan.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-error-summarize.sh",
+            "timeout": 15,
+            "statusMessage": "Gemma 에러 요약 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/agent-usage-log.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/agent-complete-notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/pipeline-metrics-log.sh",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/decision-capture.sh",
+            "timeout": 8,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/knowledge-change-rebuild.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-dependency-summarize.sh",
+            "timeout": 20,
+            "statusMessage": "Gemma 의존성 변경 요약 중..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/node-version-sync.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/session-build-agents.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/session-detect-language.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/session-active-tasks.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/session-gemma-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/session-gemini-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-morning-brief.sh",
+            "timeout": 35,
+            "statusMessage": "Gemma 세션 브리핑 생성 중..."
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-intent-restore.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/stop-notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/stop-pipeline-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-session-summarize.sh",
+            "timeout": 60,
+            "statusMessage": "Gemma 세션 요약 생성 중...",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/gemma-intent-capture.sh",
+            "timeout": 60,
+            "statusMessage": "Gemma 의도 기록 중...",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/precompact-notify.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/ask-notify.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/auto-scale-detect.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/memory-search-suggest.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/session-turn-counter.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "zsh /Users/leonard/.claude/statusline-agent.sh"
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "code-review-graph@code-review-graph": false,
+    "claude-mem@thedotmack": true,
+    "codex@openai-codex": true,
+    "pyright-lsp@claude-plugins-official": false,
+    "php-lsp@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": false,
+    "gitlab@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": false,
+    "security-guidance@claude-plugins-official": false,
+    "claude-md-management@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": false
+  },
+  "extraKnownMarketplaces": {
+    "claude-code-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code"
+      }
+    },
+    "code-review-graph": {
+      "source": {
+        "source": "github",
+        "repo": "tirth8205/code-review-graph"
+      }
+    },
+    "thedotmack": {
+      "source": {
+        "source": "github",
+        "repo": "thedotmack/claude-mem"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    }
+  },
+  "alwaysThinkingEnabled": false,
+  "skipAutoPermissionPrompt": true,
+  "skills": {
+    "userSettings:tool-status": {
+      "path": "/Users/leonard/.claude/skills/tool-status/skill.md"
+    }
+  },
+  "autoApprove": [
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep",
+    "Agent",
+    "Bash(git status*)",
+    "Bash(git log*)",
+    "Bash(git diff*)",
+    "Bash(git add*)",
+    "Bash(git commit*)",
+    "Bash(git branch*)",
+    "Bash(git checkout*)",
+    "Bash(git switch*)",
+    "Bash(git merge*)",
+    "Bash(git fetch*)",
+    "Bash(git pull*)",
+    "Bash(git push *)",
+    "Bash(git stash*)",
+    "Bash(git show*)",
+    "Bash(git blame*)",
+    "Bash(git rev-parse*)",
+    "Bash(git remote*)",
+    "Bash(git tag*)",
+    "Bash(git cherry-pick*)",
+    "Bash(git rebase*)",
+    "Bash(ls *)",
+    "Bash(cd *)",
+    "Bash(npm *)",
+    "Bash(npx *)",
+    "Bash(python *)",
+    "Bash(docker *)",
+    "Bash(ssh *)",
+    "Bash(curl *)",
+    "Bash(uv *)",
+    "Bash(gemini *)",
+    "Bash(codex *)",
+    "Bash(composer *)",
+    "Bash(php *)",
+    "Bash(gradle *)",
+    "Bash(wc *)",
+    "Bash(which *)",
+    "Bash(gh *)",
+    "mcp__local-rag__*",
+    "mcp__plugin_code-review-graph_code-review-graph__*",
+    "mcp__plugin_claude-mem_mcp-search__*",
+    "mcp__plugin_playwright_playwright__*",
+    "mcp__memory__*",
+    "mcp__context7__*",
+    "mcp__ssh__*",
+    "mcp__gitlab__*",
+    "Skill(ask-gemini)",
+    "Skill(ask-codex)",
+    "Skill(debug)",
+    "Skill(logs)",
+    "Skill(cross-check)",
+    "Skill(check-sso-compat)",
+    "Bash(vendor/bin/*)"
+  ],
+  "mcpServers": {
+    "gitlab": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@zereight/mcp-gitlab"
+      ],
+      "env": {
+        "GITLAB_API_URL": "https://git.weaversmind.com/api/v4"
+      }
+    },
+    "local-rag": {
+      "command": "/Users/leonard/.claude/scripts/run-local-rag.sh",
+      "args": [],
+      "env": {
+        "BASE_DIR": "/Users/leonard/Workspace",
+        "RAG_BASE_DIR": "/Users/leonard/Workspace",
+        "DB_PATH": "/Users/leonard/Workspace/lancedb",
+        "CACHE_DIR": "/Users/leonard/.claude/cache/rag-models",
+        "MODEL_NAME": "Xenova/multilingual-e5-small"
+      }
+    },
+    "codex-cli": {
+      "command": "/Users/leonard/.nvm/versions/node/v22.22.0/bin/codex",
+      "args": [
+        "mcp-server"
+      ],
+      "env": {}
+    }
+  },
+  "theme": "dark-daltonized",
+  "remoteControlAtStartup": false
+}

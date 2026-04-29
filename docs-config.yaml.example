@@ -1,0 +1,25 @@
+# 문서 스캐폴딩 설정 (scaffold-docs.sh에서 사용)
+# obsidian 모듈 활성화 시 자신의 프로젝트에 맞게 수정하세요.
+
+output_dir: ~/Workspace/my-vault/Projects/my-docs
+hub_file: DOCS_INTEGRATED.md
+
+projects:
+  - name: my-project
+    path: ~/Workspace/my-project
+    branch: develop
+    tech: "FastAPI + Python 3.11"
+    doc_file: DOCS_my-project.md
+    claude_md: ~/Workspace/my-project/CLAUDE.md
+
+#  - name: another-project
+#    path: ~/Workspace/another-project
+#    branch: main
+#    tech: "Spring Boot + Kotlin"
+#    doc_file: DOCS_another-project.md
+#    claude_md: ~/Workspace/another-project/CLAUDE.md
+
+operations:
+  doc_file: DOCS_operations.md
+  sources:
+    - ~/Workspace/my-vault/Projects/my-docs/
