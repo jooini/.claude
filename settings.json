@@ -244,6 +244,18 @@
             "command": "/Users/leonard/.claude/hooks/gemma-dependency-summarize.sh",
             "timeout": 20,
             "statusMessage": "Gemma 의존성 변경 요약 중..."
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/task-progress-tracker.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/claudemd-change-broadcast.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/rag-auto-index.sh"
           }
         ]
       }
@@ -279,12 +291,21 @@
           },
           {
             "type": "command",
+            "command": "/Users/leonard/.claude/hooks/qwen-alias-suggest.sh"
+          },
+          {
+            "type": "command",
             "command": "/Users/leonard/.claude/hooks/gemma-intent-restore.sh",
             "timeout": 5
           },
           {
             "type": "command",
             "command": "/Users/leonard/.claude/hooks/session-today-reminder.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/qwen-project-context-inject.sh",
             "timeout": 5
           },
           {
@@ -332,6 +353,10 @@
           {
             "type": "command",
             "command": "/Users/leonard/.claude/hooks/qwen-learning-capture.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/qwen-handoff-suggest.sh"
           },
           {
             "type": "command",
@@ -402,6 +427,11 @@
           {
             "type": "command",
             "command": "/Users/leonard/.claude/hooks/simple-query-ollama-route.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/qwen-similar-sessions-suggest.sh",
             "timeout": 5
           }
         ]
