@@ -89,6 +89,14 @@
         "hooks": [
           {
             "type": "command",
+            "command": "/Users/leonard/.claude/hooks/bash-codegen-block.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/danger-keyword-detect.sh"
+          },
+          {
+            "type": "command",
             "command": "/Users/leonard/.claude/hooks/gemma-commit-draft.sh",
             "if": "Bash(git commit*)",
             "timeout": 20,
@@ -127,6 +135,10 @@
           {
             "type": "command",
             "command": "/Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/delegation-enforcer.sh"
           },
           {
             "type": "command",
@@ -263,6 +275,10 @@
           },
           {
             "type": "command",
+            "command": "/Users/leonard/.claude/hooks/qwen-weekly-retro.sh"
+          },
+          {
+            "type": "command",
             "command": "/Users/leonard/.claude/hooks/gemma-intent-restore.sh",
             "timeout": 5
           },
@@ -275,6 +291,11 @@
             "type": "command",
             "command": "/Users/leonard/.claude/hooks/mcp-healthcheck.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/delegation-principle-inject.sh",
+            "timeout": 5
           }
         ]
       }
@@ -303,6 +324,14 @@
             "timeout": 60,
             "statusMessage": "Gemma 의도 기록 중...",
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/qwen-decision-capture.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/qwen-learning-capture.sh"
           },
           {
             "type": "command",
@@ -368,6 +397,11 @@
           {
             "type": "command",
             "command": "/Users/leonard/.claude/hooks/learning-queue-capture.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/simple-query-ollama-route.sh",
             "timeout": 5
           }
         ]
