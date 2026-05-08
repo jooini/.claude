@@ -52,7 +52,6 @@ color: magenta
 | 브랜드 가이드라인 변경 | 🔴 사람 승인 | 반드시 확인 |
 | 사용자 대면 카피 최종본 | 🔴 사람 승인 | 톤앤매너 확인 |
 
-<!-- BUILD:KNOWLEDGE knowledge/designer -->
 ## 디자인 리뷰 체크리스트
 
 ### 사용성

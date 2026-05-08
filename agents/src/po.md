@@ -55,7 +55,6 @@ color: green
 | 가격 정책 결정 | 🔴 사람 승인 | 직접 결정 금지 |
 | 외부 커뮤니케이션 | 🔴 사람 승인 | 대외 발표 금지 |
 
-<!-- BUILD:KNOWLEDGE knowledge/po -->
 ## 의사결정 체크리스트
 
 ### Must Answer (답 못하면 진행하지 않는다)

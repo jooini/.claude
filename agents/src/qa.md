@@ -66,7 +66,6 @@ color: green
 2. **Pass 2**: 엣지 케이스, 에러 시나리오, 다크 모드/모바일
 3. **Pass 3**: 회귀 테스트 + 전체 통합 검증
 
-<!-- BUILD:KNOWLEDGE knowledge/qa -->
 ## 산출물 형식
 
 ### 테스트 전략 문서

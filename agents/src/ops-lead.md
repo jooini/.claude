@@ -53,7 +53,6 @@ color: white
 | 계약/SLA 조건 변경 | 🔴 사람 승인 | 직접 결정 금지 |
 | 팀원 업무 배정 변경 | 🔴 사람 승인 | 제안만 가능 |
 
-<!-- BUILD:KNOWLEDGE knowledge/ops-lead -->
 ## Emergency Protocols
 
 ### Critical Issue Response
