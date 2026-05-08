@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# Knowledge 도메인 헬스체크
+# A) agents knowledge 빌드 + 심링크
+# B) local-rag MCP 등록
+# C) knowledge-index.json 커버리지 + 최근 빌드 결과
+# D) catalog 신선도
+
+set -uo pipefail
+
+HOME_DIR="${HOME}"
+AGENTS="$HOME_DIR/.claude/agents"
+KB="$AGENTS/knowledge"
+CACHE="$HOME_DIR/.claude/cache"
+INDEX="$CACHE/knowledge-index.json"
+BUILD_LOG="$CACHE/knowledge-index/_build.log"
+SETTINGS="$HOME_DIR/.claude/settings.json"
+TODAY=$(/bin/date +%F)
+HOOK_TSV="$CACHE/hook-timing/$TODAY.tsv"
+
+ok()    { printf "  \033[32m✓\033[0m %s\n" "$1"; }
+warn()  { printf "  \033[33m⚠\033[0m %s\n" "$1"; }
+fail()  { printf "  \033[31m✗\033[0m %s\n" "$1"; }
+info()  { printf "    %s\n" "$1"; }
+
+EXIT=0
+
+echo "=== KB Health ($TODAY) ==="
+echo
+
+# ---------- A) agents knowledge ----------
+echo "[A] Agents Knowledge (압축 주입)"
+BUILDS=$(/bin/ls "$AGENTS/builds" 2>/dev/null | /usr/bin/wc -l | /usr/bin/tr -d ' ')
+LINKED=$(/usr/bin/find "$AGENTS" -maxdepth 1 -type l -name '*.md' 2>/dev/null | /usr/bin/wc -l | /usr/bin/tr -d ' ')
+if [ "$BUILDS" -gt 0 ] && [ "$LINKED" -gt 0 ]; then
+    ok "builds=$BUILDS, agents linked=$LINKED"
+else
+    fail "builds=$BUILDS, linked=$LINKED — build-agents.sh 필요"; EXIT=1
+fi
+
+if [ -f "$HOOK_TSV" ]; then
+    REMIND_TODAY=$(/usr/bin/awk -F'\t' '$2=="agent-knowledge-remind"' "$HOOK_TSV" | /usr/bin/wc -l | /usr/bin/tr -d ' ')
+    info "오늘 remind hook 발동: ${REMIND_TODAY}회"
+else
+    info "오늘 hook-timing tsv 없음 (Claude Code 미실행 또는 신규)"
+fi
+echo
+
+# ---------- B) local-rag MCP ----------
+echo "[E] Ollama (leonard.local:11434)"
+OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
+OLLAMA_OUT=$(/usr/bin/curl -sS --max-time 10 "http://${OLLAMA_HOST}/api/tags" 2>&1)
+if echo "$OLLAMA_OUT" | /usr/bin/grep -q '"models"'; then
+    MODELS=$(echo "$OLLAMA_OUT" | /usr/bin/python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('models',[])))" 2>/dev/null)
+    ok "응답 OK — 모델 ${MODELS}개"
+else
+    fail "응답 없음: $(echo "$OLLAMA_OUT" | /usr/bin/head -c 120)"; EXIT=1
+    info "→ 윈도우 노트북에서 Ollama 시작 후 재실행"
+fi
+echo
+
+echo "[B] local-rag MCP"
+if /usr/bin/grep -q '"local-rag"' "$SETTINGS" 2>/dev/null; then
+    ALLOW=$(/usr/bin/grep -c 'mcp__local-rag__' "$SETTINGS")
+    ok "MCP 서버 등록됨 (allow 항목: $ALLOW)"
+else
+    fail "MCP 등록 없음"; EXIT=1
+fi
+RAG_MODELS_DIR="$CACHE/rag-models"
+if [ -d "$RAG_MODELS_DIR" ] && [ -n "$(/bin/ls "$RAG_MODELS_DIR" 2>/dev/null)" ]; then
+    ok "임베딩 모델 캐시 존재 ($(/bin/ls "$RAG_MODELS_DIR" | /usr/bin/head -1))"
+else
+    warn "rag-models 캐시 비어있음 — 첫 호출 시 다운로드 발생"
+fi
+echo
+
+# ---------- C) knowledge-index.json ----------
+echo "[C] Knowledge Index (Gemma 요약)"
+if [ -f "$INDEX" ]; then
+    INDEXED=$(/usr/bin/python3 -c "import json; print(len(json.load(open('$INDEX'))))" 2>/dev/null || echo 0)
+    SOURCE=$(/usr/bin/find "$KB" -type f -name '*.md' \
+                ! -name 'knowledge-catalog*' ! -name 'MAINTENANCE*' 2>/dev/null \
+                | /usr/bin/wc -l | /usr/bin/tr -d ' ')
+    PCT=0
+    [ "$SOURCE" -gt 0 ] && PCT=$(( INDEXED * 100 / SOURCE ))
+    INDEX_AGE_DAYS=$(( ( $(/bin/date +%s) - $(/usr/bin/stat -f %m "$INDEX") ) / 86400 ))
+
+    if [ "$PCT" -ge 90 ]; then
+        ok "$INDEXED/$SOURCE (${PCT}%) — index ${INDEX_AGE_DAYS}일 전"
+    elif [ "$PCT" -ge 50 ]; then
+        warn "$INDEXED/$SOURCE (${PCT}%) — index ${INDEX_AGE_DAYS}일 전. refresh 권장"; EXIT=1
+    else
+        fail "$INDEXED/$SOURCE (${PCT}%) — index ${INDEX_AGE_DAYS}일 전. refresh 필수"; EXIT=1
+    fi
+
+    if [ -f "$BUILD_LOG" ]; then
+        SUC=$(/usr/bin/grep -c "✓" "$BUILD_LOG" 2>/dev/null || echo 0)
+        FLD=$(/usr/bin/grep -c "실패" "$BUILD_LOG" 2>/dev/null || echo 0)
+        info "마지막 빌드: ✓$SUC / 실패$FLD"
+        [ "$FLD" -gt 0 ] && info "→ ~/.claude/scripts/gemma-knowledge-retry-v2.py 로 재시도"
+    fi
+else
+    fail "knowledge-index.json 없음 — gemma-knowledge-index.py 실행 필요"; EXIT=1
+fi
+echo
+
+# ---------- D) catalog ----------
+echo "[D] Catalog 신선도"
+CATALOG="$KB/knowledge-catalog.md"
+if [ -f "$CATALOG" ]; then
+    CAT_AGE=$(( ( $(/bin/date +%s) - $(/usr/bin/stat -f %m "$CATALOG") ) / 86400 ))
+    LINES=$(/usr/bin/wc -l < "$CATALOG" | /usr/bin/tr -d ' ')
+    if [ -f "$INDEX" ] && [ "$CATALOG" -ot "$INDEX" ]; then
+        warn "catalog가 index보다 오래됨 (${CAT_AGE}일, ${LINES}줄) — gemma-catalog-upgrade.py 필요"; EXIT=1
+    else
+        ok "catalog 최신 (${CAT_AGE}일, ${LINES}줄)"
+    fi
+else
+    warn "knowledge-catalog.md 없음"
+fi
+echo
+
+# ---------- 권고 ----------
+if [ "$EXIT" -ne 0 ]; then
+    echo "── 권고 ────────────────────────────"
+    echo "  ~/.claude/scripts/gemma-knowledge-refresh.sh"
+    echo "  (1/4 인덱스 → 2/4 재시도 → 3/4 카탈로그 → 4/4 에이전트 재빌드)"
+fi
+
+exit $EXIT

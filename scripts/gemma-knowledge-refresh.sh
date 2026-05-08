@@ -9,6 +9,17 @@ SCRIPTS="$HOME/.claude/scripts"
 echo "=== Knowledge Refresh — 4단계 ==="
 echo ""
 
+# 사전 가드: Ollama 헬스체크
+OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
+echo "[사전] Ollama 헬스체크 (${OLLAMA_HOST})..."
+if ! /usr/bin/curl -sS --max-time 10 "http://${OLLAMA_HOST}/api/tags" 2>/dev/null | /usr/bin/grep -q '"models"'; then
+    echo "  ✗ Ollama 응답 없음 — 인덱싱 실패가 카탈로그 손상으로 이어짐. 중단."
+    echo "  → 윈도우 노트북에서 Ollama 시작 후 재실행"
+    exit 1
+fi
+echo "  ✓ Ollama OK"
+echo ""
+
 # 1단계: 인덱싱 (증분)
 echo "1/4 인덱스 업데이트 (변경된 파일만)..."
 python3 "$SCRIPTS/gemma-knowledge-index.py" 2>&1 | /usr/bin/tail -5

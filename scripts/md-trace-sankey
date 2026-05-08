@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# md-trace v1 (Sankey) 래퍼
+# usage: md-trace-sankey [days] [scope] [layout] [size] [open]
+#   md-trace-sankey                       # --days 14 --scope claude
+#   md-trace-sankey 30 stack big open     # 30일, 세로, 큰 폰트, 오픈
+
+set -euo pipefail
+
+DAYS=14
+SCOPE=claude
+LAYOUT=()
+SIZE=()
+OPEN=()
+
+for arg in "$@"; do
+    case "$arg" in
+        open)              OPEN=(--open) ;;
+        all|config|claude) SCOPE="$arg" ;;
+        side|stack)        LAYOUT=(--layout "$arg") ;;
+        big)               SIZE=(--height 1100 --font 14) ;;
+        small)             SIZE=(--height 540 --font 10) ;;
+        ''|*[!0-9]*)       echo "unknown arg: $arg" >&2; exit 2 ;;
+        *)                 DAYS="$arg" ;;
+    esac
+done
+
+exec python3 "$(dirname "$0")/md-trace-v1.py" \
+    --days "$DAYS" --scope "$SCOPE" \
+    "${LAYOUT[@]}" "${SIZE[@]}" "${OPEN[@]}"

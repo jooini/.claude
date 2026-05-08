@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# md-trace v2 (3패널 대시보드) 래퍼
+# usage: md-trace [days] [scope] [open]
+#   md-trace                # --days 14 --scope config
+#   md-trace 30             # 30일
+#   md-trace 30 all open    # 30일, 전체 scope, 브라우저 오픈
+
+set -euo pipefail
+
+DAYS=14
+SCOPE=config
+OPEN=()
+
+for arg in "$@"; do
+    case "$arg" in
+        open)            OPEN=(--open) ;;
+        all|config|claude) SCOPE="$arg" ;;
+        ''|*[!0-9]*)     echo "unknown arg: $arg" >&2; exit 2 ;;
+        *)               DAYS="$arg" ;;
+    esac
+done
+
+exec python3 "$(dirname "$0")/md-trace-v2.py" --days "$DAYS" --scope "$SCOPE" "${OPEN[@]}"

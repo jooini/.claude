@@ -72,7 +72,7 @@ def smart_trim(content: str, max_chars: int = 1200) -> str:
 
 def gemma_call(messages, num_predict=400, temperature=0.2, timeout=45):
     body = json.dumps({
-        "model": "gemma4:e4b",
+        "model": "qwen2.5-coder:14b",
         "messages": messages,
         "stream": False,
         "keep_alive": "30m",

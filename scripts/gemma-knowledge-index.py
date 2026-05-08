@@ -69,7 +69,7 @@ def gemma_summarize(path: Path, content: str) -> dict:
 """
 
     body = json.dumps({
-        "model": "gemma4:e4b",
+        "model": "qwen2.5-coder:14b",
         "messages": [
             {"role": "system", "content": "JSON만 출력. 설명/인사/코드블록 금지."},
             {"role": "user", "content": prompt}
