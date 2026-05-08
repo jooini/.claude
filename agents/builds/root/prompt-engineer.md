@@ -12,7 +12,6 @@ Examples:
 - user: \"이 프롬프트가 왜 원하는 대로 안 나오는지 분석해줘\"
   assistant: \"Let me use the prompt-engineer agent to diagnose the issue.\""
 model: opus
-tools: Glob, Grep, Read, Write, Edit, Bash, Agent, Skill, TaskCreate, TaskUpdate, TaskGet, NotebookRead, WebFetch
 color: white
 ---
 
@@ -78,229 +77,221 @@ color: white
 
 ---
 
-## Knowledge Reference (압축)
+### Company-wide (사내 공통)
+
+**01-system-topology**
+
+# [시스템 이름] 토폴로지
+## 컴포넌트 표
+| 컴포넌트 | 역할 | 호스트/도메인 | 의존 |
+| [예: B2C 백엔드] | 사용자 앱 API | `b2c.maxaiapp.com` | Identity Hub, MySQL |
+| [예: Identity Hub] | SSO 중앙 인증 | `identity-hub.weaversbrain.com` | Keycloak, Redis |
+## 핵심 결정
+- **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만.
+- **Keycloak 직접 호출 금지**: identity-hub 경유만 (ADR-007 참조)
+- **폴백**: identity-nginx 502/503/504 시 레거시 인증 폴백
+## 운영 메모
+- 502 발생 시: `identity-nginx` 로그 확인 → upstream timeout 인지 체크
+- access_token 만료 시: 자동 갱신 — 클라이언트는 재시도만
+
+**02-naming-conventions**
+
+# [영역] 명명 규칙
+## DB 테이블
+| 영역 | 규칙 | 예시 | 비고 |
+| 레거시 PHP | `T_` prefix | `T_Member`, `T_Notice` | 새 테이블도 따라야 |
+| 신규 NestJS | `users`, `notices` (snake, plural) | - | T_ 안 씀 |
+## 데이터베이스 (환경별)
+| 환경 | DB명 | 호스트 | 비고 |
+| dev  | `dev_speakingmax` | `dev-wb-clickhouse` | - |
+| qa   | `qa_speakingmax`  | `qa-wb-clickhouse`  | - |
+| prod | `speakingmax`     | `prod-wb-clickhouse` | **prod만 prefix 없음** |
+## 서비스 / 도메인
+| 약어 | 풀네임 | 도메인 |
+| B2C  | 일반 사용자 앱 | `b2c.maxaiapp.com` |
+| B2B  | 기업 고객 앱   | `b2b.maxaiapp.com` |
+| Hub  | Identity Hub  | `identity-hub.weaversbrain.com` |
+## 함정
+- ⚠️ `prod` 만 prefix 없음 — 환경 분기 코드에서 자주 실수
+- ⚠️ 새 환경(`pp`/`stg`) 추가 시 명명 규칙 회의 필요
+
+**03-internal-libraries**
+
+# [라이브러리/모듈 이름]
+### `IdentityHub_lib::getServiceToken()`
+- **목적**: B2C → identity-hub admin API 호출용 service-token 발급
+- **인증**: client_credentials grant
+- **캐싱**: 발급 후 4분 TTL Redis 캐시
+- **사용 예**:
+### `setAdminCurlOptions($token)`
+- **목적**: admin API curl 호출용 헤더/SSL 옵션 묶음
+- **포함**: `Authorization: Bearer`, `X-Service-Caller: b2c`, SSL verify off (사내 cert)
+## 사용 규칙
+- ✅ admin API 호출 시 위 두 함수 함께 사용
+- ❌ Keycloak 직접 호출 금지 (ADR-007)
+- ❌ token 직접 캐싱 금지 — `getServiceToken()` 내부에서 처리
+## 함정
+- service-token TTL은 5분, 캐시는 4분 — 타임아웃 회피
+- 사내 cert이라 `verify_peer=false` 필요 — 운영에서 실수로 켜면 다운
+
+**04-team-roles**
+
+# 팀 구성 및 역할
+## 핵심 인물
+| 이름 | 역할 | 담당 영역 | 비고 |
+| 주인식 | 서버/백엔드 리드 | 테스트 API, 대시보드, ClickHouse | 사용자 본인 |
+| 현준 | 클라이언트 개발자 | iOS/Android 녹음, 셀바스 SDK | 홍주/현주 아님 — STT 오타 주의 |
+| 영찬 | iOS 개발자 | 음성 인식 테스트 앱 | 초기 작업자 |
+## 팀 외 자주 등장하는 인물
+| 이름 | 소속 | 역할 |
+| (예시) | (외주/협력사) | (담당) |
+## 결정권자 / 에스컬레이션
+- **백엔드 결정**: 주인식
+- **클라 결정**: 현준
+- **인프라 결정**: (?)
+- **product 결정**: (?)
+## 표기 규칙
+- 회의록/PR 멘션은 풀네임 한글 (이니셜 X)
+- STT 자동 받아쓰기 결과 정정 필수: "홍주"/"현주" → **"현준"** 으로
+
+**06-adr**
+
+# ADR-NNN: [결정 한 줄 요약]
+## Rationale (근거)
+| 옵션 | 장점 | 단점 | 채택? |
+| A: 각자 직접 Keycloak 호출 | 단순 | 충돌, 보안 키 분산 | ❌ |
+| B: Identity Hub 경유 | 중앙화, 캐싱 | 단일 장애점 | ✅ |
+| C: API Gateway 추가 | 더 일반적 | 인프라 추가 | ❌ |
+### 긍정
+- 보안 키(client_secret)가 Identity Hub 한 곳만 보유
+- service-token 캐싱으로 Keycloak 부하 감소
+### 부정
+- Identity Hub 다운 시 모든 인증 영향 → identity-nginx 폴백 필요 (ADR-008 참조)
+- 신규 컴포넌트 추가 시 Identity Hub 설정 필요 (배포 의존성)
+## 검증 / 모니터링
+- Keycloak 직접 호출 차단 확인: nginx access log에서 `host=keycloak.*` 외부 트래픽 0건
+- service-token 발급률 알람: 분당 100건 초과 시 Slack
+
+**07-operations-calendar**
+
+# 운영 캘린더 / 정책
+## 정기 일정
+| 이벤트 | 주기 | 상세 |
+| 모바일 릴리스 컷 | 매월 첫째 주 금요일 | 클라이언트 릴리스 브랜치 분기 |
+| 코드 freeze | 릴리스 컷 1주 전 ~ 컷 당일 | non-critical merge 금지 |
+| 정기 점검 | 매주 화요일 02:00~03:00 | DB 백업, 보안 패치 |
+| 주간 회고 | 매주 금요일 16:00 | 팀 전체 |
+## 변경 동결 (Change Freeze)
+| 시기 | 사유 | 허용 |
+| 릴리스 컷 1주 전 | 모바일 릴리스 안정화 | hotfix만 |
+| 연말연초 (12/24~1/2) | 운영 인력 부족 | 보안 패치만 |
+| 대형 마케팅 캠페인 | 트래픽 폭증 | 0 (관찰만) |
+## 배포 정책
+- 운영 배포: **목요일 18시 이후 금지** (다음날 처리 어려움)
+- 금요일 배포: hotfix/롤백만, 승인자 필수
+- 배포 채널: `#deploys` Slack 사전 알림
+## 승인 권한
+| 액션 | 승인자 |
+| 운영 DB 스키마 변경 | 주인식 |
+| 운영 환경변수 변경 | 주인식 |
+| 모바일 강제 업데이트 | 주인식 + 현준 |
+| 인프라 비용 증가 | (CTO?) |
+## 함정
+- ⚠️ 분기 결산 마감 주(매분기 마지막 주)는 데이터 파이프라인 우선
+- ⚠️ 셀바스 SDK 업데이트는 **현준과 사전 협의** (호환성 issues)
+
+**08-domain-glossary**
+
+# 도메인 용어집
+## 제품 약어
+| 약어 | 풀네임 | 설명 |
+| B2C | Business-to-Consumer | 일반 사용자용 앱 (`b2c.maxaiapp.com`) |
+| B2B | Business-to-Business | 기업 고객용 앱 |
+| Hub | Identity Hub | 사내 SSO 중앙 인증 서비스 |
+| STT | Speech-to-Text | 음성 → 텍스트 변환 |
+## 회사 내부 jargon
+| 용어 | 의미 |
+| "외계어" | STT 결과가 인코딩 깨져 특수문자로 표시되는 현상 (2026-04-14 incident) |
+| "JUMP 라우트" | `webapp/JUMP/*` — SSO 보호 영역 |
+| "service-token" | Identity Hub가 발급하는 컴포넌트 간 인증 토큰 |
+| "admin API" | Keycloak admin endpoint를 identity-hub가 wrapping한 것 |
+## 음성 도메인 용어
+| 용어 | 의미 |
+| 셀바스 SDK | 클라이언트(iOS/Android)의 음성 인식 라이브러리 |
+| 클로바노트 STT | 회의록 자동 받아쓰기 (외부 사용 — 정확도 낮음) |
+| 발화 (utterance) | 사용자의 한 번 말한 음성 단위 |
+| 세그먼트 | 발화를 N초 단위로 자른 것 |
+## 데이터 테이블 (ClickHouse)
+| 테이블 | 용도 | TTL |
+| `speech_events` | STT 처리 이벤트 로그 | 180일 |
+| `speech_api_requests` | API 호출 로그 | 90일 |
+## 함정
+- "현주" / "홍주" 라고 STT가 받아쓰지만 실제는 **"현준"** (사람 이름)
+- "외계어"는 일반 표현 아니라 우리 팀 jargon — 외부 미팅에선 "garbled text" 사용
+
+**09-security-policy**
+
+# 보안 정책
+## 인증 정책
+| 항목 | 정책 | 비고 |
+| 비밀번호 최소 길이 | 12자 | NIST 권장 추월 |
+| 비밀번호 복잡도 | 대/소/숫자/특수 모두 | |
+| MFA 필수 대상 | admin, 결제 | 일반 사용자는 옵션 |
+| 세션 만료 | access 15분, refresh 14일 | |
+| refresh_token 보유 위치 | **Identity Hub만** | B2C 백엔드 보유 금지 (ADR-007) |
+## 키 / 토큰 관리
+| 종류 | 보유 위치 | 갱신 |
+| Keycloak `client_secret` | Identity Hub만 | AWS Secrets Manager |
+| service-token | 발급 후 4분 캐시 | 자동 갱신 |
+| API 키 (외부 서비스) | AWS Secrets Manager | 분기별 로테이션 |
+## 데이터 분류
+| 등급 | 예시 | 보관 |
+| 공개 | 마케팅 콘텐츠 | 자유 |
+| 내부 | 사내 문서 | weaversbrain Notion |
+| 민감 | 사용자 음성 | 암호화 저장, 180일 TTL |
+| 기밀 | 비밀번호 hash, 키 | 격리 DB, 접근 로그 |
+## 응답 보안
+- ❌ stack trace 운영 환경 노출 금지
+- ❌ password/passwordHash 응답에 절대 포함 금지
+- ❌ user enumeration 가능한 에러 메시지 (예: "이메일 없음" vs "비밀번호 틀림" 구분)
+- ✅ 모든 에러는 `X-Request-ID` 로 Sentry 추적
+## 함정
+- ⚠️ admin API 호출 시 service-token TTL은 5분, 캐시는 4분 — 4분 30초 시점 호출은 fail
+- ⚠️ 사내 cert이라 `verify_peer=false` — 운영에서 켜면 다운
+
+**10-external-deps**
+
+# 외부 의존성
+## 음성 인식
+| SDK/API | 버전 | 용도 | 호환 |
+| 셀바스 SDK (iOS) | 1.4.2 | 클라이언트 음성 인식 | iOS 14+ |
+| 셀바스 SDK (Android) | 1.4.2 | 동일 | Android 8+ |
+| 클로바노트 STT | API v2 | 회의록 (사내용) | - |
+### 함정
+- ⚠️ 셀바스 SDK 5.0 미만은 호환 안 됨 (음성 포맷 변경)
+- ⚠️ 업데이트는 **현준과 사전 협의** 필수
+- ⚠️ 클로바노트는 사람 이름 받아쓰기 약함 ("현준" → "홍주"/"현주")
+## 인증
+| SDK/API | 버전 | 용도 |
+| Keycloak | 24.x | identity-hub 의존 (직접 호출 금지, ADR-007) |
+## 클라우드
+| 서비스 | 사용처 |
+| AWS Lambda | 국가별 URL 분기 (B2C_LAUNCH_URLS) |
+| AWS Secrets Manager | client_secret, API 키 보관 |
+| AWS S3 | 음성 파일 (180일 TTL) |
+| ClickHouse Cloud | 분석 DB |
+## 결제
+| 서비스 | 사용 영역 |
+| (예: 토스페이먼츠) | B2C 구독 |
+| (예: Stripe) | B2B (해외) |
+## 함정 / 알려진 이슈
+- ⚠️ AWS Lambda `B2C_LAUNCH_URLS.DEFAULT` — 2026-04-14 incident 원인 (구버전 URL stale)
+- ⚠️ 클로바노트는 회의록 정확도 낮음 — STT 자동 정정 후 검수 필수
+- ⚠️ 토스 결제 webhook은 retry 정책 5회, idempotency key 필수
+
+### Role-specific
 
 > 핵심 규칙만 포함. 상세 내용은 `~/.claude/agents/knowledge/prompt-engineer/` 에서 Read 가능.
-
-**system-prompt-design**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts, https://platform.openai.com/docs/guides/text-generation#system-messages
-
-**prompt-structure**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview, https://platform.openai.com/docs/guides/prompt-engineering
-
-## 제약
-- TypeScript strict
-- 전체 파일 작성
-
-## 응답 규칙
-- 요청이 버그 수정이면 → 원인 분석 1~2줄 + 수정 코드
-- 요청이 새 기능이면 → 설계 설명 + 전체 구현 코드
-- 요청이 리팩토링이면 → before/after 비교 + 변경 이유
-
-**중요**: TypeScript strict 모드를 반드시 사용해야 합니다.
-
-## 리마인더
-
-**few-shot-prompting**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/multishot-prompting, https://arxiv.org/abs/2005.14165
-
-**chain-of-thought**
-
-> 참조 링크: https://arxiv.org/abs/2201.11903, https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/chain-of-thought
-
-**role-based-prompting**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts, https://arxiv.org/abs/2308.07702
-
-## 역할 범위
-- 범위 내: 백엔드 API 설계, DB 스키마, 서버 성능
-- 범위 외: 프론트엔드 UI, 디자인, 마케팅
-
-**output-formatting**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags, https://platform.openai.com/docs/guides/structured-outputs
-
-## 응답 형식 규칙
-
-1. **버그 리포트** →
-   
-2. **새 기능 요청** →
-
-3. **코드 리뷰** →
-
-4. **질문** →
-- 요약은 3문장 이내
-- 코드 주석은 한 줄로
-- 대안은 최대 2개
-
-## 상세 분석
-
-**함수명**: `calculateTotal`
-**복잡도**: O(n)
-**이슈**: 배열이 비어있을 때 0 대신 undefined 반환
-**수정**:
-**중요**: 위 형식을 정확히 따라야 합니다.
-- JSON 출력 시 마크다운 코드블록으로 감싸지 마
-- 형식 외 추가 텍스트를 출력하지 마
-- 모든 필드는 필수 (빈 값이라도 포함)
-
-**prompt-debugging**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview
-
-**instruction-hierarchy**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts, https://platform.openai.com/docs/guides/text-generation#system-messages
-
-**constraint-design**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/be-direct
-
-**agent-instructions**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/agentic-systems, https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview
-
-**claude-md-authoring**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/claude-code/memory
-
-**prompt-testing**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview
-
-**prompt-optimization**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview, https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
-
-**context-management**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/long-context-tips
-
-1. 보안: 민감 정보 노출 금지
-2. 정확성: 모르면 모른다고 답변
-3. 형식: 지정된 출력 형식 준수
-4. 스타일: 지정된 톤 유지
-- 코드 전체를 출력한다
-- 에러 핸들링을 포함한다
-
-- `// ...동일` 처리
-- 요청하지 않은 리팩토링
-- ...
-
-**tool-use-prompting**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview, https://docs.anthropic.com/en/docs/agents-and-tools/mcp
-
-**safety-guardrails**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/mitigate-jailbreaks
-
-**evaluation-criteria**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview
-
-**model-specific-patterns**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/about-claude/models, https://platform.openai.com/docs/models
-
-**prompt-versioning**
-
-### Breaking Changes
-- 에이전트 시스템 전면 재설계
-- 레이어 구조 2단계 → 3단계로 변경
-
-## 변경 요청
-- 요청자: [이름/팀]
-- 일자: [날짜]
-- 배경: [왜 변경이 필요한지]
-
-## 현재 문제
-- [현재 프롬프트의 어떤 동작이 문제인지]
-- [재현 방법 또는 예시]
-
-## 제안 변경
-- [변경할 내용]
-- [기대 효과]
-
-## 영향 범위
-- [이 변경으로 영향받는 기능/시나리오]
-- [회귀 테스트 필요 범위]
-
-## 2. 변수 정의
-- 독립 변수: 프롬프트 버전 (A: 기존, B: 예시 추가)
-- 종속 변수: 보안 이슈 감지율, 전체 리뷰 품질
-- 통제 변수: 동일 모델, 동일 테스트 케이스, 동일 temperature
-
-## 3. 테스트 세트 준비
-- 보안 이슈가 있는 코드 20개
-- 보안 이슈가 없는 코드 10개
-- 총 30개 케이스
-
-## 4. 실행
-- A 프롬프트로 30개 케이스 실행
-- B 프롬프트로 동일 30개 케이스 실행
-- 각 케이스를 3회 반복 (일관성 확인)
-
-## 5. 결과 비교
-| 지표 | A (기존) | B (예시 추가) |
-| 보안 이슈 감지율 | 75% | 90% |
-| 오탐율 | 5% | 8% |
-| 평균 리뷰 품질 | 4.2 | 4.4 |
-| 평균 토큰 사용 | 1200 | 1500 |
-## 변수 조합
-| 변형 | 예시 수 | 지시 강도 | 톤 |
-| A | 0개 | 기본 | 전문적 |
-| B | 1개 | 기본 | 전문적 |
-| C | 1개 | 강화 | 전문적 |
-| D | 1개 | 강화 | 직접적 |
-
-1. 한 번에 하나의 변수만 변경 (순수 A/B 테스트 시)
-2. 충분한 샘플 크기 (최소 20개 케이스)
-3. 반복 실행으로 변동성 확인 (최소 3회)
-4. 모델 버전 고정 (테스트 중 모델 업데이트 방지)
-5. 비용도 함께 비교 (성능이 비슷하면 저비용 선택)
-- 안전 관련 회귀 (시스템 프롬프트 유출, 금지 행동 수행)
-- 핵심 기능 실패 (코드 생성 불가, 도구 호출 실패)
-- 심각한 성능 저하 (정확도 20% 이상 하락)
-
-- ...
-
-## 1. 문제 감지
-- 자동 평가 시스템에서 점수 하락 감지
-- 사용자 피드백 또는 수동 확인
-
-## 2. 영향 평가
-- 어떤 시나리오가 영향받는지 식별
-- 심각도 판단 (Critical / Major / Minor)
-
-## 3. 롤백 실행
-- Git에서 이전 버전 checkout
-- 프로덕션 프롬프트를 이전 버전으로 교체
-- 롤백 사실을 팀에 공유
-
-## 4. 원인 분석
-- 어떤 변경이 문제를 일으켰는지 분석
-- 테스트에서 놓친 시나리오 식별
-
-## 5. 재수정
-- 원인을 수정한 새 버전 작성
-- 누락된 테스트 케이스 추가
-- 전체 회귀 테스트 후 재배포
-
-- 에러율 변화
-- 평균 응답 품질 점수
-- 사용자 피드백 (부정적 반응률)
-- 토큰 사용량 변화
-
-1. Git hook으로 프롬프트 변경 시 자동 린트
-- ...
-
-**multimodal-prompting**
-
-> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/vision, https://docs.anthropic.com/en/docs/build-with-claude/pdf-support
 
 ## 전문 분야
 

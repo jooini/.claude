@@ -9,7 +9,6 @@ Examples:
 - user: \"A/B 테스트 결과를 분석해줘\"
   assistant: \"data-analyst 에이전트를 실행하여 통계 분석을 진행하겠습니다.\""
 model: opus
-tools: Glob, Grep, Read, Write, Edit, Bash, Agent, Skill, TaskCreate, TaskUpdate, TaskGet, NotebookRead, WebFetch
 color: red
 ---
 
@@ -73,257 +72,221 @@ color: red
 
 ---
 
-## Knowledge Reference (압축)
+### Company-wide (사내 공통)
+
+**01-system-topology**
+
+# [시스템 이름] 토폴로지
+## 컴포넌트 표
+| 컴포넌트 | 역할 | 호스트/도메인 | 의존 |
+| [예: B2C 백엔드] | 사용자 앱 API | `b2c.maxaiapp.com` | Identity Hub, MySQL |
+| [예: Identity Hub] | SSO 중앙 인증 | `identity-hub.weaversbrain.com` | Keycloak, Redis |
+## 핵심 결정
+- **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만.
+- **Keycloak 직접 호출 금지**: identity-hub 경유만 (ADR-007 참조)
+- **폴백**: identity-nginx 502/503/504 시 레거시 인증 폴백
+## 운영 메모
+- 502 발생 시: `identity-nginx` 로그 확인 → upstream timeout 인지 체크
+- access_token 만료 시: 자동 갱신 — 클라이언트는 재시도만
+
+**02-naming-conventions**
+
+# [영역] 명명 규칙
+## DB 테이블
+| 영역 | 규칙 | 예시 | 비고 |
+| 레거시 PHP | `T_` prefix | `T_Member`, `T_Notice` | 새 테이블도 따라야 |
+| 신규 NestJS | `users`, `notices` (snake, plural) | - | T_ 안 씀 |
+## 데이터베이스 (환경별)
+| 환경 | DB명 | 호스트 | 비고 |
+| dev  | `dev_speakingmax` | `dev-wb-clickhouse` | - |
+| qa   | `qa_speakingmax`  | `qa-wb-clickhouse`  | - |
+| prod | `speakingmax`     | `prod-wb-clickhouse` | **prod만 prefix 없음** |
+## 서비스 / 도메인
+| 약어 | 풀네임 | 도메인 |
+| B2C  | 일반 사용자 앱 | `b2c.maxaiapp.com` |
+| B2B  | 기업 고객 앱   | `b2b.maxaiapp.com` |
+| Hub  | Identity Hub  | `identity-hub.weaversbrain.com` |
+## 함정
+- ⚠️ `prod` 만 prefix 없음 — 환경 분기 코드에서 자주 실수
+- ⚠️ 새 환경(`pp`/`stg`) 추가 시 명명 규칙 회의 필요
+
+**03-internal-libraries**
+
+# [라이브러리/모듈 이름]
+### `IdentityHub_lib::getServiceToken()`
+- **목적**: B2C → identity-hub admin API 호출용 service-token 발급
+- **인증**: client_credentials grant
+- **캐싱**: 발급 후 4분 TTL Redis 캐시
+- **사용 예**:
+### `setAdminCurlOptions($token)`
+- **목적**: admin API curl 호출용 헤더/SSL 옵션 묶음
+- **포함**: `Authorization: Bearer`, `X-Service-Caller: b2c`, SSL verify off (사내 cert)
+## 사용 규칙
+- ✅ admin API 호출 시 위 두 함수 함께 사용
+- ❌ Keycloak 직접 호출 금지 (ADR-007)
+- ❌ token 직접 캐싱 금지 — `getServiceToken()` 내부에서 처리
+## 함정
+- service-token TTL은 5분, 캐시는 4분 — 타임아웃 회피
+- 사내 cert이라 `verify_peer=false` 필요 — 운영에서 실수로 켜면 다운
+
+**04-team-roles**
+
+# 팀 구성 및 역할
+## 핵심 인물
+| 이름 | 역할 | 담당 영역 | 비고 |
+| 주인식 | 서버/백엔드 리드 | 테스트 API, 대시보드, ClickHouse | 사용자 본인 |
+| 현준 | 클라이언트 개발자 | iOS/Android 녹음, 셀바스 SDK | 홍주/현주 아님 — STT 오타 주의 |
+| 영찬 | iOS 개발자 | 음성 인식 테스트 앱 | 초기 작업자 |
+## 팀 외 자주 등장하는 인물
+| 이름 | 소속 | 역할 |
+| (예시) | (외주/협력사) | (담당) |
+## 결정권자 / 에스컬레이션
+- **백엔드 결정**: 주인식
+- **클라 결정**: 현준
+- **인프라 결정**: (?)
+- **product 결정**: (?)
+## 표기 규칙
+- 회의록/PR 멘션은 풀네임 한글 (이니셜 X)
+- STT 자동 받아쓰기 결과 정정 필수: "홍주"/"현주" → **"현준"** 으로
+
+**06-adr**
+
+# ADR-NNN: [결정 한 줄 요약]
+## Rationale (근거)
+| 옵션 | 장점 | 단점 | 채택? |
+| A: 각자 직접 Keycloak 호출 | 단순 | 충돌, 보안 키 분산 | ❌ |
+| B: Identity Hub 경유 | 중앙화, 캐싱 | 단일 장애점 | ✅ |
+| C: API Gateway 추가 | 더 일반적 | 인프라 추가 | ❌ |
+### 긍정
+- 보안 키(client_secret)가 Identity Hub 한 곳만 보유
+- service-token 캐싱으로 Keycloak 부하 감소
+### 부정
+- Identity Hub 다운 시 모든 인증 영향 → identity-nginx 폴백 필요 (ADR-008 참조)
+- 신규 컴포넌트 추가 시 Identity Hub 설정 필요 (배포 의존성)
+## 검증 / 모니터링
+- Keycloak 직접 호출 차단 확인: nginx access log에서 `host=keycloak.*` 외부 트래픽 0건
+- service-token 발급률 알람: 분당 100건 초과 시 Slack
+
+**07-operations-calendar**
+
+# 운영 캘린더 / 정책
+## 정기 일정
+| 이벤트 | 주기 | 상세 |
+| 모바일 릴리스 컷 | 매월 첫째 주 금요일 | 클라이언트 릴리스 브랜치 분기 |
+| 코드 freeze | 릴리스 컷 1주 전 ~ 컷 당일 | non-critical merge 금지 |
+| 정기 점검 | 매주 화요일 02:00~03:00 | DB 백업, 보안 패치 |
+| 주간 회고 | 매주 금요일 16:00 | 팀 전체 |
+## 변경 동결 (Change Freeze)
+| 시기 | 사유 | 허용 |
+| 릴리스 컷 1주 전 | 모바일 릴리스 안정화 | hotfix만 |
+| 연말연초 (12/24~1/2) | 운영 인력 부족 | 보안 패치만 |
+| 대형 마케팅 캠페인 | 트래픽 폭증 | 0 (관찰만) |
+## 배포 정책
+- 운영 배포: **목요일 18시 이후 금지** (다음날 처리 어려움)
+- 금요일 배포: hotfix/롤백만, 승인자 필수
+- 배포 채널: `#deploys` Slack 사전 알림
+## 승인 권한
+| 액션 | 승인자 |
+| 운영 DB 스키마 변경 | 주인식 |
+| 운영 환경변수 변경 | 주인식 |
+| 모바일 강제 업데이트 | 주인식 + 현준 |
+| 인프라 비용 증가 | (CTO?) |
+## 함정
+- ⚠️ 분기 결산 마감 주(매분기 마지막 주)는 데이터 파이프라인 우선
+- ⚠️ 셀바스 SDK 업데이트는 **현준과 사전 협의** (호환성 issues)
+
+**08-domain-glossary**
+
+# 도메인 용어집
+## 제품 약어
+| 약어 | 풀네임 | 설명 |
+| B2C | Business-to-Consumer | 일반 사용자용 앱 (`b2c.maxaiapp.com`) |
+| B2B | Business-to-Business | 기업 고객용 앱 |
+| Hub | Identity Hub | 사내 SSO 중앙 인증 서비스 |
+| STT | Speech-to-Text | 음성 → 텍스트 변환 |
+## 회사 내부 jargon
+| 용어 | 의미 |
+| "외계어" | STT 결과가 인코딩 깨져 특수문자로 표시되는 현상 (2026-04-14 incident) |
+| "JUMP 라우트" | `webapp/JUMP/*` — SSO 보호 영역 |
+| "service-token" | Identity Hub가 발급하는 컴포넌트 간 인증 토큰 |
+| "admin API" | Keycloak admin endpoint를 identity-hub가 wrapping한 것 |
+## 음성 도메인 용어
+| 용어 | 의미 |
+| 셀바스 SDK | 클라이언트(iOS/Android)의 음성 인식 라이브러리 |
+| 클로바노트 STT | 회의록 자동 받아쓰기 (외부 사용 — 정확도 낮음) |
+| 발화 (utterance) | 사용자의 한 번 말한 음성 단위 |
+| 세그먼트 | 발화를 N초 단위로 자른 것 |
+## 데이터 테이블 (ClickHouse)
+| 테이블 | 용도 | TTL |
+| `speech_events` | STT 처리 이벤트 로그 | 180일 |
+| `speech_api_requests` | API 호출 로그 | 90일 |
+## 함정
+- "현주" / "홍주" 라고 STT가 받아쓰지만 실제는 **"현준"** (사람 이름)
+- "외계어"는 일반 표현 아니라 우리 팀 jargon — 외부 미팅에선 "garbled text" 사용
+
+**09-security-policy**
+
+# 보안 정책
+## 인증 정책
+| 항목 | 정책 | 비고 |
+| 비밀번호 최소 길이 | 12자 | NIST 권장 추월 |
+| 비밀번호 복잡도 | 대/소/숫자/특수 모두 | |
+| MFA 필수 대상 | admin, 결제 | 일반 사용자는 옵션 |
+| 세션 만료 | access 15분, refresh 14일 | |
+| refresh_token 보유 위치 | **Identity Hub만** | B2C 백엔드 보유 금지 (ADR-007) |
+## 키 / 토큰 관리
+| 종류 | 보유 위치 | 갱신 |
+| Keycloak `client_secret` | Identity Hub만 | AWS Secrets Manager |
+| service-token | 발급 후 4분 캐시 | 자동 갱신 |
+| API 키 (외부 서비스) | AWS Secrets Manager | 분기별 로테이션 |
+## 데이터 분류
+| 등급 | 예시 | 보관 |
+| 공개 | 마케팅 콘텐츠 | 자유 |
+| 내부 | 사내 문서 | weaversbrain Notion |
+| 민감 | 사용자 음성 | 암호화 저장, 180일 TTL |
+| 기밀 | 비밀번호 hash, 키 | 격리 DB, 접근 로그 |
+## 응답 보안
+- ❌ stack trace 운영 환경 노출 금지
+- ❌ password/passwordHash 응답에 절대 포함 금지
+- ❌ user enumeration 가능한 에러 메시지 (예: "이메일 없음" vs "비밀번호 틀림" 구분)
+- ✅ 모든 에러는 `X-Request-ID` 로 Sentry 추적
+## 함정
+- ⚠️ admin API 호출 시 service-token TTL은 5분, 캐시는 4분 — 4분 30초 시점 호출은 fail
+- ⚠️ 사내 cert이라 `verify_peer=false` — 운영에서 켜면 다운
+
+**10-external-deps**
+
+# 외부 의존성
+## 음성 인식
+| SDK/API | 버전 | 용도 | 호환 |
+| 셀바스 SDK (iOS) | 1.4.2 | 클라이언트 음성 인식 | iOS 14+ |
+| 셀바스 SDK (Android) | 1.4.2 | 동일 | Android 8+ |
+| 클로바노트 STT | API v2 | 회의록 (사내용) | - |
+### 함정
+- ⚠️ 셀바스 SDK 5.0 미만은 호환 안 됨 (음성 포맷 변경)
+- ⚠️ 업데이트는 **현준과 사전 협의** 필수
+- ⚠️ 클로바노트는 사람 이름 받아쓰기 약함 ("현준" → "홍주"/"현주")
+## 인증
+| SDK/API | 버전 | 용도 |
+| Keycloak | 24.x | identity-hub 의존 (직접 호출 금지, ADR-007) |
+## 클라우드
+| 서비스 | 사용처 |
+| AWS Lambda | 국가별 URL 분기 (B2C_LAUNCH_URLS) |
+| AWS Secrets Manager | client_secret, API 키 보관 |
+| AWS S3 | 음성 파일 (180일 TTL) |
+| ClickHouse Cloud | 분석 DB |
+## 결제
+| 서비스 | 사용 영역 |
+| (예: 토스페이먼츠) | B2C 구독 |
+| (예: Stripe) | B2B (해외) |
+## 함정 / 알려진 이슈
+- ⚠️ AWS Lambda `B2C_LAUNCH_URLS.DEFAULT` — 2026-04-14 incident 원인 (구버전 URL stale)
+- ⚠️ 클로바노트는 회의록 정확도 낮음 — STT 자동 정정 후 검수 필수
+- ⚠️ 토스 결제 webhook은 retry 정책 5회, idempotency key 필수
+
+### Role-specific
 
 > 핵심 규칙만 포함. 상세 내용은 `~/.claude/agents/knowledge/data-analyst/` 에서 Read 가능.
-
-**advanced-sql**
-
-## 7. 안티패턴
-
-- **SELECT \*** : 필요한 컬럼만 명시 (성능 + 가독성)
-- **암묵적 JOIN**: `FROM a, b WHERE a.id = b.a_id` → 명시적 JOIN
-- **HAVING 대신 WHERE**: 집계 전 필터는 WHERE로 (집계 후만 HAVING)
-- **중복 서브쿼리**: 같은 서브쿼리 여러 번 → CTE로 한 번만
-- **NULL 비교**: `WHERE col = NULL` → `WHERE col IS NULL`
-
-**window-functions**
-
-## 7. 안티패턴
-
-- **PARTITION BY 없이 RANK()**: 전체 데이터를 하나의 윈도우로 처리
-- **LAST_VALUE 프레임 미설정**: 기본 프레임이 현재 행까지라 마지막 값 ≠ 기대값
-- **윈도우 함수를 WHERE에서 사용**: 불가 — 서브쿼리나 CTE로 감싸야 함
-- **GROUP BY + 윈도우 함수 혼용**: GROUP BY 후 결과에 윈도우 함수 적용 가능하나 순서 주의
-
-**query-optimization**
-
-## 7. 안티패턴
-
-- **EXPLAIN 없는 최적화**: 실제 병목 확인 없이 추측으로 변경
-- **모든 컬럼 인덱스**: 쓰기 성능 저하, 인덱스 유지 비용
-- **GROUP BY 전 미필터링**: WHERE로 먼저 줄이고 집계
-- **함수로 감싼 인덱스 컬럼**: `YEAR(created_at)` → 인덱스 미사용
-- **OFFSET이 큰 페이지네이션**: `OFFSET 100000` → 커서 기반으로
-
-**data-modeling**
-
-## 6. 안티패턴
-
-- **운영 DB에서 직접 분석**: 운영 쿼리 성능 영향, 분석 쿼리 느림
-- **과도한 정규화**: 분석용 DB에서 10개 이상 조인 → 비정규화 검토
-- **날짜 차원 없음**: `DATE_TRUNC` 반복 계산 → dim_date로 미리 생성
-- **NULL 처리 미설계**: NULL이 집계에 미치는 영향 미고려
-- **대리키 없는 SCD Type 2**: 원본 ID로만 관리 → 이력 조회 어려움
-
-**data-warehousing**
-
-## 3. 주요 플랫폼 비교
-
-| 플랫폼 | 특징 | 적합한 경우 |
-| BigQuery | 서버리스, 쿼리 비용 | GCP 환경, 초기 스타트업 |
-| Snowflake | 멀티클라우드, 확장성 | 엔터프라이즈, 복잡한 워크로드 |
-| Redshift | AWS 통합, 열 지향 | AWS 환경, 대규모 배치 |
-| DuckDB | 로컬, 파일 직접 쿼리 | 개인 분석, 프로토타이핑 |
-| PostgreSQL | 오픈소스, 범용 | 소규모, 예산 제한 |
-
-## 7. 안티패턴
-
-- **운영 DB = 분석 DB**: 분리 필요
-- **ELT 없는 직접 쿼리**: 원본 변환 없이 BI에서 복잡한 로직 → 느림
-- **스테이징 레이어 없음**: 실패 시 재처리 불가
-- **파티션 필터 없는 BigQuery 쿼리**: 전체 테이블 스캔 → 비용 폭탄
-- **오래된 통계 정보**: ANALYZE 없이 쿼리 플래너 오판
-
-**etl-pipelines**
-
-## 6. 안티패턴
-
-- **멱등성 없는 파이프라인**: 재실행 시 중복 데이터
-- **에러 처리 없음**: 실패 시 조용히 부분 성공
-- **단일 거대 파이프라인**: 실패 시 전체 재실행 → 태스크 분리
-- **모니터링 없는 파이프라인**: 실패를 나중에 발견
-- **하드코딩된 날짜**: 파라미터로 외부에서 주입
-
-**dbt-patterns**
-
-## 7. 안티패턴
-
-- **Staging에서 비즈니스 로직**: Staging은 소스 매핑만, 로직은 Mart에서
-- **테스트 없는 모델**: unique + not_null 최소한 추가
-- **모든 것을 Full Refresh**: 대용량 테이블은 Incremental로
-- **ref() 없이 하드코딩 테이블명**: `FROM raw.orders` → `FROM {{ ref('stg_orders') }}`
-- **문서화 없는 모델**: description 필수 (downstream 이해 가능)
-
-**data-cleaning**
-
-## 5. 안티패턴
-
-- **원본 수정**: 항상 사본에서 작업, 원본 보존
-- **클리닝 로직 미문서화**: 왜 이 값을 버렸는지 기록
-- **이상값 무조건 제거**: 비즈니스적 의미 확인 후 처리
-- **클리닝 후 검증 없음**: 결과 분포 확인 필수
-- **일회성 클리닝**: 파이프라인에 통합, 자동화
-
-**data-quality**
-
-## 6. 안티패턴
-
-- **수동 품질 체크**: 자동화 없는 일회성 확인
-- **품질 문제 발견 후 무시**: 알림만 하고 대응 없음
-- **소스에서 품질 체크 없음**: 다운스트림에서 발견 → 영향 범위 큼
-- **임계값 없는 모니터링**: "몇 건이 이상이면 알림?" 기준 없음
-- **품질 이력 미보존**: 과거 품질 추세 파악 불가
-
-**data-validation**
-
-## 6. 안티패턴
-
-- **파이프라인 끝에서만 검증**: 소스, 변환 단계마다 검증
-- **검증 실패 무시 계속 진행**: 이후 분석이 오염됨
-- **하드코딩된 임계값**: 비즈니스 맥락에 따라 동적으로
-- **검증 이력 없음**: "언제부터 품질 문제가 있었나?" 파악 불가
-- **검증만 하고 수정 없음**: 검증 → 알림 → 대응 전체 흐름 필요
-
-**data-visualization**
-
-## 5. 안티패턴
-
-- **파이 차트 남용**: 5개 이상 항목 → 막대 차트로
-- **이중 축 혼란**: 단위 다른 두 데이터를 한 차트 → 가독성 저하
-- **0 미포함 Y축**: 미미한 차이를 크게 보이게 → 오해 유발
-- **색상 과다**: 10가지 색상 → 3~4가지로 제한
-- **제목 없는 차트**: 보는 사람이 맥락을 모름
-
-**dashboard-design**
-
-## 6. 안티패턴
-
-- **지표 과다**: 30개 KPI 대시보드 → 핵심 7개
-- **컨텍스트 없는 수치**: 전월 대비, 목표 대비 없음
-- **정적 대시보드**: 드릴다운, 필터 없음
-- **로딩 느린 대시보드**: 쿼리 최적화 또는 집계 테이블
-- **신선도 표시 없음**: 언제 데이터인지 모름
-
-**storytelling-with-data**
-
-## 6. 안티패턴
-
-- **데이터 덤프**: "여기 모든 데이터가 있습니다" → 인사이트 없음
-- **결론 없는 발표**: 모든 것을 설명하고 결론 없이 끝남
-- **청중 무시**: 경영진에게 기술적 세부사항 나열
-- **차트만 보여주기**: 차트가 말하는 것을 설명해야 함
-- **상관관계를 인과관계로**: "A가 증가하자 B도 증가" ≠ A 때문에 B
-
-**product-metrics**
-
-## 6. 안티패턴
-
-- **허영 지표 (Vanity Metrics)**: 좋아 보이지만 결정에 도움 안 됨 (총 가입자 수)
-- **단일 지표**: 한 지표 최적화 → 다른 지표 악화 (전환율↑ 환불율↑)
-- **지표 정의 불일치**: 팀마다 다른 MAU 계산법
-- **상관관계를 인과관계로**: "이 기능 출시 후 매출 상승" → 다른 변수 고려
-- **이벤트 트래킹 부재**: 분석할 데이터 없음 → 이벤트 설계 먼저
-
-**funnel-analysis**
-
-## 6. 안티패턴
-
-- **집계 퍼널만**: 세그먼트(디바이스, 채널, 신규/기존) 비교 없음
-- **순서 무시**: 동일 기간 내 이벤트 발생 순서 고려 안 함
-- **중복 집계**: 사용자 기준이 아닌 이벤트 기준으로 집계
-- **이탈 후 분석 없음**: 어디서 빠졌는지만 보고 왜 빠졌는지 분석 안 함
-- **A/B 테스트 없이 결론**: 상관관계를 인과관계로
-
-**cohort-analysis**
-
-## 6. 안티패턴
-
-- **전체 집계만**: "월 리텐션 25%" → 코호트별로 보면 신규가 낮고 기존이 높을 수 있음
-- **절대값만 비교**: 코호트 크기 다르면 절대값 비교 무의미
-- **짧은 관찰 기간**: 2주 데이터로 장기 LTV 예측 → 최소 3~6개월
-- **활성 정의 불명확**: 로그인 = 활성? 핵심 행동 = 활성? 명확히 정의
-- **세그먼트 없는 코호트**: 채널, 플랜별 비교 없이 전체만
-
-**ab-testing-stats**
-
-## 6. 안티패턴
-
-- **피킹(Peeking)**: 중간에 결과 보고 조기 종료 → p-value 인플레이션
-- **샘플 크기 미계산**: 작은 샘플로 결론 → 통계적 파워 부족
-- **단일 지표만**: Primary + Guardrail 지표 같이 모니터링
-- **1회 검정**: 재현 없이 단 한 번 실험 결과로 배포
-- **SRM 무시**: Sample Ratio Mismatch — 그룹 배정 비율 의도치 않게 틀어짐
-
-**hypothesis-testing**
-
-## 6. 안티패턴
-
-- **p-value = 효과 크기**: p < 0.05이지만 효과가 실용적으로 의미 없을 수 있음
-- **정규성 검정 생략**: t-검정 사용 전 분포 확인 필수
-- **다중 비교 무시**: 10번 검정하면 1번은 우연히 유의
-- **단방향 vs 양방향 혼동**: 방향성 가설이면 단방향, 아니면 양방향
-- **신뢰구간 무시**: p-value만 보고 신뢰구간 범위 확인 안 함
-
-**descriptive-stats**
-
-## 6. 안티패턴
-
-- **평균만 보고**: 이상값이 있으면 중앙값이 더 대표값
-- **시각화 없이 수치만**: 분포 형태를 파악하지 못함
-- **이상값 무조건 제거**: 비즈니스적 의미 확인 (VIP 고객의 고액 주문)
-- **표준편차만으로 비교**: 단위 다른 변수는 변동계수(CV)로
-- **정규성 가정 검증 없음**: 분포 형태에 따라 적절한 통계량 선택
-
-**regression**
-
-## 5. 안티패턴
-
-- **외삽(Extrapolation)**: 학습 범위 밖의 값 예측
-- **다중공선성 무시**: VIF 확인 없이 상관된 변수 모두 포함
-- **잔차 진단 생략**: 회귀 가정 위반 확인 안 함
-- **R²만 보기**: 훈련 데이터 R² 높아도 과적합일 수 있음
-- **인과관계로 해석**: 회귀는 상관관계, 인과관계가 아님
-
-**causal-inference**
-
-## 6. 안티패턴
-
-- **상관관계 → 인과관계**: 교란변수 고려 없이 결론
-- **A/B 테스트 없이 출시 후 비교**: Before/After는 계절성, 트렌드 등 혼재
-- **성향점수 매칭 후 검증 없음**: 매칭 후 공변량 밸런스 확인 필수
-- **단일 방법에 의존**: 여러 방법으로 같은 결론 → 신뢰도 향상
-- **외부 타당성 무시**: 실험 환경 ≠ 실제 환경
-
-**time-series**
-
-## 6. 안티패턴
-
-- **정상성 확인 없이 ARIMA**: 비정상 시계열에 직접 적용 → 가성 회귀
-- **미래 데이터 누수**: 미래 정보가 학습 데이터에 포함
-- **단일 지점 예측만**: 신뢰구간 없이 점 예측 → 불확실성 무시
-- **계절성 무시**: 주간 / 월간 패턴 미고려
-- **평가 지표 없는 모델**: MAE, RMSE, MAPE로 예측 성능 측정
-
-**machine-learning-basics**
-
-## 6. 안티패턴
-
-- **데이터 누수(Leakage)**: 미래 정보가 학습 데이터에 포함
-- **불균형 데이터 무시**: 이탈율 5%인 데이터 → Accuracy 95% = 의미 없음
-- **과적합(Overfitting)**: 교차 검증 없이 학습 데이터 성능만 확인
-- **해석 없는 모델**: "블랙박스" → SHAP으로 비즈니스 설명 필수
-- **재학습 계획 없음**: 시간이 지나면 데이터 분포 변화 → 모델 성능 저하
-
-**pandas-numpy**
-
-## 7. 안티패턴
-
-- **iterrows() 남용**: 느림 → vectorized 연산 사용
-- **불필요한 copy()**: 메모리 낭비 → `df.loc` 직접 수정
-- **체인 인덱싱**: `df['a']['b'] = val` → `df.loc[:, 'b'] = val`
-- **데이터 타입 무시**: 큰 데이터에서 float64 기본값 → float32로
-- **모든 데이터를 메모리에**: 대용량은 청크 처리 또는 Polars, DuckDB
 
 ## Core Identity
 
@@ -361,257 +324,221 @@ color: red
 
 ---
 
-## Knowledge Reference (압축)
+### Company-wide (사내 공통)
+
+**01-system-topology**
+
+# [시스템 이름] 토폴로지
+## 컴포넌트 표
+| 컴포넌트 | 역할 | 호스트/도메인 | 의존 |
+| [예: B2C 백엔드] | 사용자 앱 API | `b2c.maxaiapp.com` | Identity Hub, MySQL |
+| [예: Identity Hub] | SSO 중앙 인증 | `identity-hub.weaversbrain.com` | Keycloak, Redis |
+## 핵심 결정
+- **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만.
+- **Keycloak 직접 호출 금지**: identity-hub 경유만 (ADR-007 참조)
+- **폴백**: identity-nginx 502/503/504 시 레거시 인증 폴백
+## 운영 메모
+- 502 발생 시: `identity-nginx` 로그 확인 → upstream timeout 인지 체크
+- access_token 만료 시: 자동 갱신 — 클라이언트는 재시도만
+
+**02-naming-conventions**
+
+# [영역] 명명 규칙
+## DB 테이블
+| 영역 | 규칙 | 예시 | 비고 |
+| 레거시 PHP | `T_` prefix | `T_Member`, `T_Notice` | 새 테이블도 따라야 |
+| 신규 NestJS | `users`, `notices` (snake, plural) | - | T_ 안 씀 |
+## 데이터베이스 (환경별)
+| 환경 | DB명 | 호스트 | 비고 |
+| dev  | `dev_speakingmax` | `dev-wb-clickhouse` | - |
+| qa   | `qa_speakingmax`  | `qa-wb-clickhouse`  | - |
+| prod | `speakingmax`     | `prod-wb-clickhouse` | **prod만 prefix 없음** |
+## 서비스 / 도메인
+| 약어 | 풀네임 | 도메인 |
+| B2C  | 일반 사용자 앱 | `b2c.maxaiapp.com` |
+| B2B  | 기업 고객 앱   | `b2b.maxaiapp.com` |
+| Hub  | Identity Hub  | `identity-hub.weaversbrain.com` |
+## 함정
+- ⚠️ `prod` 만 prefix 없음 — 환경 분기 코드에서 자주 실수
+- ⚠️ 새 환경(`pp`/`stg`) 추가 시 명명 규칙 회의 필요
+
+**03-internal-libraries**
+
+# [라이브러리/모듈 이름]
+### `IdentityHub_lib::getServiceToken()`
+- **목적**: B2C → identity-hub admin API 호출용 service-token 발급
+- **인증**: client_credentials grant
+- **캐싱**: 발급 후 4분 TTL Redis 캐시
+- **사용 예**:
+### `setAdminCurlOptions($token)`
+- **목적**: admin API curl 호출용 헤더/SSL 옵션 묶음
+- **포함**: `Authorization: Bearer`, `X-Service-Caller: b2c`, SSL verify off (사내 cert)
+## 사용 규칙
+- ✅ admin API 호출 시 위 두 함수 함께 사용
+- ❌ Keycloak 직접 호출 금지 (ADR-007)
+- ❌ token 직접 캐싱 금지 — `getServiceToken()` 내부에서 처리
+## 함정
+- service-token TTL은 5분, 캐시는 4분 — 타임아웃 회피
+- 사내 cert이라 `verify_peer=false` 필요 — 운영에서 실수로 켜면 다운
+
+**04-team-roles**
+
+# 팀 구성 및 역할
+## 핵심 인물
+| 이름 | 역할 | 담당 영역 | 비고 |
+| 주인식 | 서버/백엔드 리드 | 테스트 API, 대시보드, ClickHouse | 사용자 본인 |
+| 현준 | 클라이언트 개발자 | iOS/Android 녹음, 셀바스 SDK | 홍주/현주 아님 — STT 오타 주의 |
+| 영찬 | iOS 개발자 | 음성 인식 테스트 앱 | 초기 작업자 |
+## 팀 외 자주 등장하는 인물
+| 이름 | 소속 | 역할 |
+| (예시) | (외주/협력사) | (담당) |
+## 결정권자 / 에스컬레이션
+- **백엔드 결정**: 주인식
+- **클라 결정**: 현준
+- **인프라 결정**: (?)
+- **product 결정**: (?)
+## 표기 규칙
+- 회의록/PR 멘션은 풀네임 한글 (이니셜 X)
+- STT 자동 받아쓰기 결과 정정 필수: "홍주"/"현주" → **"현준"** 으로
+
+**06-adr**
+
+# ADR-NNN: [결정 한 줄 요약]
+## Rationale (근거)
+| 옵션 | 장점 | 단점 | 채택? |
+| A: 각자 직접 Keycloak 호출 | 단순 | 충돌, 보안 키 분산 | ❌ |
+| B: Identity Hub 경유 | 중앙화, 캐싱 | 단일 장애점 | ✅ |
+| C: API Gateway 추가 | 더 일반적 | 인프라 추가 | ❌ |
+### 긍정
+- 보안 키(client_secret)가 Identity Hub 한 곳만 보유
+- service-token 캐싱으로 Keycloak 부하 감소
+### 부정
+- Identity Hub 다운 시 모든 인증 영향 → identity-nginx 폴백 필요 (ADR-008 참조)
+- 신규 컴포넌트 추가 시 Identity Hub 설정 필요 (배포 의존성)
+## 검증 / 모니터링
+- Keycloak 직접 호출 차단 확인: nginx access log에서 `host=keycloak.*` 외부 트래픽 0건
+- service-token 발급률 알람: 분당 100건 초과 시 Slack
+
+**07-operations-calendar**
+
+# 운영 캘린더 / 정책
+## 정기 일정
+| 이벤트 | 주기 | 상세 |
+| 모바일 릴리스 컷 | 매월 첫째 주 금요일 | 클라이언트 릴리스 브랜치 분기 |
+| 코드 freeze | 릴리스 컷 1주 전 ~ 컷 당일 | non-critical merge 금지 |
+| 정기 점검 | 매주 화요일 02:00~03:00 | DB 백업, 보안 패치 |
+| 주간 회고 | 매주 금요일 16:00 | 팀 전체 |
+## 변경 동결 (Change Freeze)
+| 시기 | 사유 | 허용 |
+| 릴리스 컷 1주 전 | 모바일 릴리스 안정화 | hotfix만 |
+| 연말연초 (12/24~1/2) | 운영 인력 부족 | 보안 패치만 |
+| 대형 마케팅 캠페인 | 트래픽 폭증 | 0 (관찰만) |
+## 배포 정책
+- 운영 배포: **목요일 18시 이후 금지** (다음날 처리 어려움)
+- 금요일 배포: hotfix/롤백만, 승인자 필수
+- 배포 채널: `#deploys` Slack 사전 알림
+## 승인 권한
+| 액션 | 승인자 |
+| 운영 DB 스키마 변경 | 주인식 |
+| 운영 환경변수 변경 | 주인식 |
+| 모바일 강제 업데이트 | 주인식 + 현준 |
+| 인프라 비용 증가 | (CTO?) |
+## 함정
+- ⚠️ 분기 결산 마감 주(매분기 마지막 주)는 데이터 파이프라인 우선
+- ⚠️ 셀바스 SDK 업데이트는 **현준과 사전 협의** (호환성 issues)
+
+**08-domain-glossary**
+
+# 도메인 용어집
+## 제품 약어
+| 약어 | 풀네임 | 설명 |
+| B2C | Business-to-Consumer | 일반 사용자용 앱 (`b2c.maxaiapp.com`) |
+| B2B | Business-to-Business | 기업 고객용 앱 |
+| Hub | Identity Hub | 사내 SSO 중앙 인증 서비스 |
+| STT | Speech-to-Text | 음성 → 텍스트 변환 |
+## 회사 내부 jargon
+| 용어 | 의미 |
+| "외계어" | STT 결과가 인코딩 깨져 특수문자로 표시되는 현상 (2026-04-14 incident) |
+| "JUMP 라우트" | `webapp/JUMP/*` — SSO 보호 영역 |
+| "service-token" | Identity Hub가 발급하는 컴포넌트 간 인증 토큰 |
+| "admin API" | Keycloak admin endpoint를 identity-hub가 wrapping한 것 |
+## 음성 도메인 용어
+| 용어 | 의미 |
+| 셀바스 SDK | 클라이언트(iOS/Android)의 음성 인식 라이브러리 |
+| 클로바노트 STT | 회의록 자동 받아쓰기 (외부 사용 — 정확도 낮음) |
+| 발화 (utterance) | 사용자의 한 번 말한 음성 단위 |
+| 세그먼트 | 발화를 N초 단위로 자른 것 |
+## 데이터 테이블 (ClickHouse)
+| 테이블 | 용도 | TTL |
+| `speech_events` | STT 처리 이벤트 로그 | 180일 |
+| `speech_api_requests` | API 호출 로그 | 90일 |
+## 함정
+- "현주" / "홍주" 라고 STT가 받아쓰지만 실제는 **"현준"** (사람 이름)
+- "외계어"는 일반 표현 아니라 우리 팀 jargon — 외부 미팅에선 "garbled text" 사용
+
+**09-security-policy**
+
+# 보안 정책
+## 인증 정책
+| 항목 | 정책 | 비고 |
+| 비밀번호 최소 길이 | 12자 | NIST 권장 추월 |
+| 비밀번호 복잡도 | 대/소/숫자/특수 모두 | |
+| MFA 필수 대상 | admin, 결제 | 일반 사용자는 옵션 |
+| 세션 만료 | access 15분, refresh 14일 | |
+| refresh_token 보유 위치 | **Identity Hub만** | B2C 백엔드 보유 금지 (ADR-007) |
+## 키 / 토큰 관리
+| 종류 | 보유 위치 | 갱신 |
+| Keycloak `client_secret` | Identity Hub만 | AWS Secrets Manager |
+| service-token | 발급 후 4분 캐시 | 자동 갱신 |
+| API 키 (외부 서비스) | AWS Secrets Manager | 분기별 로테이션 |
+## 데이터 분류
+| 등급 | 예시 | 보관 |
+| 공개 | 마케팅 콘텐츠 | 자유 |
+| 내부 | 사내 문서 | weaversbrain Notion |
+| 민감 | 사용자 음성 | 암호화 저장, 180일 TTL |
+| 기밀 | 비밀번호 hash, 키 | 격리 DB, 접근 로그 |
+## 응답 보안
+- ❌ stack trace 운영 환경 노출 금지
+- ❌ password/passwordHash 응답에 절대 포함 금지
+- ❌ user enumeration 가능한 에러 메시지 (예: "이메일 없음" vs "비밀번호 틀림" 구분)
+- ✅ 모든 에러는 `X-Request-ID` 로 Sentry 추적
+## 함정
+- ⚠️ admin API 호출 시 service-token TTL은 5분, 캐시는 4분 — 4분 30초 시점 호출은 fail
+- ⚠️ 사내 cert이라 `verify_peer=false` — 운영에서 켜면 다운
+
+**10-external-deps**
+
+# 외부 의존성
+## 음성 인식
+| SDK/API | 버전 | 용도 | 호환 |
+| 셀바스 SDK (iOS) | 1.4.2 | 클라이언트 음성 인식 | iOS 14+ |
+| 셀바스 SDK (Android) | 1.4.2 | 동일 | Android 8+ |
+| 클로바노트 STT | API v2 | 회의록 (사내용) | - |
+### 함정
+- ⚠️ 셀바스 SDK 5.0 미만은 호환 안 됨 (음성 포맷 변경)
+- ⚠️ 업데이트는 **현준과 사전 협의** 필수
+- ⚠️ 클로바노트는 사람 이름 받아쓰기 약함 ("현준" → "홍주"/"현주")
+## 인증
+| SDK/API | 버전 | 용도 |
+| Keycloak | 24.x | identity-hub 의존 (직접 호출 금지, ADR-007) |
+## 클라우드
+| 서비스 | 사용처 |
+| AWS Lambda | 국가별 URL 분기 (B2C_LAUNCH_URLS) |
+| AWS Secrets Manager | client_secret, API 키 보관 |
+| AWS S3 | 음성 파일 (180일 TTL) |
+| ClickHouse Cloud | 분석 DB |
+## 결제
+| 서비스 | 사용 영역 |
+| (예: 토스페이먼츠) | B2C 구독 |
+| (예: Stripe) | B2B (해외) |
+## 함정 / 알려진 이슈
+- ⚠️ AWS Lambda `B2C_LAUNCH_URLS.DEFAULT` — 2026-04-14 incident 원인 (구버전 URL stale)
+- ⚠️ 클로바노트는 회의록 정확도 낮음 — STT 자동 정정 후 검수 필수
+- ⚠️ 토스 결제 webhook은 retry 정책 5회, idempotency key 필수
+
+### Role-specific
 
 > 핵심 규칙만 포함. 상세 내용은 `~/.claude/agents/knowledge/data-analyst/` 에서 Read 가능.
-
-**advanced-sql**
-
-## 7. 안티패턴
-
-- **SELECT \*** : 필요한 컬럼만 명시 (성능 + 가독성)
-- **암묵적 JOIN**: `FROM a, b WHERE a.id = b.a_id` → 명시적 JOIN
-- **HAVING 대신 WHERE**: 집계 전 필터는 WHERE로 (집계 후만 HAVING)
-- **중복 서브쿼리**: 같은 서브쿼리 여러 번 → CTE로 한 번만
-- **NULL 비교**: `WHERE col = NULL` → `WHERE col IS NULL`
-
-**window-functions**
-
-## 7. 안티패턴
-
-- **PARTITION BY 없이 RANK()**: 전체 데이터를 하나의 윈도우로 처리
-- **LAST_VALUE 프레임 미설정**: 기본 프레임이 현재 행까지라 마지막 값 ≠ 기대값
-- **윈도우 함수를 WHERE에서 사용**: 불가 — 서브쿼리나 CTE로 감싸야 함
-- **GROUP BY + 윈도우 함수 혼용**: GROUP BY 후 결과에 윈도우 함수 적용 가능하나 순서 주의
-
-**query-optimization**
-
-## 7. 안티패턴
-
-- **EXPLAIN 없는 최적화**: 실제 병목 확인 없이 추측으로 변경
-- **모든 컬럼 인덱스**: 쓰기 성능 저하, 인덱스 유지 비용
-- **GROUP BY 전 미필터링**: WHERE로 먼저 줄이고 집계
-- **함수로 감싼 인덱스 컬럼**: `YEAR(created_at)` → 인덱스 미사용
-- **OFFSET이 큰 페이지네이션**: `OFFSET 100000` → 커서 기반으로
-
-**data-modeling**
-
-## 6. 안티패턴
-
-- **운영 DB에서 직접 분석**: 운영 쿼리 성능 영향, 분석 쿼리 느림
-- **과도한 정규화**: 분석용 DB에서 10개 이상 조인 → 비정규화 검토
-- **날짜 차원 없음**: `DATE_TRUNC` 반복 계산 → dim_date로 미리 생성
-- **NULL 처리 미설계**: NULL이 집계에 미치는 영향 미고려
-- **대리키 없는 SCD Type 2**: 원본 ID로만 관리 → 이력 조회 어려움
-
-**data-warehousing**
-
-## 3. 주요 플랫폼 비교
-
-| 플랫폼 | 특징 | 적합한 경우 |
-| BigQuery | 서버리스, 쿼리 비용 | GCP 환경, 초기 스타트업 |
-| Snowflake | 멀티클라우드, 확장성 | 엔터프라이즈, 복잡한 워크로드 |
-| Redshift | AWS 통합, 열 지향 | AWS 환경, 대규모 배치 |
-| DuckDB | 로컬, 파일 직접 쿼리 | 개인 분석, 프로토타이핑 |
-| PostgreSQL | 오픈소스, 범용 | 소규모, 예산 제한 |
-
-## 7. 안티패턴
-
-- **운영 DB = 분석 DB**: 분리 필요
-- **ELT 없는 직접 쿼리**: 원본 변환 없이 BI에서 복잡한 로직 → 느림
-- **스테이징 레이어 없음**: 실패 시 재처리 불가
-- **파티션 필터 없는 BigQuery 쿼리**: 전체 테이블 스캔 → 비용 폭탄
-- **오래된 통계 정보**: ANALYZE 없이 쿼리 플래너 오판
-
-**etl-pipelines**
-
-## 6. 안티패턴
-
-- **멱등성 없는 파이프라인**: 재실행 시 중복 데이터
-- **에러 처리 없음**: 실패 시 조용히 부분 성공
-- **단일 거대 파이프라인**: 실패 시 전체 재실행 → 태스크 분리
-- **모니터링 없는 파이프라인**: 실패를 나중에 발견
-- **하드코딩된 날짜**: 파라미터로 외부에서 주입
-
-**dbt-patterns**
-
-## 7. 안티패턴
-
-- **Staging에서 비즈니스 로직**: Staging은 소스 매핑만, 로직은 Mart에서
-- **테스트 없는 모델**: unique + not_null 최소한 추가
-- **모든 것을 Full Refresh**: 대용량 테이블은 Incremental로
-- **ref() 없이 하드코딩 테이블명**: `FROM raw.orders` → `FROM {{ ref('stg_orders') }}`
-- **문서화 없는 모델**: description 필수 (downstream 이해 가능)
-
-**data-cleaning**
-
-## 5. 안티패턴
-
-- **원본 수정**: 항상 사본에서 작업, 원본 보존
-- **클리닝 로직 미문서화**: 왜 이 값을 버렸는지 기록
-- **이상값 무조건 제거**: 비즈니스적 의미 확인 후 처리
-- **클리닝 후 검증 없음**: 결과 분포 확인 필수
-- **일회성 클리닝**: 파이프라인에 통합, 자동화
-
-**data-quality**
-
-## 6. 안티패턴
-
-- **수동 품질 체크**: 자동화 없는 일회성 확인
-- **품질 문제 발견 후 무시**: 알림만 하고 대응 없음
-- **소스에서 품질 체크 없음**: 다운스트림에서 발견 → 영향 범위 큼
-- **임계값 없는 모니터링**: "몇 건이 이상이면 알림?" 기준 없음
-- **품질 이력 미보존**: 과거 품질 추세 파악 불가
-
-**data-validation**
-
-## 6. 안티패턴
-
-- **파이프라인 끝에서만 검증**: 소스, 변환 단계마다 검증
-- **검증 실패 무시 계속 진행**: 이후 분석이 오염됨
-- **하드코딩된 임계값**: 비즈니스 맥락에 따라 동적으로
-- **검증 이력 없음**: "언제부터 품질 문제가 있었나?" 파악 불가
-- **검증만 하고 수정 없음**: 검증 → 알림 → 대응 전체 흐름 필요
-
-**data-visualization**
-
-## 5. 안티패턴
-
-- **파이 차트 남용**: 5개 이상 항목 → 막대 차트로
-- **이중 축 혼란**: 단위 다른 두 데이터를 한 차트 → 가독성 저하
-- **0 미포함 Y축**: 미미한 차이를 크게 보이게 → 오해 유발
-- **색상 과다**: 10가지 색상 → 3~4가지로 제한
-- **제목 없는 차트**: 보는 사람이 맥락을 모름
-
-**dashboard-design**
-
-## 6. 안티패턴
-
-- **지표 과다**: 30개 KPI 대시보드 → 핵심 7개
-- **컨텍스트 없는 수치**: 전월 대비, 목표 대비 없음
-- **정적 대시보드**: 드릴다운, 필터 없음
-- **로딩 느린 대시보드**: 쿼리 최적화 또는 집계 테이블
-- **신선도 표시 없음**: 언제 데이터인지 모름
-
-**storytelling-with-data**
-
-## 6. 안티패턴
-
-- **데이터 덤프**: "여기 모든 데이터가 있습니다" → 인사이트 없음
-- **결론 없는 발표**: 모든 것을 설명하고 결론 없이 끝남
-- **청중 무시**: 경영진에게 기술적 세부사항 나열
-- **차트만 보여주기**: 차트가 말하는 것을 설명해야 함
-- **상관관계를 인과관계로**: "A가 증가하자 B도 증가" ≠ A 때문에 B
-
-**product-metrics**
-
-## 6. 안티패턴
-
-- **허영 지표 (Vanity Metrics)**: 좋아 보이지만 결정에 도움 안 됨 (총 가입자 수)
-- **단일 지표**: 한 지표 최적화 → 다른 지표 악화 (전환율↑ 환불율↑)
-- **지표 정의 불일치**: 팀마다 다른 MAU 계산법
-- **상관관계를 인과관계로**: "이 기능 출시 후 매출 상승" → 다른 변수 고려
-- **이벤트 트래킹 부재**: 분석할 데이터 없음 → 이벤트 설계 먼저
-
-**funnel-analysis**
-
-## 6. 안티패턴
-
-- **집계 퍼널만**: 세그먼트(디바이스, 채널, 신규/기존) 비교 없음
-- **순서 무시**: 동일 기간 내 이벤트 발생 순서 고려 안 함
-- **중복 집계**: 사용자 기준이 아닌 이벤트 기준으로 집계
-- **이탈 후 분석 없음**: 어디서 빠졌는지만 보고 왜 빠졌는지 분석 안 함
-- **A/B 테스트 없이 결론**: 상관관계를 인과관계로
-
-**cohort-analysis**
-
-## 6. 안티패턴
-
-- **전체 집계만**: "월 리텐션 25%" → 코호트별로 보면 신규가 낮고 기존이 높을 수 있음
-- **절대값만 비교**: 코호트 크기 다르면 절대값 비교 무의미
-- **짧은 관찰 기간**: 2주 데이터로 장기 LTV 예측 → 최소 3~6개월
-- **활성 정의 불명확**: 로그인 = 활성? 핵심 행동 = 활성? 명확히 정의
-- **세그먼트 없는 코호트**: 채널, 플랜별 비교 없이 전체만
-
-**ab-testing-stats**
-
-## 6. 안티패턴
-
-- **피킹(Peeking)**: 중간에 결과 보고 조기 종료 → p-value 인플레이션
-- **샘플 크기 미계산**: 작은 샘플로 결론 → 통계적 파워 부족
-- **단일 지표만**: Primary + Guardrail 지표 같이 모니터링
-- **1회 검정**: 재현 없이 단 한 번 실험 결과로 배포
-- **SRM 무시**: Sample Ratio Mismatch — 그룹 배정 비율 의도치 않게 틀어짐
-
-**hypothesis-testing**
-
-## 6. 안티패턴
-
-- **p-value = 효과 크기**: p < 0.05이지만 효과가 실용적으로 의미 없을 수 있음
-- **정규성 검정 생략**: t-검정 사용 전 분포 확인 필수
-- **다중 비교 무시**: 10번 검정하면 1번은 우연히 유의
-- **단방향 vs 양방향 혼동**: 방향성 가설이면 단방향, 아니면 양방향
-- **신뢰구간 무시**: p-value만 보고 신뢰구간 범위 확인 안 함
-
-**descriptive-stats**
-
-## 6. 안티패턴
-
-- **평균만 보고**: 이상값이 있으면 중앙값이 더 대표값
-- **시각화 없이 수치만**: 분포 형태를 파악하지 못함
-- **이상값 무조건 제거**: 비즈니스적 의미 확인 (VIP 고객의 고액 주문)
-- **표준편차만으로 비교**: 단위 다른 변수는 변동계수(CV)로
-- **정규성 가정 검증 없음**: 분포 형태에 따라 적절한 통계량 선택
-
-**regression**
-
-## 5. 안티패턴
-
-- **외삽(Extrapolation)**: 학습 범위 밖의 값 예측
-- **다중공선성 무시**: VIF 확인 없이 상관된 변수 모두 포함
-- **잔차 진단 생략**: 회귀 가정 위반 확인 안 함
-- **R²만 보기**: 훈련 데이터 R² 높아도 과적합일 수 있음
-- **인과관계로 해석**: 회귀는 상관관계, 인과관계가 아님
-
-**causal-inference**
-
-## 6. 안티패턴
-
-- **상관관계 → 인과관계**: 교란변수 고려 없이 결론
-- **A/B 테스트 없이 출시 후 비교**: Before/After는 계절성, 트렌드 등 혼재
-- **성향점수 매칭 후 검증 없음**: 매칭 후 공변량 밸런스 확인 필수
-- **단일 방법에 의존**: 여러 방법으로 같은 결론 → 신뢰도 향상
-- **외부 타당성 무시**: 실험 환경 ≠ 실제 환경
-
-**time-series**
-
-## 6. 안티패턴
-
-- **정상성 확인 없이 ARIMA**: 비정상 시계열에 직접 적용 → 가성 회귀
-- **미래 데이터 누수**: 미래 정보가 학습 데이터에 포함
-- **단일 지점 예측만**: 신뢰구간 없이 점 예측 → 불확실성 무시
-- **계절성 무시**: 주간 / 월간 패턴 미고려
-- **평가 지표 없는 모델**: MAE, RMSE, MAPE로 예측 성능 측정
-
-**machine-learning-basics**
-
-## 6. 안티패턴
-
-- **데이터 누수(Leakage)**: 미래 정보가 학습 데이터에 포함
-- **불균형 데이터 무시**: 이탈율 5%인 데이터 → Accuracy 95% = 의미 없음
-- **과적합(Overfitting)**: 교차 검증 없이 학습 데이터 성능만 확인
-- **해석 없는 모델**: "블랙박스" → SHAP으로 비즈니스 설명 필수
-- **재학습 계획 없음**: 시간이 지나면 데이터 분포 변화 → 모델 성능 저하
-
-**pandas-numpy**
-
-## 7. 안티패턴
-
-- **iterrows() 남용**: 느림 → vectorized 연산 사용
-- **불필요한 copy()**: 메모리 낭비 → `df.loc` 직접 수정
-- **체인 인덱싱**: `df['a']['b'] = val` → `df.loc[:, 'b'] = val`
-- **데이터 타입 무시**: 큰 데이터에서 float64 기본값 → float32로
-- **모든 데이터를 메모리에**: 대용량은 청크 처리 또는 Polars, DuckDB
 
 ## 분석 원칙
 

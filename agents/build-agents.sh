@@ -24,6 +24,8 @@ BUILDS_DIR="$AGENTS_DIR/builds"
 
 DRY_RUN=false
 FULL_MODE=false
+NO_KNOWLEDGE=false
+OUT_SUFFIX=""
 TARGET=""
 LANG_OVERRIDE=""
 USE_LANG=""
@@ -33,6 +35,7 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
     --full) FULL_MODE=true ;;
+    --no-knowledge) NO_KNOWLEDGE=true; OUT_SUFFIX="-nokb" ;;
     --lang) shift_next=true ;;
     --use) use_next=true ;;
     --list) LIST_MODE=true ;;
@@ -273,8 +276,8 @@ concat_knowledge() {
   local detected_lang="$3"
 
   if [ ! -d "$knowledge_dir" ]; then
-    warn "Knowledge 디렉토리 없음: $knowledge_dir"
-    return
+    info "Role knowledge 디렉토리 없음 (회사 공통만 포함): $knowledge_dir"
+    # 회사 공통은 그래도 출력하므로 return 안 함
   fi
 
   local mode_label="압축"
@@ -285,6 +288,25 @@ concat_knowledge() {
   echo ""
   echo "## Knowledge Reference (${mode_label})"
   echo ""
+  # 회사 공통 knowledge 자동 포함 (모든 role 공통)
+  local company_dir="$AGENTS_DIR/knowledge/_company"
+  if [ -d "$company_dir" ]; then
+    echo "### Company-wide (사내 공통)"
+    echo ""
+    for f in "$company_dir"/*.md(N); do
+      echo "**$(basename "${f%.md}")**"
+      echo ""
+      if [ "$FULL_MODE" = true ]; then
+        cat "$f"
+      else
+        # 압축: 헤더 + 불릿 + 표만
+        awk '/^#+ |^[*-] |^\| /' "$f"
+      fi
+      echo ""
+    done
+    echo "### Role-specific"
+    echo ""
+  fi
   if [ "$FULL_MODE" = false ]; then
     echo "> 핵심 규칙만 포함. 상세 내용은 \`~/.claude/agents/${label}/\` 에서 Read 가능."
   else
@@ -351,9 +373,13 @@ process_markers() {
       local common_path=$(echo "$line" | sed 's/.*BUILD:COMMON \([^ ]*\) .*/\1/')
       inline_common "$common_path" >> "$out"
     elif echo "$line" | grep -q '<!-- BUILD:KNOWLEDGE'; then
-      local knowledge_path=$(echo "$line" | sed 's/.*BUILD:KNOWLEDGE \([^ ]*\) .*/\1/')
-      local full_knowledge_path="$AGENTS_DIR/$knowledge_path"
-      concat_knowledge "$full_knowledge_path" "$knowledge_path" "$detected_lang" >> "$out"
+      if [ "$NO_KNOWLEDGE" = true ]; then
+        : # knowledge 섹션 완전히 생략 (A/B ablation 검증용)
+      else
+        local knowledge_path=$(echo "$line" | sed 's/.*BUILD:KNOWLEDGE \([^ ]*\) .*/\1/')
+        local full_knowledge_path="$AGENTS_DIR/$knowledge_path"
+        concat_knowledge "$full_knowledge_path" "$knowledge_path" "$detected_lang" >> "$out"
+      fi
     else
       echo "$line" >> "$out"
     fi

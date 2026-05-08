@@ -12,7 +12,6 @@ Examples:
 - user: \"인증 미들웨어의 버그를 수정해줘\"
   assistant: \"backend-developer 에이전트를 사용하여 인증 미들웨어를 디버깅하고 수정하겠습니다.\""
 model: opus
-tools: Glob, Grep, Read, Write, Edit, Bash, Agent, Skill, TaskCreate, TaskUpdate, TaskGet, NotebookRead, WebFetch
 color: blue
 ---
 
@@ -161,267 +160,221 @@ color: blue
 
 ---
 
-## Knowledge Reference (압축)
+### Company-wide (사내 공통)
+
+**01-system-topology**
+
+# [시스템 이름] 토폴로지
+## 컴포넌트 표
+| 컴포넌트 | 역할 | 호스트/도메인 | 의존 |
+| [예: B2C 백엔드] | 사용자 앱 API | `b2c.maxaiapp.com` | Identity Hub, MySQL |
+| [예: Identity Hub] | SSO 중앙 인증 | `identity-hub.weaversbrain.com` | Keycloak, Redis |
+## 핵심 결정
+- **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만.
+- **Keycloak 직접 호출 금지**: identity-hub 경유만 (ADR-007 참조)
+- **폴백**: identity-nginx 502/503/504 시 레거시 인증 폴백
+## 운영 메모
+- 502 발생 시: `identity-nginx` 로그 확인 → upstream timeout 인지 체크
+- access_token 만료 시: 자동 갱신 — 클라이언트는 재시도만
+
+**02-naming-conventions**
+
+# [영역] 명명 규칙
+## DB 테이블
+| 영역 | 규칙 | 예시 | 비고 |
+| 레거시 PHP | `T_` prefix | `T_Member`, `T_Notice` | 새 테이블도 따라야 |
+| 신규 NestJS | `users`, `notices` (snake, plural) | - | T_ 안 씀 |
+## 데이터베이스 (환경별)
+| 환경 | DB명 | 호스트 | 비고 |
+| dev  | `dev_speakingmax` | `dev-wb-clickhouse` | - |
+| qa   | `qa_speakingmax`  | `qa-wb-clickhouse`  | - |
+| prod | `speakingmax`     | `prod-wb-clickhouse` | **prod만 prefix 없음** |
+## 서비스 / 도메인
+| 약어 | 풀네임 | 도메인 |
+| B2C  | 일반 사용자 앱 | `b2c.maxaiapp.com` |
+| B2B  | 기업 고객 앱   | `b2b.maxaiapp.com` |
+| Hub  | Identity Hub  | `identity-hub.weaversbrain.com` |
+## 함정
+- ⚠️ `prod` 만 prefix 없음 — 환경 분기 코드에서 자주 실수
+- ⚠️ 새 환경(`pp`/`stg`) 추가 시 명명 규칙 회의 필요
+
+**03-internal-libraries**
+
+# [라이브러리/모듈 이름]
+### `IdentityHub_lib::getServiceToken()`
+- **목적**: B2C → identity-hub admin API 호출용 service-token 발급
+- **인증**: client_credentials grant
+- **캐싱**: 발급 후 4분 TTL Redis 캐시
+- **사용 예**:
+### `setAdminCurlOptions($token)`
+- **목적**: admin API curl 호출용 헤더/SSL 옵션 묶음
+- **포함**: `Authorization: Bearer`, `X-Service-Caller: b2c`, SSL verify off (사내 cert)
+## 사용 규칙
+- ✅ admin API 호출 시 위 두 함수 함께 사용
+- ❌ Keycloak 직접 호출 금지 (ADR-007)
+- ❌ token 직접 캐싱 금지 — `getServiceToken()` 내부에서 처리
+## 함정
+- service-token TTL은 5분, 캐시는 4분 — 타임아웃 회피
+- 사내 cert이라 `verify_peer=false` 필요 — 운영에서 실수로 켜면 다운
+
+**04-team-roles**
+
+# 팀 구성 및 역할
+## 핵심 인물
+| 이름 | 역할 | 담당 영역 | 비고 |
+| 주인식 | 서버/백엔드 리드 | 테스트 API, 대시보드, ClickHouse | 사용자 본인 |
+| 현준 | 클라이언트 개발자 | iOS/Android 녹음, 셀바스 SDK | 홍주/현주 아님 — STT 오타 주의 |
+| 영찬 | iOS 개발자 | 음성 인식 테스트 앱 | 초기 작업자 |
+## 팀 외 자주 등장하는 인물
+| 이름 | 소속 | 역할 |
+| (예시) | (외주/협력사) | (담당) |
+## 결정권자 / 에스컬레이션
+- **백엔드 결정**: 주인식
+- **클라 결정**: 현준
+- **인프라 결정**: (?)
+- **product 결정**: (?)
+## 표기 규칙
+- 회의록/PR 멘션은 풀네임 한글 (이니셜 X)
+- STT 자동 받아쓰기 결과 정정 필수: "홍주"/"현주" → **"현준"** 으로
+
+**06-adr**
+
+# ADR-NNN: [결정 한 줄 요약]
+## Rationale (근거)
+| 옵션 | 장점 | 단점 | 채택? |
+| A: 각자 직접 Keycloak 호출 | 단순 | 충돌, 보안 키 분산 | ❌ |
+| B: Identity Hub 경유 | 중앙화, 캐싱 | 단일 장애점 | ✅ |
+| C: API Gateway 추가 | 더 일반적 | 인프라 추가 | ❌ |
+### 긍정
+- 보안 키(client_secret)가 Identity Hub 한 곳만 보유
+- service-token 캐싱으로 Keycloak 부하 감소
+### 부정
+- Identity Hub 다운 시 모든 인증 영향 → identity-nginx 폴백 필요 (ADR-008 참조)
+- 신규 컴포넌트 추가 시 Identity Hub 설정 필요 (배포 의존성)
+## 검증 / 모니터링
+- Keycloak 직접 호출 차단 확인: nginx access log에서 `host=keycloak.*` 외부 트래픽 0건
+- service-token 발급률 알람: 분당 100건 초과 시 Slack
+
+**07-operations-calendar**
+
+# 운영 캘린더 / 정책
+## 정기 일정
+| 이벤트 | 주기 | 상세 |
+| 모바일 릴리스 컷 | 매월 첫째 주 금요일 | 클라이언트 릴리스 브랜치 분기 |
+| 코드 freeze | 릴리스 컷 1주 전 ~ 컷 당일 | non-critical merge 금지 |
+| 정기 점검 | 매주 화요일 02:00~03:00 | DB 백업, 보안 패치 |
+| 주간 회고 | 매주 금요일 16:00 | 팀 전체 |
+## 변경 동결 (Change Freeze)
+| 시기 | 사유 | 허용 |
+| 릴리스 컷 1주 전 | 모바일 릴리스 안정화 | hotfix만 |
+| 연말연초 (12/24~1/2) | 운영 인력 부족 | 보안 패치만 |
+| 대형 마케팅 캠페인 | 트래픽 폭증 | 0 (관찰만) |
+## 배포 정책
+- 운영 배포: **목요일 18시 이후 금지** (다음날 처리 어려움)
+- 금요일 배포: hotfix/롤백만, 승인자 필수
+- 배포 채널: `#deploys` Slack 사전 알림
+## 승인 권한
+| 액션 | 승인자 |
+| 운영 DB 스키마 변경 | 주인식 |
+| 운영 환경변수 변경 | 주인식 |
+| 모바일 강제 업데이트 | 주인식 + 현준 |
+| 인프라 비용 증가 | (CTO?) |
+## 함정
+- ⚠️ 분기 결산 마감 주(매분기 마지막 주)는 데이터 파이프라인 우선
+- ⚠️ 셀바스 SDK 업데이트는 **현준과 사전 협의** (호환성 issues)
+
+**08-domain-glossary**
+
+# 도메인 용어집
+## 제품 약어
+| 약어 | 풀네임 | 설명 |
+| B2C | Business-to-Consumer | 일반 사용자용 앱 (`b2c.maxaiapp.com`) |
+| B2B | Business-to-Business | 기업 고객용 앱 |
+| Hub | Identity Hub | 사내 SSO 중앙 인증 서비스 |
+| STT | Speech-to-Text | 음성 → 텍스트 변환 |
+## 회사 내부 jargon
+| 용어 | 의미 |
+| "외계어" | STT 결과가 인코딩 깨져 특수문자로 표시되는 현상 (2026-04-14 incident) |
+| "JUMP 라우트" | `webapp/JUMP/*` — SSO 보호 영역 |
+| "service-token" | Identity Hub가 발급하는 컴포넌트 간 인증 토큰 |
+| "admin API" | Keycloak admin endpoint를 identity-hub가 wrapping한 것 |
+## 음성 도메인 용어
+| 용어 | 의미 |
+| 셀바스 SDK | 클라이언트(iOS/Android)의 음성 인식 라이브러리 |
+| 클로바노트 STT | 회의록 자동 받아쓰기 (외부 사용 — 정확도 낮음) |
+| 발화 (utterance) | 사용자의 한 번 말한 음성 단위 |
+| 세그먼트 | 발화를 N초 단위로 자른 것 |
+## 데이터 테이블 (ClickHouse)
+| 테이블 | 용도 | TTL |
+| `speech_events` | STT 처리 이벤트 로그 | 180일 |
+| `speech_api_requests` | API 호출 로그 | 90일 |
+## 함정
+- "현주" / "홍주" 라고 STT가 받아쓰지만 실제는 **"현준"** (사람 이름)
+- "외계어"는 일반 표현 아니라 우리 팀 jargon — 외부 미팅에선 "garbled text" 사용
+
+**09-security-policy**
+
+# 보안 정책
+## 인증 정책
+| 항목 | 정책 | 비고 |
+| 비밀번호 최소 길이 | 12자 | NIST 권장 추월 |
+| 비밀번호 복잡도 | 대/소/숫자/특수 모두 | |
+| MFA 필수 대상 | admin, 결제 | 일반 사용자는 옵션 |
+| 세션 만료 | access 15분, refresh 14일 | |
+| refresh_token 보유 위치 | **Identity Hub만** | B2C 백엔드 보유 금지 (ADR-007) |
+## 키 / 토큰 관리
+| 종류 | 보유 위치 | 갱신 |
+| Keycloak `client_secret` | Identity Hub만 | AWS Secrets Manager |
+| service-token | 발급 후 4분 캐시 | 자동 갱신 |
+| API 키 (외부 서비스) | AWS Secrets Manager | 분기별 로테이션 |
+## 데이터 분류
+| 등급 | 예시 | 보관 |
+| 공개 | 마케팅 콘텐츠 | 자유 |
+| 내부 | 사내 문서 | weaversbrain Notion |
+| 민감 | 사용자 음성 | 암호화 저장, 180일 TTL |
+| 기밀 | 비밀번호 hash, 키 | 격리 DB, 접근 로그 |
+## 응답 보안
+- ❌ stack trace 운영 환경 노출 금지
+- ❌ password/passwordHash 응답에 절대 포함 금지
+- ❌ user enumeration 가능한 에러 메시지 (예: "이메일 없음" vs "비밀번호 틀림" 구분)
+- ✅ 모든 에러는 `X-Request-ID` 로 Sentry 추적
+## 함정
+- ⚠️ admin API 호출 시 service-token TTL은 5분, 캐시는 4분 — 4분 30초 시점 호출은 fail
+- ⚠️ 사내 cert이라 `verify_peer=false` — 운영에서 켜면 다운
+
+**10-external-deps**
+
+# 외부 의존성
+## 음성 인식
+| SDK/API | 버전 | 용도 | 호환 |
+| 셀바스 SDK (iOS) | 1.4.2 | 클라이언트 음성 인식 | iOS 14+ |
+| 셀바스 SDK (Android) | 1.4.2 | 동일 | Android 8+ |
+| 클로바노트 STT | API v2 | 회의록 (사내용) | - |
+### 함정
+- ⚠️ 셀바스 SDK 5.0 미만은 호환 안 됨 (음성 포맷 변경)
+- ⚠️ 업데이트는 **현준과 사전 협의** 필수
+- ⚠️ 클로바노트는 사람 이름 받아쓰기 약함 ("현준" → "홍주"/"현주")
+## 인증
+| SDK/API | 버전 | 용도 |
+| Keycloak | 24.x | identity-hub 의존 (직접 호출 금지, ADR-007) |
+## 클라우드
+| 서비스 | 사용처 |
+| AWS Lambda | 국가별 URL 분기 (B2C_LAUNCH_URLS) |
+| AWS Secrets Manager | client_secret, API 키 보관 |
+| AWS S3 | 음성 파일 (180일 TTL) |
+| ClickHouse Cloud | 분석 DB |
+## 결제
+| 서비스 | 사용 영역 |
+| (예: 토스페이먼츠) | B2C 구독 |
+| (예: Stripe) | B2B (해외) |
+## 함정 / 알려진 이슈
+- ⚠️ AWS Lambda `B2C_LAUNCH_URLS.DEFAULT` — 2026-04-14 incident 원인 (구버전 URL stale)
+- ⚠️ 클로바노트는 회의록 정확도 낮음 — STT 자동 정정 후 검수 필수
+- ⚠️ 토스 결제 webhook은 retry 정책 5회, idempotency key 필수
+
+### Role-specific
 
 > 핵심 규칙만 포함. 상세 내용은 `~/.claude/agents/knowledge/backend-developer/` 에서 Read 가능.
-
-**api-design**
-
-## 8. 안티패턴
-
-- **동사 URL**: `/getUser`, `/deletePost` → 명사 + HTTP 메서드
-- **200으로 에러 반환**: `{ success: false }` → 적절한 4xx/5xx
-- **일관성 없는 응답 형식**: 엔드포인트마다 다른 구조
-- **페이지네이션 없는 목록 API**: 데이터 증가 시 성능 폭탄
-- **에러 코드 없는 에러 응답**: 메시지만으로는 클라이언트 처리 어려움
-
-**architecture**
-
-## 3. Controller
-
-**컨트롤러 원칙:**
-- HTTP 변환만 담당 (DTO 파싱, 상태 코드)
-- 비즈니스 로직 없음
-- Service 호출 후 결과 반환
-
-## 7. 안티패턴
-
-- **Controller에 비즈니스 로직**: Service로 이동
-- **Service에서 직접 TypeORM repo 사용**: Repository 레이어 분리
-- **순환 의존**: A모듈 ↔ B모듈 직접 참조 → 공통 모듈로 분리
-- **God Service**: 모든 것을 하는 서비스 → 도메인별 분리
-- **DTO 없이 엔티티 직접 노출**: 패스워드 등 민감 정보 유출 위험
-
-**system-design**
-
-## 8. 안티패턴
-
-- **단일 장애점(SPOF)**: DB, 서버 모두 이중화
-- **동기 처리 남발**: 이메일 발송, 푸시 알림 등은 큐로 비동기화
-- **캐시 없는 조회 집중 API**: DB 병목 → Redis 캐싱
-- **트랜잭션 범위 과다**: 긴 트랜잭션 → 데드락, 성능 저하
-- **조기 최적화**: 측정 먼저, 최적화는 병목 확인 후
-
-**domain-driven-design**
-
-## 7. 안티패턴
-
-- **Anemic Domain Model**: 엔티티에 로직 없이 Service에 모든 로직
-- **Aggregate 직접 접근**: Root를 우회해 내부 수정
-- **DB 스키마 = 도메인 모델**: ORM Entity를 도메인 모델로 사용
-- **도메인 레이어의 인프라 의존**: 도메인에서 TypeORM, Redis 직접 사용
-- **너무 큰 Aggregate**: 트랜잭션/동시성 이슈 → 작게 유지
-
-**database**
-
-## 7. 안티패턴
-
-- **운영에서 synchronize: true**: 스키마 자동 변경으로 데이터 손실 위험
-- **N+1 무시**: 관계 조회 시 relations 또는 QueryBuilder 사용
-- **인덱스 없는 FK/검색 컬럼**: 데이터 증가 시 쿼리 급격히 느려짐
-- **긴 트랜잭션**: 락 경합, 데드락 위험 → 최소 범위로
-- **SELECT * 습관**: 필요한 컬럼만 select (특히 text/blob)
-
-**postgresql**
-
-## 8. 안티패턴
-
-- **SELECT \* in production**: 불필요한 컬럼 전송, 인덱스 온리 스캔 불가
-- **LIKE '%검색어%'**: 인덱스 미사용 → 전문 검색 또는 pg_trgm
-- **함수 감싼 WHERE 조건**: `WHERE DATE(created_at) = '2024-01-01'` → 인덱스 미사용. `WHERE created_at >= '2024-01-01' AND created_at < '2024-01-02'`로
-- **VACUUM 미실행**: 불필요한 행 누적 → 정기 VACUUM ANALYZE
-- **통계 미업데이트**: 쿼리 플래너 오판 → ANALYZE 정기 실행
-
-**drizzle-orm**
-
-## 9. 안티패턴
-
-- **raw SQL 문자열 직접 사용**: SQL 인젝션 위험. `sql` 태그드 템플릿 사용
-- **스키마 없이 쿼리**: 타입 추론 불가
-- **트랜잭션 밖의 연관 작업**: 일관성 보장 안 됨
-- **select() 후 JS 필터링**: DB에서 WHERE로 필터링
-
-**data-patterns**
-
-## 4. Event Sourcing
-
-**언제 사용:** 감사 로그 필수, 시간 여행 디버깅, 복잡한 도메인. 일반 CRUD에는 과도함.
-
-## 7. 안티패턴
-
-- **Service에 직접 쿼리**: Repository 없이 `@InjectRepository`로 Service에서 직접 사용
-- **도메인 로직을 Repository에**: Repository는 데이터 접근만
-- **CQRS 오버엔지니어링**: 단순 CRUD에 CQRS 적용 → 불필요한 복잡성
-- **Outbox 없는 이벤트 발행**: 트랜잭션 밖 이벤트 발행 → 유실 가능
-
-**caching**
-
-## 9. 안티패턴
-
-- **모든 것을 캐시**: 자주 변경되는 데이터는 무효화 비용이 더 큼
-- **캐시 키 충돌**: 서비스/환경별 prefix 필수 (`prod:user:123`)
-- **TTL 없는 캐시**: 메모리 무한 증가
-- **캐시 직접 데이터 소스화**: 캐시 누락/만료 시 fallback 필수
-- **분산 환경에서 로컬 메모리 캐시**: 서버마다 다른 캐시 → Redis 사용
-
-**security**
-
-## 8. 안티패턴
-
-- **JWT Secret 하드코딩**: 환경 변수로 관리
-- **비밀번호 평문 저장**: bcrypt (cost factor 12 이상)
-- **Access Token 장기 만료**: 15분~1시간, Refresh Token으로 갱신
-- **에러 메시지 과노출**: DB 에러, 스택 트레이스 클라이언트 전송 금지
-- **인증 없는 관리자 API**: 모든 민감 엔드포인트에 Guard 필수
-
-**error-handling**
-
-## 7. 안티패턴
-
-- **빈 catch 블록**: 에러를 삼키면 디버깅 불가
-- **모든 에러에 500**: 클라이언트 에러(4xx)와 서버 에러(5xx) 구분
-- **에러 코드 없이 메시지만**: 클라이언트가 programmatic 처리 불가
-- **스택 트레이스 운영 노출**: `NODE_ENV === 'production'`에서 숨기기
-- **도메인 로직에 HttpException**: 도메인은 인프라(HTTP) 모름 → DomainException
-
-**testing**
-
-## 7. 안티패턴
-
-- **프로덕션 DB로 테스트**: 별도 TEST_DATABASE_URL 사용
-- **테스트 간 상태 공유**: afterEach에서 TRUNCATE 또는 롤백
-- **Mock 과도 사용**: Integration 테스트에서 실제 DB 사용이 더 신뢰성 높음
-- **E2E 테스트로 유닛 대체**: 느리고 디버깅 어려움
-- **테스트 없는 예외 케이스**: 에러 경로도 반드시 테스트
-
-**performance**
-
-## 8. 안티패턴
-
-- **조기 최적화**: 병목 측정 전 최적화
-- **인덱스 없는 FK 컬럼**: 조인/조회 시 풀 스캔
-- **트랜잭션 내 외부 API 호출**: 트랜잭션 시간 증가 → 락 경합
-- **동기 블로킹 작업**: CPU 집약 작업은 워커 스레드로
-- **전체 엔티티 로딩**: 필요한 컬럼만 select
-
-**nodejs-internals**
-
-## 8. 안티패턴
-
-- **CPU 집약 작업을 메인 스레드에서**: Worker Thread로
-- **동기 파일 I/O**: `fs.readFileSync` → `fs.promises.readFile`
-- **이벤트 리스너 미제거**: 메모리 누수
-- **무한 재귀 Promise**: 스택 오버플로우
-- **process.nextTick 남용**: 마이크로태스크 큐 과부하 → I/O 기아 현상
-
-**concurrency**
-
-## 8. 안티패턴
-
-- **락 없는 재고/포인트 처리**: 원자적 연산 또는 비관적 락
-- **너무 긴 트랜잭션**: 락 경합 → 최소 범위로
-- **분산 환경에서 로컬 변수로 락**: 서버 재시작/다중 인스턴스에서 무효
-- **멱등성 없는 결제 API**: 네트워크 재시도로 중복 결제
-- **데드락 미처리**: 재시도 로직 필수
-
-**networking**
-
-## 4. gRPC
-
-**REST vs gRPC:**
-| | REST | gRPC |
-| 프로토콜 | HTTP/1.1+ JSON | HTTP/2 + Protobuf |
-| 속도 | 보통 | 빠름 (바이너리) |
-| 스트리밍 | 제한적 | 양방향 스트리밍 |
-| 타입 | OpenAPI(선택) | .proto 강제 |
-| 브라우저 | 직접 지원 | grpc-web 필요 |
-
-## 7. 안티패턴
-
-- **HTTP 재사용 없이 매 요청 새 연결**: Keep-Alive + Connection Pool
-- **WebSocket 수평 확장 미고려**: Redis Adapter 없이 다중 서버
-- **내부 서비스 간 HTTPS 오버헤드**: 동일 VPC 내에서는 HTTP + 네트워크 레벨 보안
-- **DNS 하드코딩 IP**: 환경별 DNS 사용, IP 직접 사용 금지
-- **타임아웃 없는 HTTP 요청**: 외부 API 호출은 반드시 timeout 설정
-
-**distributed-systems**
-
-## 7. 안티패턴
-
-- **분산 트랜잭션에 2PC**: Saga 패턴으로 대체
-- **동기 호출 체인**: A→B→C→D — 부분 실패 시 전체 실패. 이벤트 기반으로
-- **시계 기반 순서 보장**: NTP 오차 존재 → 논리 시계(Lamport Clock) 사용
-- **재시도 없는 외부 서비스 호출**: 네트워크는 불안정
-- **Trace ID 없는 로그**: 분산 환경에서 요청 추적 불가
-
-**microservices**
-
-## 7. 안티패턴
-
-- **데이터 공유**: 서비스 간 DB 공유 → 독립 DB, API 통신
-- **동기 호출 체인 남발**: A→B→C→D 체인 — 이벤트 기반으로
-- **너무 작은 서비스**: 1~2개 함수짜리 서비스 → 모노리스로
-- **분산 모노리스**: 배포는 마이크로서비스, 결합도는 모노리스
-- **API Gateway 없는 직접 노출**: 내부 서비스를 클라이언트에 직접 노출
-
-**message-queues**
-
-## 8. 안티패턴
-
-- **재시도 없는 잡**: 네트워크 오류 등 일시적 실패 대비
-- **DLQ 없음**: 영구 실패 잡 유실
-- **큐 크기 모니터링 안 함**: 적체 시 알림 필요
-- **대용량 페이로드**: 큐에는 ID만 저장, 데이터는 DB에서 조회
-- **잡 중복 처리 미고려**: 멱등성 있는 잡 처리 필수
-
-**resilience**
-
-## 8. 안티패턴
-
-- **Circuit Breaker 없는 외부 API 호출**: 외부 서비스 장애가 전파
-- **재시도 없는 네트워크 호출**: 일시적 오류로 불필요한 실패
-- **타임아웃 없는 HTTP 요청**: 외부 서비스 hang으로 연결 풀 고갈
-- **모든 에러를 재시도**: 4xx 에러는 재시도 의미 없음
-- **Fallback 없는 중요 기능**: 의존 서비스 장애 시 완전 불능
-
-**observability**
-
-## 7. 안티패턴
-
-- **console.log 로깅**: 구조화 로거 사용
-- **로그에 민감 정보**: 패스워드, 카드번호, 토큰 마스킹
-- **Trace ID 없는 분산 시스템**: 요청 추적 불가
-- **메트릭 없는 운영**: 장애를 사용자 제보로 알게 됨
-- **너무 많은 로그**: Debug 레벨 운영 적용 → 스토리지/성능 부담
-
-**deployment**
-
-## 6. 안티패턴
-
-- **root로 컨테이너 실행**: 보안 취약 → non-root 유저
-- **Secrets를 이미지에 포함**: Kubernetes Secrets 또는 Vault 사용
-- **readinessProbe 없음**: 준비 안 된 파드에 트래픽 전달
-- **resource limit 없음**: 한 파드가 노드 자원 독점
-- **운영에 latest 태그**: 불확실한 버전 → 커밋 SHA 또는 시맨틱 버전
-
-**cost-optimization**
-
-## 8. 안티패턴
-
-- **사용하지 않는 리소스 방치**: 개발/스테이징 환경 스케줄 정지
-- **과도한 로그 보존**: CloudWatch는 비쌈 → S3로 아카이브
-- **리전 간 불필요한 데이터 전송**: 같은 리전 내 서비스 배치
-- **측정 없는 최적화**: 비용 분석 먼저, 최적화 나중
-- **Spot Instance 미활용**: 배치 작업, 스테이징은 Spot으로
-
-**debugging**
-
-## 8. 안티패턴
-
-- **console.log 디버깅 후 미제거**: 구조화 로거 + 로그 레벨 활용
-- **운영 DB에서 직접 디버깅**: 읽기 전용 복제본 사용
-- **에러 삼키기**: `catch(e) {}` → 반드시 로깅 또는 throw
-- **스택 트레이스 없는 에러 전파**: `throw error`가 아닌 `throw new Error(msg)` → 원인 소실
 
 **technical-leadership**
 
@@ -441,6 +394,29 @@ color: blue
 - **기술 부채 무시**: 적당히 쌓이면 개발 속도 급락
 - **결과 없는 1:1**: 액션 아이템 없는 미팅 → 구체적 다음 단계
 - **완벽주의적 리뷰**: 모든 PR에 20개 코멘트 → 팀 모럴 저하
+
+**stt-garbled-text-incident**
+
+## 🚨 문제 상황 (Symptom)
+- **발생일**: 2026-04-14
+- **현상**: AOS/iOS 앱에서 STT(Speech-to-Text) 결과가 이해할 수 없는 외계어(특수문자/깨진 텍스트)로 표시됨.
+- **특징**:
+
+### 실제 원인: AWS Lambda의 국가별 URL 분기 로직 오류
+
+- **한국 사용자**: 신버전 프론트엔드 접속 → 정상 디코딩 ✅
+- **해외/VPN 사용자**: 구버전 프론트엔드 접속 → Base64 데이터를 일반 텍스트로 처리 → **외계어 발생** 💀
+
+### 1. 패턴 인식 (Pattern Recognition)
+- **"일부 사용자만 안 됨" + "내 자리선 됨"** 상황이 발생하면 즉시 **지역(Region) 및 네트워크 환경 분기**를 의심하라.
+- 사용자의 접속 국가, VPN 사용 여부를 첫 번째 질문으로 던져야 한다.
+
+### 2. 즉시 테스트 방법
+- 내부 재현이 안 될 경우, 즉시 **해외 VPN(미국, 일본 등)**을 켜고 동일 시나리오를 테스트하여 분기 로직 작동 여부를 확인한다.
+
+### 3. 배포 검증 필수 항목
+- 국가별/환경별 분기가 있는 경우, `DEFAULT` 설정이 최신 버전과 동기화되어 있는지 반드시 체크한다.
+- 주요 도메인(`b2c.maxaiapp.com` 등)의 폐기 여부를 확인하고, 구버전 유입 시 경고를 발생시키는 로직을 검토한다.
 
 ## 완료 시 반환 형식
 
