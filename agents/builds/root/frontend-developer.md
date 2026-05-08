@@ -160,43 +160,71 @@ color: yellow
 
 **01-system-topology**
 
-# [시스템 이름] 토폴로지
+# 스피킹맥스/맥스AI 시스템 토폴로지
 ## 컴포넌트 표
-| 컴포넌트 | 역할 | 호스트/도메인 | 의존 |
-| [예: B2C 백엔드] | 사용자 앱 API | `b2c.maxaiapp.com` | Identity Hub, MySQL |
-| [예: Identity Hub] | SSO 중앙 인증 | `identity-hub.weaversbrain.com` | Keycloak, Redis |
-## 핵심 결정
-- **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만.
-- **Keycloak 직접 호출 금지**: identity-hub 경유만 (ADR-007 참조)
-- **폴백**: identity-nginx 502/503/504 시 레거시 인증 폴백
+| 컴포넌트 | 역할 | 호스트/도메인 | 의존 | 스택 |
+| B2C 백엔드 (레거시) | 사용자 앱 API | `b2c.maxaiapp.com` | Identity Hub, MySQL | PHP CodeIgniter |
+| B2C 백엔드 (신규) | 점진적 마이그레이션 대상 | (마이그레이션 중) | Identity Hub | NestJS/TypeScript |
+| Identity Hub | SSO 중앙 인증 + Keycloak BFF | `identity-hub.weaversbrain.com` | Keycloak, Redis, RDS | Python/FastAPI |
+| Identity Nginx | SSO 게이트웨이/폴백 라우팅 | (인프라) | Identity Hub, B2C 백엔드 | Nginx |
+| Keycloak | OIDC IdP | (Identity Hub 내부 경유만) | RDS | Keycloak 24.x |
+| Identity Hub Frontend | SSO 관리 콘솔 | (관리자용) | Identity Hub API | Next.js |
+| ClickHouse | 분석/이벤트 로그 DB | `{env}-wb-clickhouse` | - | ClickHouse |
+| Speech Hub Admin | STT 모니터링/대시보드 | (사내) | ClickHouse | - |
+## 핵심 결정 (ADR 매핑)
+- **ADR-007**: Keycloak 직접 호출 금지 → identity-hub 경유 (`IdentityHub_lib::getServiceToken()`)
+- **BFF 패턴**: `client_secret`은 Identity Hub만 보유. refresh_token도 Hub에서만 관리.
+- **인증 모드**: `auth_mode=sso|legacy` (config/keycloak.php). LOCAL/DEV/QA/PP/LIVE 모두 `sso` (2026-04-17 기준).
+- **계정 중복 허용**: 전화번호/이메일 중복 허용 (레거시 유지)
+- **`getUserByUsername`**: 반드시 `exact=True`
+- **보호 라우트**: SSO 모드 시 `hooks/Auth_middleware.php` 가 `webapp/JUMP/*` 보호. `public` 라우트는 SSO 엔드포인트 + 소셜 로그인 콜백.
 ## 운영 메모
-- 502 발생 시: `identity-nginx` 로그 확인 → upstream timeout 인지 체크
+- 502 발생 시: identity-nginx 로그 → upstream timeout 인지 확인 → Identity Hub 헬스체크
 - access_token 만료 시: 자동 갱신 — 클라이언트는 재시도만
+- service-token TTL 5분 / Redis 캐시 4분 (4:30 시점 호출 fail 위험)
+- 사내 cert: `verify_peer=false` 필요 — 운영에서 켜면 다운
+## 환경
+| 환경 | B2C | Identity Hub | Keycloak | ClickHouse DB |
+| LOCAL | localhost | localhost | localhost | dev_speakingmax |
+| DEV | dev.* | dev.* | dev.* | dev_speakingmax |
+| QA | qa.* | qa.* | qa.* | qa_speakingmax |
+| PP | pp.* | pp.* | pp.* | (?) |
+| LIVE | b2c.maxaiapp.com | identity-hub.weaversbrain.com | (Hub 내부) | speakingmax |
 
 **02-naming-conventions**
 
-# [영역] 명명 규칙
+# 스피킹맥스/맥스AI 명명 규칙
 ## DB 테이블
 | 영역 | 규칙 | 예시 | 비고 |
-| 레거시 PHP | `T_` prefix | `T_Member`, `T_Notice` | 새 테이블도 따라야 |
-| 신규 NestJS | `users`, `notices` (snake, plural) | - | T_ 안 씀 |
-## 데이터베이스 (환경별)
+| 레거시 PHP (B2C) | `T_` prefix + PascalCase | `T_Member`, `T_Notice` | 새 테이블도 따라야 |
+| 신규 NestJS | snake_case + plural | `users`, `notices` | `T_` 안 씀 |
+| Identity Hub (Python/FastAPI) | snake_case + plural | `users`, `sessions`, `service_tokens` | - |
+## ClickHouse DB (환경별)
 | 환경 | DB명 | 호스트 | 비고 |
 | dev  | `dev_speakingmax` | `dev-wb-clickhouse` | - |
 | qa   | `qa_speakingmax`  | `qa-wb-clickhouse`  | - |
-| prod | `speakingmax`     | `prod-wb-clickhouse` | **prod만 prefix 없음** |
+| prod | `speakingmax`     | `prod-wb-clickhouse` | **prod만 prefix 없음** ⚠️ |
 ## 서비스 / 도메인
-| 약어 | 풀네임 | 도메인 |
+| 약어 | 풀네임 | 도메인 (LIVE) |
 | B2C  | 일반 사용자 앱 | `b2c.maxaiapp.com` |
-| B2B  | 기업 고객 앱   | `b2b.maxaiapp.com` |
+| B2B  | 기업 고객 앱   | ❓ 미확인 (`b2b.maxaiapp.com` 추정) |
 | Hub  | Identity Hub  | `identity-hub.weaversbrain.com` |
+| 회사 도메인 | weaversbrain (지주) / maxaiapp (서비스) / speakingmax (브랜드) | - |
+## 환경 (5종)
+| 약어 | 풀네임 | 비고 |
+| LOCAL | 개발자 로컬 | docker-compose |
+| DEV   | 개발 | 자동 배포 |
+| QA    | 품질 검증 | 자동 배포 |
+| PP    | Pre-Production | 운영 직전 검증 |
+| LIVE  | Production | 수동 승인 배포 |
 ## 함정
-- ⚠️ `prod` 만 prefix 없음 — 환경 분기 코드에서 자주 실수
-- ⚠️ 새 환경(`pp`/`stg`) 추가 시 명명 규칙 회의 필요
+- ⚠️ `prod` ClickHouse DB만 prefix 없음 — 환경 분기 코드에서 자주 실수
+- ⚠️ 도메인 헷갈림: `weaversbrain.com` (회사) ≠ `maxaiapp.com` (B2C 서비스)
+- ⚠️ STT 자동 받아쓰기는 사람 이름 정확도 낮음 → "현주"/"홍주" → 항상 **"현준"** 으로 정정
 
 **03-internal-libraries**
 
-# [라이브러리/모듈 이름]
+# 사내 라이브러리 / 함수 카탈로그
 ### `IdentityHub_lib::getServiceToken()`
 - **목적**: B2C → identity-hub admin API 호출용 service-token 발급
 - **인증**: client_credentials grant
@@ -221,63 +249,102 @@ color: yellow
 | 주인식 | 서버/백엔드 리드 | 테스트 API, 대시보드, ClickHouse | 사용자 본인 |
 | 현준 | 클라이언트 개발자 | iOS/Android 녹음, 셀바스 SDK | 홍주/현주 아님 — STT 오타 주의 |
 | 영찬 | iOS 개발자 | 음성 인식 테스트 앱 | 초기 작업자 |
-## 팀 외 자주 등장하는 인물
-| 이름 | 소속 | 역할 |
-| (예시) | (외주/협력사) | (담당) |
 ## 결정권자 / 에스컬레이션
-- **백엔드 결정**: 주인식
-- **클라 결정**: 현준
-- **인프라 결정**: (?)
-- **product 결정**: (?)
+- **백엔드 결정**: 주인식 (서버/백엔드 리드)
+- **클라이언트(iOS/Android) 결정**: 현준
+- **iOS 결정**: 영찬 (테스트 앱) / 현준 (운영)
+- **인프라 결정**: ❓ 미확인 — 첫 발생 시 채워넣기
+- **Product 결정**: ❓ 미확인 — 첫 발생 시 채워넣기
 ## 표기 규칙
 - 회의록/PR 멘션은 풀네임 한글 (이니셜 X)
-- STT 자동 받아쓰기 결과 정정 필수: "홍주"/"현주" → **"현준"** 으로
+- STT 자동 받아쓰기 결과 정정 필수: "홍주" / "현주" → **"현준"** 으로 (클로바노트가 자주 틀림)
+- 영문 표기 시 한글 음역 사용 (예: 주인식 = `is.joo` — 회사 메일 prefix)
+## 회사 메일
+- 도메인: `@speakingmaxapp.com`
+- 사용자: `is.joo@speakingmaxapp.com`
 
 **06-adr**
 
-# ADR-NNN: [결정 한 줄 요약]
-## Rationale (근거)
-| 옵션 | 장점 | 단점 | 채택? |
-| A: 각자 직접 Keycloak 호출 | 단순 | 충돌, 보안 키 분산 | ❌ |
-| B: Identity Hub 경유 | 중앙화, 캐싱 | 단일 장애점 | ✅ |
-| C: API Gateway 추가 | 더 일반적 | 인프라 추가 | ❌ |
-### 긍정
-- 보안 키(client_secret)가 Identity Hub 한 곳만 보유
-- service-token 캐싱으로 Keycloak 부하 감소
-### 부정
-- Identity Hub 다운 시 모든 인증 영향 → identity-nginx 폴백 필요 (ADR-008 참조)
+# Architecture Decision Records (ADR)
+## ADR 인덱스
+| 번호 | 제목 | 상태 | 날짜 |
+| ADR-007 | B2C → Keycloak 직접 호출 금지, Identity Hub 경유 | ✅ Accepted | (2026-04 이전) |
+| ADR-008 | Identity Hub 장애 시 identity-nginx 레거시 폴백 | ✅ Accepted | (2026-04-17 이전) |
+| ❓ ADR-001~006 | 미문서화 (있으면 추출 필요) | - | - |
+### Context
+- B2C 백엔드는 PHP CodeIgniter 레거시이고 NestJS로 마이그레이션 중
+- 두 시스템이 동시에 Keycloak에 직접 접근하면 토큰 발급 충돌, client_secret 분산 보관
+- 보안/일관성 표준화 필요
+### Decision
+- **Keycloak 직접 호출 금지**. 모든 컴포넌트는 Identity Hub 경유.
+- B2C 백엔드는 `IdentityHub_lib::getServiceToken()` + `setAdminCurlOptions($token)` 패턴 사용
+- service-token = client_credentials grant로 Identity Hub가 발급, Bearer 헤더로 admin API 호출
+### Consequences
+- `client_secret`은 Identity Hub 한 곳만 보유
+- service-token 캐싱(4분)으로 Keycloak 부하 감소
+- 인증 로직 변경 시 한 곳만 수정
+- Identity Hub 다운 시 모든 인증 영향 → ADR-008 폴백 필요
 - 신규 컴포넌트 추가 시 Identity Hub 설정 필요 (배포 의존성)
-## 검증 / 모니터링
-- Keycloak 직접 호출 차단 확인: nginx access log에서 `host=keycloak.*` 외부 트래픽 0건
-- service-token 발급률 알람: 분당 100건 초과 시 Slack
+### 검증
+- nginx access log에서 `host=keycloak.*` 외부 트래픽 0건이어야 함
+- service-token 발급률 알람: 분당 100건 초과 시 Slack ❓ 알람 임계치 미확인
+### Context
+- ADR-007에 따라 Identity Hub가 단일 인증 게이트웨이
+- Hub 장애 시 사용자 로그인 전면 차단 위험
+### Decision
+- Identity Nginx에서 Identity Hub 502/503/504 감지 시 레거시 인증 경로로 폴백
+- `auth_mode=sso|legacy` 동적 전환 (`config/keycloak.php`)
+- 2026-04-17 기준 LOCAL/DEV/QA/PP/LIVE 모두 `sso` 모드
+### Context
+- 왜 이 결정이 필요했나 (당시 상황, 제약)
+### Decision
+- 무엇을 하기로 했나 (명확하게)
+### Rationale
+| 옵션 | 장점 | 단점 | 채택 |
+| A    | ...  | ...  | ❌   |
+| B    | ...  | ...  | ✅   |
+### 검증
+- 어떻게 결정대로 굴러가는지 측정/모니터링
 
 **07-operations-calendar**
 
 # 운영 캘린더 / 정책
 ## 정기 일정
 | 이벤트 | 주기 | 상세 |
-| 모바일 릴리스 컷 | 매월 첫째 주 금요일 | 클라이언트 릴리스 브랜치 분기 |
-| 코드 freeze | 릴리스 컷 1주 전 ~ 컷 당일 | non-critical merge 금지 |
-| 정기 점검 | 매주 화요일 02:00~03:00 | DB 백업, 보안 패치 |
-| 주간 회고 | 매주 금요일 16:00 | 팀 전체 |
+| 모바일 릴리스 컷 | ❓ 미확인 | 클라이언트 릴리스 브랜치 분기 |
+| 코드 freeze | ❓ 미확인 | non-critical merge 금지 |
+| 정기 점검 | ❓ 미확인 | DB 백업, 보안 패치 |
+| 주간 회고 | ❓ 미확인 | 팀 전체 |
+## CLAUDE.md 에 명시된 룰
+- ✅ **목요일 18시 이후 운영 배포 금지** (다음날 처리 어려움)
+- ✅ **분기별 `/backlog --stale 90` 자동 정리** (90일 강등, 180일 삭제 후보)
 ## 변경 동결 (Change Freeze)
 | 시기 | 사유 | 허용 |
-| 릴리스 컷 1주 전 | 모바일 릴리스 안정화 | hotfix만 |
-| 연말연초 (12/24~1/2) | 운영 인력 부족 | 보안 패치만 |
-| 대형 마케팅 캠페인 | 트래픽 폭증 | 0 (관찰만) |
-## 배포 정책
-- 운영 배포: **목요일 18시 이후 금지** (다음날 처리 어려움)
-- 금요일 배포: hotfix/롤백만, 승인자 필수
-- 배포 채널: `#deploys` Slack 사전 알림
-## 승인 권한
-| 액션 | 승인자 |
-| 운영 DB 스키마 변경 | 주인식 |
-| 운영 환경변수 변경 | 주인식 |
-| 모바일 강제 업데이트 | 주인식 + 현준 |
-| 인프라 비용 증가 | (CTO?) |
-## 함정
-- ⚠️ 분기 결산 마감 주(매분기 마지막 주)는 데이터 파이프라인 우선
-- ⚠️ 셀바스 SDK 업데이트는 **현준과 사전 협의** (호환성 issues)
+| 모바일 릴리스 컷 1주 전 | 안정화 | hotfix만 (정확한 정책 ❓) |
+| 연말연초 | 운영 인력 부족 | 보안 패치만 (정책 ❓) |
+| 대형 마케팅 캠페인 | 트래픽 폭증 | 관찰만 (정책 ❓) |
+## 배포 정책 (검증된 것)
+- ✅ **목요일 18시 이후 운영 배포 금지** (CLAUDE.md 룰)
+- ❓ 금요일 배포 정책 — 미확인
+- ❓ 배포 채널 (Slack `#deploys` 등) — 미확인
+## 승인 권한 (추정 — ❓ 확인 필요)
+| 액션 | 승인자 (추정) |
+| 백엔드 결정 | 주인식 ✅ |
+| 클라이언트 결정 | 현준 ✅ |
+| 운영 DB 스키마 변경 | 주인식 (추정) |
+| 운영 환경변수 변경 | 주인식 (추정) |
+| 인프라 결정 | ❓ 미확인 |
+| Product 결정 | ❓ 미확인 |
+| 모바일 강제 업데이트 | 주인식 + 현준 (추정) |
+## 함정 (검증된 것)
+- ⚠️ **셀바스 SDK 업데이트는 반드시 현준과 사전 협의** (음성 인식 호환성 영향)
+- ⚠️ STT 외계어 incident (2026-04-14) 같은 환경별 분기 로직 변경은 모든 환경 동시 점검
+## 미확인 — 처음 발생 시 이 파일 업데이트
+- [ ] 모바일 릴리스 컷 정확한 주기/요일
+- [ ] 코드 freeze 정책
+- [ ] 정기 점검 시간/대상
+- [ ] 주간 회고 시간/장소
+- [ ] 분기 결산 영향 (있다면)
 
 **08-domain-glossary**
 
@@ -311,63 +378,68 @@ color: yellow
 **09-security-policy**
 
 # 보안 정책
-## 인증 정책
-| 항목 | 정책 | 비고 |
-| 비밀번호 최소 길이 | 12자 | NIST 권장 추월 |
-| 비밀번호 복잡도 | 대/소/숫자/특수 모두 | |
-| MFA 필수 대상 | admin, 결제 | 일반 사용자는 옵션 |
-| 세션 만료 | access 15분, refresh 14일 | |
-| refresh_token 보유 위치 | **Identity Hub만** | B2C 백엔드 보유 금지 (ADR-007) |
-## 키 / 토큰 관리
-| 종류 | 보유 위치 | 갱신 |
-| Keycloak `client_secret` | Identity Hub만 | AWS Secrets Manager |
-| service-token | 발급 후 4분 캐시 | 자동 갱신 |
-| API 키 (외부 서비스) | AWS Secrets Manager | 분기별 로테이션 |
-## 데이터 분류
+### 인증 (SSO)
+- ✅ **계정 중복 허용**: 전화번호/이메일 중복 허용 (레거시 유지)
+- ✅ **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만 (ADR-007)
+- ✅ **PHP 세션/쿠키에 refresh_token 저장 금지**
+- ✅ **토큰 갱신**: `POST {hub}/api/v1/auth/refresh` body `{access_token}` 경유
+- ✅ **`getUserByUsername`** 호출 시 `exact=True` 필수
+- ✅ **Keycloak 직접 호출 금지** — identity-hub 경유만 (ADR-007)
+- ✅ **인증 모드**: `auth_mode=sso|legacy` (config/keycloak.php). 2026-04-17 기준 LOCAL/DEV/QA/PP/LIVE 모두 `sso`
+### 키 / 토큰 관리
+- ✅ **`client_secret`**: Identity Hub만 보유
+- ✅ **service-token**: TTL 5분, Redis 캐시 4분 (4:30 시점 fail 위험)
+- ✅ **사내 cert**: `verify_peer=false` 필요 — 운영에서 켜면 다운
+### 응답 보안
+- ✅ stack trace 운영 환경 노출 금지
+- ✅ password/passwordHash 응답에 절대 포함 금지
+## ❓ 미확인 정책 (회사 결정 확인 필요)
+| 항목 | 임시 가정 | 확인 필요 |
+| 비밀번호 최소 길이 | 12자 (NIST 권장) | 실제 사내 정책? |
+| 비밀번호 복잡도 | 대/소/숫자/특수 | 실제 사내 정책? |
+| MFA 필수 대상 | admin, 결제 | 실제 정책? |
+| 세션 만료 (access) | 15분 | 실제 값? |
+| 세션 만료 (refresh) | 14일 | 실제 값? |
+| API 키 보관 위치 | AWS Secrets Manager (추정) | 실제? |
+| API 키 로테이션 주기 | 분기별 (추정) | 실제? |
+| user enumeration 정책 | 일반 SaaS 가정 → 명시 | 실제 결정? |
+| Sentry 사용 | 추정 | 실제? |
+## 데이터 분류 (가이드라인 — ❓ 확인)
 | 등급 | 예시 | 보관 |
 | 공개 | 마케팅 콘텐츠 | 자유 |
-| 내부 | 사내 문서 | weaversbrain Notion |
-| 민감 | 사용자 음성 | 암호화 저장, 180일 TTL |
-| 기밀 | 비밀번호 hash, 키 | 격리 DB, 접근 로그 |
-## 응답 보안
-- ❌ stack trace 운영 환경 노출 금지
-- ❌ password/passwordHash 응답에 절대 포함 금지
-- ❌ user enumeration 가능한 에러 메시지 (예: "이메일 없음" vs "비밀번호 틀림" 구분)
-- ✅ 모든 에러는 `X-Request-ID` 로 Sentry 추적
-## 함정
-- ⚠️ admin API 호출 시 service-token TTL은 5분, 캐시는 4분 — 4분 30초 시점 호출은 fail
-- ⚠️ 사내 cert이라 `verify_peer=false` — 운영에서 켜면 다운
+| 내부 | 사내 문서 | weaversbrain Notion (추정) |
+| 민감 | 사용자 음성 | 암호화 저장, ❓ TTL |
+| 기밀 | 비밀번호 hash, 키 | 격리 DB |
+## 함정 (검증)
+- ⚠️ admin API 호출 시 service-token 4:30 시점 fail 위험 (TTL 5분 / 캐시 4분 갭)
+- ⚠️ 사내 cert이라 `verify_peer=false` — 운영에서 실수로 켜면 다운
+- ⚠️ Keycloak 직접 호출은 ADR-007 위반 (절대 금지)
+## 사용 시 주의
 
 **10-external-deps**
 
 # 외부 의존성
-## 음성 인식
-| SDK/API | 버전 | 용도 | 호환 |
-| 셀바스 SDK (iOS) | 1.4.2 | 클라이언트 음성 인식 | iOS 14+ |
-| 셀바스 SDK (Android) | 1.4.2 | 동일 | Android 8+ |
-| 클로바노트 STT | API v2 | 회의록 (사내용) | - |
-### 함정
-- ⚠️ 셀바스 SDK 5.0 미만은 호환 안 됨 (음성 포맷 변경)
-- ⚠️ 업데이트는 **현준과 사전 협의** 필수
-- ⚠️ 클로바노트는 사람 이름 받아쓰기 약함 ("현준" → "홍주"/"현주")
-## 인증
-| SDK/API | 버전 | 용도 |
-| Keycloak | 24.x | identity-hub 의존 (직접 호출 금지, ADR-007) |
-## 클라우드
-| 서비스 | 사용처 |
-| AWS Lambda | 국가별 URL 분기 (B2C_LAUNCH_URLS) |
-| AWS Secrets Manager | client_secret, API 키 보관 |
-| AWS S3 | 음성 파일 (180일 TTL) |
-| ClickHouse Cloud | 분석 DB |
-## 결제
-| 서비스 | 사용 영역 |
-| (예: 토스페이먼츠) | B2C 구독 |
-| (예: Stripe) | B2B (해외) |
-## 함정 / 알려진 이슈
-- ⚠️ AWS Lambda `B2C_LAUNCH_URLS.DEFAULT` — 2026-04-14 incident 원인 (구버전 URL stale)
-- ⚠️ 클로바노트는 회의록 정확도 낮음 — STT 자동 정정 후 검수 필수
-- ⚠️ 토스 결제 webhook은 retry 정책 5회, idempotency key 필수
-
+## 음성 인식 (검증)
+| SDK/API | 용도 | 검증된 사실 |
+| 셀바스 SDK (iOS/Android) | 클라이언트 음성 인식 | ✅ 클라이언트(현준) 담당. 업데이트는 현준과 사전 협의 필수 |
+| 클로바노트 STT | 회의록 자동 받아쓰기 | ✅ 사내용. 사람 이름 받아쓰기 약함 (현주/홍주 → 현준 정정 필수) |
+## 인증 (검증)
+- ✅ **Keycloak 24.x** (사용자 본인 메모리)
+- ✅ **identity-hub 경유만** (ADR-007) — 직접 호출 금지
+## 클라우드 (메모리/incident 기반 검증)
+| 서비스 | 사용처 | 출처 |
+| AWS Lambda | 국가별 URL 분기 (`B2C_LAUNCH_URLS`) | ✅ 2026-04-14 STT 외계어 incident 원인 |
+| ClickHouse | 분석/이벤트 로그 (`{env}-wb-clickhouse`) | ✅ 메모리 |
+| Redis | service-token 캐시 / refresh_token 보관 (Identity Hub) | ✅ workflows/sso.md |
+| RDS | Keycloak 사용자 DB | ✅ 추정 (Keycloak 표준) |
+## 결제 (❓ 미확인)
+- ❓ 결제 PG: 토스페이먼츠? KCP? 다른 곳? — 미확인
+- ❓ 해외 결제 / 구독 모델 — 미확인
+- 코드 작성 시 결제 관련 부분은 회사 확인 필수
+## 함정 / 알려진 이슈 (검증)
+- ⚠️ **AWS Lambda `B2C_LAUNCH_URLS.DEFAULT`** — 2026-04-14 STT 외계어 incident 원인. 환경 분기 default 안전한 쪽으로 설정 필수.
+- ⚠️ **클로바노트는 사람 이름 부정확** — STT 결과 정정 필수
+- ⚠️ **셀바스 SDK 업데이트** — 반드시 현준과 사전 협의 (음성 인식 호환성 영향)
 ### Role-specific
 
 > 핵심 규칙만 포함. 상세 내용은 `~/.claude/agents/knowledge/frontend-developer/` 에서 Read 가능.
