@@ -129,5 +129,125 @@ def archive(
     console.print(f"[green]이동 완료: {len(moved)}[/green]")
 
 
+@app.command()
+def triage(
+    root: Path = typer.Option(Path.home() / "Workspace", help="스캔 root"),
+    out: Path = typer.Option(..., help="마크다운 리포트 출력 경로"),
+):
+    """모든 repo의 미커밋 파일을 분류 → 마크다운 리포트."""
+    from console.triage import classify, FileCategory
+    from collections import defaultdict
+    import subprocess
+
+    by_category: dict[FileCategory, list[tuple[str, str, str]]] = defaultdict(list)
+
+    for repo in scan_repos(root, max_depth=2):
+        if repo.dirty_count == 0:
+            continue
+        try:
+            result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=repo.path, capture_output=True, text=True, timeout=5,
+            )
+        except subprocess.TimeoutExpired:
+            continue
+        for line in result.stdout.splitlines():
+            if not line.strip():
+                continue
+            status_code = line[:2].strip()
+            file_path = line[3:].strip()
+            cat = classify(file_path, status_code)
+            by_category[cat].append((repo.path.name, file_path, status_code))
+
+    lines = ["# Dirty Triage — 미커밋 분류\n"]
+    for cat in FileCategory:
+        items = by_category.get(cat, [])
+        lines.append(f"\n## {cat.value} ({len(items)})\n")
+        for repo_name, file_path, status_code in items[:50]:
+            lines.append(f"- `{repo_name}/{file_path}` [{status_code}]")
+        if len(items) > 50:
+            lines.append(f"- ... +{len(items) - 50} more")
+
+    out.write_text("\n".join(lines))
+    console.print(f"[green]리포트:[/green] {out}")
+    summary = {cat.value: len(by_category.get(cat, [])) for cat in FileCategory}
+    console.print(summary)
+
+
+@app.command()
+def cleanup(
+    triage_md: Path = typer.Argument(..., exists=True, help="triage 리포트 마크다운"),
+    dry_run: bool = typer.Option(True, help="기본 dry-run. --no-dry-run 으로 실제 처리"),
+):
+    """triage 리포트의 commit_ready 일괄 커밋 + delete 일괄 삭제."""
+    from console.cleanup import commit_ready_in_repo, delete_in_repo
+    from collections import defaultdict
+    import re
+    import subprocess
+
+    text = triage_md.read_text()
+    sections: dict[str, list[tuple[str, str]]] = {"commit_ready": [], "delete": []}
+    current = None
+    item_re = re.compile(r"^- `([^/]+)/(.+)` \[")
+
+    for line in text.splitlines():
+        if line.startswith("## commit_ready"):
+            current = "commit_ready"
+            continue
+        if line.startswith("## delete"):
+            current = "delete"
+            continue
+        if line.startswith("## "):
+            current = None
+            continue
+        if current is None:
+            continue
+        m = item_re.match(line)
+        if m:
+            sections[current].append((m.group(1), m.group(2)))
+
+    by_repo_commit: dict[str, list[str]] = defaultdict(list)
+    by_repo_delete: dict[str, list[str]] = defaultdict(list)
+    for repo_name, file_path in sections["commit_ready"]:
+        by_repo_commit[repo_name].append(file_path)
+    for repo_name, file_path in sections["delete"]:
+        by_repo_delete[repo_name].append(file_path)
+
+    workspace = Path.home() / "Workspace"
+    console.print(
+        f"[yellow]commit_ready: {len(sections['commit_ready'])} files in "
+        f"{len(by_repo_commit)} repos[/yellow]"
+    )
+    console.print(
+        f"[yellow]delete: {len(sections['delete'])} files in "
+        f"{len(by_repo_delete)} repos[/yellow]"
+    )
+
+    if dry_run:
+        console.print("[cyan]dry-run. --no-dry-run 으로 실제 처리[/cyan]")
+        return
+
+    committed = 0
+    for repo_name, files in by_repo_commit.items():
+        repo_path = workspace / repo_name
+        if not (repo_path / ".git").exists():
+            continue
+        try:
+            commit_ready_in_repo(repo_path, files)
+            committed += 1
+        except subprocess.CalledProcessError as e:
+            console.print(f"[red]commit failed: {repo_name}: {e}[/red]")
+
+    deleted_count = 0
+    for repo_name, files in by_repo_delete.items():
+        repo_path = workspace / repo_name
+        if not repo_path.exists():
+            continue
+        delete_in_repo(repo_path, files)
+        deleted_count += len(files)
+
+    console.print(f"[green]commit: {committed} repos, delete: {deleted_count} files[/green]")
+
+
 if __name__ == "__main__":
     app()
