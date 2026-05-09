@@ -8,5 +8,15 @@ dependencies = [
     "rich>=13.9.0",
 ]
 
+[project.scripts]
+wsq = "console.cli:app"
+
+[tool.setuptools]
+packages = ["console", "console.adapters"]
+
+[tool.setuptools.package-dir]
+"console" = "."
+"console.adapters" = "adapters"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
