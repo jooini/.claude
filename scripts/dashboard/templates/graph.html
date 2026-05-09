@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🧬 Chain Graph</title>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100vw; height: 100vh; overflow: hidden;
+               background: #0d1117; color: #c9d1d9;
+               font-family: -apple-system, BlinkMacSystemFont, monospace; }
+  #toolbar { position: fixed; top: 0; left: 0; right: 0; height: 40px;
+             background: #161b22; border-bottom: 1px solid #30363d;
+             display: flex; align-items: center; padding: 0 12px; gap: 6px;
+             z-index: 100; font-size: 12px; }
+  #toolbar h1 { font-size: 13px; font-weight: 600; color: #f0f6fc; margin-right: 16px; }
+  .btn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+         border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 11px; }
+  .btn:hover { background: #2d333b; }
+  .btn.active { background: #238636; border-color: #2ea043; color: #fff; }
+  #stat { margin-left: auto; color: #8b949e; font-size: 11px; }
+  .view { position: fixed; top: 40px; left: 0; right: 0; bottom: 0;
+          background: #0d1117; }
+  .legend { position: fixed; bottom: 8px; left: 12px; right: 12px;
+            background: rgba(22,27,34,0.9); border: 1px solid #30363d;
+            border-radius: 4px; padding: 6px 10px; font-size: 10px;
+            line-height: 1.6; z-index: 50; }
+  .legend strong { color: #8b949e; }
+  .legend span { margin-right: 10px; }
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <h1>🧬 Chain Graph</h1>
+  <button class="btn active" data-view="swimlane">Swimlane</button>
+  <button class="btn" data-view="cooc">공동출현</button>
+  <button class="btn" data-view="sankey">Sankey</button>
+  <button class="btn" id="zoom-out" style="margin-left:12px;">−</button>
+  <span id="zoom-level" style="display:inline-block; min-width:40px; text-align:center; color:#8b949e;">—</span>
+  <button class="btn" id="zoom-in">+</button>
+  <button class="btn" id="fit-btn" style="margin-left:6px;">⊕ Fit</button>
+  <label style="margin-left:12px; color:#c9d1d9; font-size:11px; cursor:pointer; user-select:none;">
+    <input type="checkbox" id="md-only" style="vertical-align:middle;"> 📄 .md 만
+  </label>
+  <label style="margin-left:8px; color:#c9d1d9; font-size:11px; cursor:pointer; user-select:none;">
+    <input type="checkbox" id="hide-bash" style="vertical-align:middle;" checked> 🚫 Bash 숨김
+  </label>
+  <label style="margin-left:8px; color:#c9d1d9; font-size:11px; cursor:pointer; user-select:none;">
+    <input type="checkbox" id="hide-edit" style="vertical-align:middle;"> 🚫 Edit/Write 숨김
+  </label>
+  <label style="margin-left:8px; color:#c9d1d9; font-size:11px; cursor:pointer; user-select:none;">
+    <input type="checkbox" id="hide-agent" style="vertical-align:middle;"> 🚫 Agent 숨김
+  </label>
+  <label style="margin-left:12px; color:#c9d1d9; font-size:11px; cursor:pointer; user-select:none;">
+    <input type="checkbox" id="current-only" style="vertical-align:middle;"> 🎯 현재 세션만
+  </label>
+  <label style="margin-left:12px; color:#c9d1d9; font-size:11px; cursor:pointer; user-select:none;">
+    <input type="checkbox" id="agent-only" style="vertical-align:middle;"> ★ Agent 있는 turn 만
+  </label>
+  <label style="margin-left:12px; color:#c9d1d9; font-size:11px; user-select:none;">
+    Turns: <input type="range" id="turn-cap" min="10" max="500" step="10" value="100" style="vertical-align:middle; width:100px;" title="서버에서 페치할 turn 수 (서버+클라 동시 적용)">
+    <span id="turn-cap-val" style="display:inline-block; min-width:30px; color:#79c0ff; font-weight:600;">100</span>
+  </label>
+  <label style="margin-left:8px; color:#c9d1d9; font-size:11px; user-select:none;">
+    Sessions: <input type="range" id="sess-cap" min="1" max="10" step="1" value="10" style="vertical-align:middle; width:60px;">
+    <span id="sess-cap-val" style="display:inline-block; min-width:20px; color:#79c0ff; font-weight:600;">10</span>
+  </label>
+  <span id="stat">로딩...</span>
+</div>
+<div id="view-swimlane" class="view"></div>
+<div id="view-cooc"     class="view" style="display:none;"></div>
+<div id="view-sankey"   class="view" style="display:none;"></div>
+<div class="legend">
+  <strong>md:</strong>
+  <span style="color:#2e8b57">■ workflow</span>
+  <span style="color:#4682b4">■ agent</span>
+  <span style="color:#cd853f">■ skill</span>
+  <span style="color:#ba55d3">■ knowledge</span>
+  <span style="color:#d2691e">■ memory</span>
+  <span style="color:#dc143c">■ claude_md</span>
+  <span style="color:#6e7681">■ other</span>
+  <strong style="margin-left:12px;">tool:</strong>
+  <span style="color:#8b5cf6">⬢ Bash</span>
+  <span style="color:#d97706">⬢ Edit</span>
+  <span style="color:#dc2626">⬢ Write</span>
+  <span style="color:#db2777">⬢ MultiEdit</span>
+  <strong style="margin-left:12px;">agent:</strong>
+  <span style="color:#fbbf24">▭ 🤖 subagent</span>
+  <strong style="margin-left:12px;">prompt:</strong>
+  <span style="color:#1f6feb">▶ user 발화</span>
+</div>
+<script>
+const CAT_COLOR = {workflow:'#2e8b57',agent:'#4682b4',skill:'#cd853f',
+  knowledge:'#ba55d3',memory:'#d2691e',claude_md:'#dc143c',other:'#6e7681'};
+let chainsData = {turns:[],co_occurrence:[],sankey:{nodes:[],links:[]}};
+let cySwim = null, cyCooc = null, currentView = 'swimlane';
+let zoomSaveTimer = null;  // zoom 저장 throttle (300ms debounce)
+// expand 된 agent 노드 id 추적 — refresh 후 자동 복원
+const expandedAgents = new Set();
+
+function shortFile(p){if(!p)return'';return p.replace(/^\/Users\/leonard\//, '~/');}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// 세션별 색상 — 같은 세션이면 같은 prompt 테두리색
+const SESSION_COLORS = ['#79c0ff','#56d364','#d29922','#f85149','#bc8cff',
+                        '#ff7b72','#a5d6ff','#ffa657','#7ee787','#ffadda'];
+function sessionColor(sess) {
+  if (!sess) return '#79c0ff';
+  let h = 0;
+  for (let i = 0; i < sess.length; i++) h = (h * 31 + sess.charCodeAt(i)) | 0;
+  return SESSION_COLORS[Math.abs(h) % SESSION_COLORS.length];
+}
+
+function buildSwimlaneElements(turns) {
+  const elements = [];
+  // text-max-width 260 + padding 20 = 노드 폭 ~280
+  // 라벨 길이 무제한 → 줄 수 가변. NODE_H 크게 잡아 겹침 방지
+  const LANE_W = 340, NODE_H = 200, X0 = 170, Y0 = 100;
+  const SESSION_GAP = 200; // 세션 사이 추가 가로 간격
+  const mdOnly       = document.getElementById('md-only')?.checked;
+  const hideBash     = document.getElementById('hide-bash')?.checked;
+  const hideEdit     = document.getElementById('hide-edit')?.checked;
+  const hideAgent    = document.getElementById('hide-agent')?.checked;
+  const agentOnly    = document.getElementById('agent-only')?.checked;
+  const currentOnly  = document.getElementById('current-only')?.checked;
+  const turnCap      = parseInt(document.getElementById('turn-cap')?.value || '30', 10);
+  const sessCap      = parseInt(document.getElementById('sess-cap')?.value || '10', 10);
+
+  // tool 필터링 (turn 별 tools 배열에서 제외)
+  const filterTools = (tools) => tools.filter(r => {
+    if (mdOnly) return false;
+    if (hideBash && r.tool === 'Bash') return false;
+    if (hideEdit && (r.tool === 'Edit' || r.tool === 'Write' || r.tool === 'MultiEdit')) return false;
+    return true;
+  });
+
+  // 활동 있는 turn (필터 후에도 노드가 남는 turn 만)
+  const active = turns.filter(t => {
+    if (agentOnly) return (t.agents || []).length > 0;
+    const filteredTools = filterTools(t.tools);
+    const hasAgents = !hideAgent && (t.agents || []).length > 0;
+    return mdOnly ? t.reads.length : (t.reads.length || filteredTools.length || hasAgents);
+  });
+  // 1) 현재 세션 식별 — 가장 최근 turn 의 session
+  const currentSession = active.length ? active[active.length - 1].session : null;
+
+  // 2) 현재 세션만 필터
+  let scoped = currentOnly && currentSession
+    ? active.filter(t => t.session === currentSession)
+    : active;
+
+  // 3) 세션 cap — 최근 N 세션만 (등장 순)
+  const seenSessions = [];
+  const seenSet = new Set();
+  // 시간 역순으로 살피며 새 세션 sessCap 개까지 누적
+  for (let i = scoped.length - 1; i >= 0; i--) {
+    const s = scoped[i].session;
+    if (!seenSet.has(s)) {
+      seenSet.add(s);
+      seenSessions.unshift(s);
+      if (seenSessions.length >= sessCap) break;
+    }
+  }
+  const allowedSessions = new Set(seenSessions);
+  scoped = scoped.filter(t => allowedSessions.has(t.session));
+
+  // 4) turn cap — 최근 N turn
+  const visible = scoped.slice(-turnCap);
+  // 세션 부모 노드 (compound) 등록 — 자식들이 parent 로 참조
+  const sessionsAdded = new Set();
+  // 세션 바뀌는 지점에 SESSION_GAP 추가 — 누적 x 계산
+  let cumX = X0;
+  let prevSess = null;
+  for (let row = 0; row < visible.length; row++) {
+    const t = visible[row];
+    if (prevSess !== null && t.session !== prevSess) {
+      cumX += SESSION_GAP;
+    }
+    // 세션 부모 노드 1회만 추가 (compound)
+    const sessId = `sess_${t.session || 'unknown'}`;
+    if (!sessionsAdded.has(sessId)) {
+      sessionsAdded.add(sessId);
+      const sColorHdr = sessionColor(t.session || '');
+      elements.push({
+        data: {id: sessId, label: `📌 세션 ${t.session || 'unknown'}`,
+               kind: 'session', sess: t.session || ''},
+        style: {
+          'background-color': sColorHdr, 'background-opacity': 0.06,
+          'border-color': sColorHdr, 'border-width': 2,
+          'border-style': 'dashed',
+        },
+      });
+    }
+    prevSess = t.session;
+    const x = cumX;
+    cumX += LANE_W;
+    let y = Y0;
+    const promptId = 'p_' + t.turn_id;
+    // prompt — 시간 + 세션 + 본문
+    const ppvRaw = (t.prompt_preview||'').replace(/\s+/g, ' ').trim();
+    const ppv = ppvRaw || '(no prompt)';
+    // ts_utc → 로컬 시간 (HH:MM, 한국 KST)
+    let timeStr = '';
+    try {
+      const dt = new Date(t.ts_utc);
+      const mm = String(dt.getMonth()+1).padStart(2,'0');
+      const dd = String(dt.getDate()).padStart(2,'0');
+      const hh = String(dt.getHours()).padStart(2,'0');
+      const mi = String(dt.getMinutes()).padStart(2,'0');
+      timeStr = `${mm}/${dd} ${hh}:${mi}`;
+    } catch {}
+    const sessShort = (t.session || '').slice(0, 4);
+    const sColor = sessionColor(t.session || '');
+    elements.push({
+      data: {id: promptId,
+             label: `🕐 ${timeStr}\n▶ ${ppv}`,
+             kind: 'prompt', sess: t.session || '',
+             parent: sessId,
+             full: t.prompt_preview, ts: t.ts_utc},
+      position: {x, y},
+      style: {'border-color': sColor, 'border-width': 4},
+    });
+    let prevId = promptId, col = 1;
+    const filteredTools = filterTools(t.tools);
+    const agents = (hideAgent ? [] : (t.agents || []));
+    const all = mdOnly
+      ? t.reads.map(r => ({...r, _kind:'md'}))
+      : [
+          ...t.reads.map(r => ({...r, _kind:'md'})),
+          ...filteredTools.map(r => ({...r, _kind:'tool'})),
+          ...agents.map(r => ({...r, _kind:'agent'})),
+        ].sort((a,b) => (a.ts_utc||'').localeCompare(b.ts_utc||''));
+    for (const r of all) {
+      y += NODE_H;
+      const idPrefix = r._kind==='md' ? 'r' : (r._kind==='agent' ? 'a' : 't');
+      const id = `${idPrefix}_${t.turn_id}_${col}`;
+      const cnt = (r.count && r.count > 1) ? ` ×${r.count}` : '';
+      let toolLabel = '';
+      let agentLabel = '';
+      if (r._kind === 'agent') {
+        const ag = r.agent || 'general-purpose';
+        const desc = (r.description || '').slice(0, 80);
+        const readsCount = (r.reads || []).length;
+        const readsBadge = readsCount > 0 ? `  📚 ${readsCount} (클릭)` : '';
+        agentLabel = `🤖 ${ag}${cnt}${readsBadge}${desc ? '\n' + desc : ''}`;
+      }
+      if (r._kind === 'tool') {
+        const tgt = (r.target || '').trim();
+        let display;
+        if (r.tool === 'Bash') {
+          // 자르지 않음 — cytoscape text-max-width 가 자동 줄바꿈
+          display = tgt || '(empty)';
+        } else {
+          // 파일 path 도 자르지 않음 — 풀 path 그대로
+          display = tgt || '(empty)';
+        }
+        toolLabel = `${r.tool}\n${display}${cnt}`;
+      }
+      // md 라벨: 전체 path (~/ prefix 단축) + 디렉토리/파일명 별도 줄
+      // cytoscape text-wrap 은 공백 기준이라 path 의 / 는 안 끊김 → 직접 \n 삽입
+      const mdLabel = (r._kind === 'md')
+        ? (() => {
+            const path = (r.file || '').replace(/^\/Users\/leonard\//, '~/');
+            const parts = path.split('/');
+            const base = parts.pop() || '';
+            const dir = parts.join('/');
+            return dir ? `${dir}/\n${base}${cnt}` : `${base}${cnt}`;
+          })()
+        : '';
+      let data;
+      if (r._kind === 'md') {
+        data = {id, label: mdLabel, kind:'md', category: r.category||'other',
+                count: r.count||1, full: r.file, ts: r.ts_utc, parent: sessId};
+      } else if (r._kind === 'agent') {
+        data = {id, label: agentLabel, kind:'agent',
+                agent: r.agent || 'general-purpose', count: r.count||1,
+                reads: r.reads || [],
+                full: r.description, ts: r.ts_utc, parent: sessId};
+      } else {
+        data = {id, label: toolLabel, kind:'tool',
+                tool: r.tool, count: r.count||1, full: r.target, ts: r.ts_utc,
+                parent: sessId};
+      }
+      elements.push({data, position: {x, y}});
+      elements.push({data: {source: prevId, target: id}});
+      prevId = id;
+      col++;
+    }
+  }
+  return elements;
+}
+
+const NODE_STYLE = [
+  // 세션 부모 노드 (compound) — 자식들 감싸는 박스
+  {selector:'node[kind="session"]', style:{
+    'label':'data(label)','color':'#f0f6fc','font-size':16,'font-weight':'bold',
+    'text-valign':'top','text-halign':'left','text-margin-y':-8,'text-margin-x':14,
+    'shape':'round-rectangle',
+    'background-color':'#161b22','background-opacity':0.4,
+    'border-color':'#484f58','border-width':2,'border-style':'dashed',
+    'padding':'24px',
+    'text-outline-color':'#0d1117','text-outline-width':3,
+  }},
+  {selector:'node', style:{
+    'label':'data(label)','color':'#f0f6fc','font-size':11,
+    'text-valign':'center','text-halign':'center',
+    'background-color':'#30363d','border-color':'#484f58','border-width':1,
+    // width/height 라벨 길이 자동 + wrap + max-width 로 자동 줄바꿈
+    'width':'label','height':'label',
+    'padding':'10px',
+    'shape':'round-rectangle','font-weight':600,
+    'text-wrap':'wrap','text-max-width':260,
+    'line-height':1.3,
+  }},
+  {selector:'node[kind="prompt"]', style:{
+    'background-color':'#1f6feb','border-color':'#79c0ff','border-width':3,
+    'shape':'round-rectangle','color':'#ffffff','font-weight':'bold',
+    'font-size':12,'padding':'12px',
+    'text-wrap':'wrap','text-max-width':260,
+  }},
+  {selector:'node[kind="md"][category="workflow"]', style:{'background-color':'#2e8b57','color':'#fff'}},
+  {selector:'node[kind="md"][category="agent"]',    style:{'background-color':'#4682b4','color':'#fff'}},
+  {selector:'node[kind="md"][category="skill"]',    style:{'background-color':'#cd853f','color':'#fff'}},
+  {selector:'node[kind="md"][category="knowledge"]',style:{'background-color':'#ba55d3','color':'#fff'}},
+  {selector:'node[kind="md"][category="memory"]',   style:{'background-color':'#d2691e','color':'#fff'}},
+  {selector:'node[kind="md"][category="claude_md"]',style:{'background-color':'#dc143c','color':'#fff'}},
+  {selector:'node[kind="md"][category="other"]',    style:{'background-color':'#6e7681','color':'#fff'}},
+  {selector:'node[kind="tool"]', style:{
+    'shape':'round-rectangle','background-color':'#1f6feb','color':'#ffffff',
+    'border-color':'#79c0ff','border-width':2,
+    'padding':'10px',
+  }},
+  {selector:'node[kind="tool"][tool="Bash"]', style:{'background-color':'#8b5cf6','border-color':'#a78bfa'}},
+  {selector:'node[kind="tool"][tool="Edit"]', style:{'background-color':'#d97706','border-color':'#fbbf24'}},
+  {selector:'node[kind="tool"][tool="Write"]',style:{'background-color':'#dc2626','border-color':'#fca5a5'}},
+  {selector:'node[kind="tool"][tool="MultiEdit"]',style:{'background-color':'#db2777','border-color':'#f9a8d4'}},
+  // === Agent 노드 — 둥근 사각형 + 황금 테두리, 라벨 박스 안 풀로 표시 ===
+  {selector:'node[kind="agent"]', style:{
+    'shape':'round-rectangle','background-color':'#78350f','color':'#fde047',
+    'border-color':'#fbbf24','border-width':4,
+    'font-size':12,'font-weight':'bold','padding':'10px',
+    'text-outline-color':'#0d1117','text-outline-width':2,
+  }},
+  {selector:'node[count > 1]', style:{'border-width':4,'border-color':'#fde047'}},
+  {selector:'edge', style:{
+    'width':2,'line-color':'#6e7681','target-arrow-color':'#6e7681',
+    'target-arrow-shape':'triangle','curve-style':'bezier','arrow-scale':1.3,
+  }},
+];
+
+function renderSwimlane() {
+  const newElements = buildSwimlaneElements(chainsData.turns);
+
+  // 기존 인스턴스 있으면 증분 업데이트 — destroy 안 함 (깜빡임 방지)
+  if (cySwim) {
+    cySwim.batch(() => {
+      cySwim.elements().remove();
+      cySwim.add(newElements);
+    });
+    // layout: preset 이라 position 고정. 재계산/fit 불필요. 줌/팬 그대로 유지.
+    return;
+  }
+
+  // 최초 1회만 인스턴스 생성
+  cySwim = cytoscape({
+    container: document.getElementById('view-swimlane'),
+    elements: newElements,
+    style: NODE_STYLE,
+    layout: {name:'preset', fit:false},
+    wheelSensitivity: 0.3, minZoom: 0.1, maxZoom: 5,
+    textureOnViewport: false,
+  });
+  cySwim.ready(() => {
+    requestAnimationFrame(() => {
+      cySwim.resize();
+      cySwim.fit(undefined, 30);
+      if (cySwim.zoom() < 0.5) {cySwim.zoom(0.6); cySwim.center(cySwim.nodes('[kind="prompt"]').first());}
+      updateZoomLevel();
+    });
+  });
+  cySwim.on('zoom', () => {
+    updateZoomLevel();
+    if (zoomSaveTimer) clearTimeout(zoomSaveTimer);
+    zoomSaveTimer = setTimeout(() => savePref('zoom.swimlane', cySwim.zoom().toFixed(3)), 300);
+  });
+
+  // Agent expand/collapse 헬퍼
+  function expandAgentNode(node) {
+    const data = node.data();
+    const reads = data.reads || [];
+    if (!reads.length) return;
+    if (node.scratch('_expanded')) return;  // 이미 펼침
+    const pos = node.position();
+    const baseX = pos.x + 250;
+    const baseY = pos.y;
+    const NODE_GAP = 50;
+    const created = [];
+    reads.forEach((r, i) => {
+      const offset = i - (reads.length - 1) / 2;
+      const childId = `ar_${data.id}_${i}`;
+      const path = (r.file || '').replace(/^\/Users\/leonard\//, '~/');
+      const parts = path.split('/');
+      const base = parts.pop() || '';
+      const dir = parts.join('/');
+      const label = dir ? `${dir}/\n${base}` : base;
+      cySwim.add({
+        group: 'nodes',
+        data: {id: childId, label, kind: 'md',
+               category: r.category || 'other',
+               full: r.file, ts: r.ts_utc, parent: data.parent},
+        position: {x: baseX, y: baseY + offset * NODE_GAP},
+      });
+      cySwim.add({
+        group: 'edges',
+        data: {id: `e_${data.id}_${i}`, source: data.id, target: childId},
+      });
+      created.push(cySwim.$('#' + childId));
+    });
+    node.scratch('_expanded', true);
+    node.scratch('_expandedNodes', created.concat(
+      reads.map((_, i) => cySwim.$('#e_' + data.id + '_' + i))
+    ));
+  }
+
+  function collapseAgentNode(node) {
+    if (!node.scratch('_expanded')) return;
+    const removed = node.scratch('_expandedNodes');
+    if (removed) removed.forEach(n => n.remove());
+    node.scratch('_expanded', false);
+    node.scratch('_expandedNodes', null);
+  }
+
+  // Agent 노드 클릭 → reads 자식 펼치기/접기
+  cySwim.on('tap', 'node[kind="agent"]', (evt) => {
+    const node = evt.target;
+    const data = node.data();
+    if (!(data.reads || []).length) return;
+    if (node.scratch('_expanded')) {
+      collapseAgentNode(node);
+      expandedAgents.delete(data.id);
+    } else {
+      expandAgentNode(node);
+      expandedAgents.add(data.id);
+    }
+  });
+
+  // 새로 그릴 때 expandedAgents 에 있던 것들 자동 복원
+  // (위 ready 블록 다음에 별도 frame 으로 실행)
+  setTimeout(() => {
+    if (!cySwim) return;
+    cySwim.nodes('node[kind="agent"]').forEach(node => {
+      if (expandedAgents.has(node.data('id'))) {
+        expandAgentNode(node);
+      }
+    });
+  }, 200);
+}
+
+function renderCooc() {
+  const nodes = new Map();
+  for (const link of chainsData.co_occurrence) {
+    if (!nodes.has(link.a)) nodes.set(link.a, link.a_kind);
+    if (!nodes.has(link.b)) nodes.set(link.b, link.b_kind);
+  }
+  const elements = [];
+  for (const [name, kind] of nodes.entries()) {
+    elements.push({data:{id:name, label: kind==='md'?shortFile(name):name.slice(0,30), kind}});
+  }
+  for (const link of chainsData.co_occurrence) {
+    elements.push({data:{source:link.a, target:link.b, weight:link.count, label:String(link.count)}});
+  }
+
+  // 증분 업데이트 — destroy 안 함 (깜빡임 방지)
+  // 단 노드 집합이 바뀌면 cose 레이아웃 재실행 필요
+  if (cyCooc) {
+    const oldIds = new Set(cyCooc.nodes().map(n => n.id()));
+    const newIds = new Set(elements.filter(e => !e.data.source).map(e => e.data.id));
+    const sameNodes = oldIds.size === newIds.size && [...oldIds].every(id => newIds.has(id));
+    cyCooc.batch(() => {
+      cyCooc.elements().remove();
+      cyCooc.add(elements);
+    });
+    if (!sameNodes) {
+      // 노드가 바뀌면 layout 재실행 (위치 재계산)
+      cyCooc.layout({name:'cose', animate:false, idealEdgeLength:160, nodeRepulsion:18000, padding:60}).run();
+    }
+    return;
+  }
+
+  cyCooc = cytoscape({
+    container: document.getElementById('view-cooc'),
+    elements,
+    style: [
+      {selector:'node', style:{
+        'label':'data(label)','color':'#f0f6fc','font-size':12,
+        'background-color':'#30363d','width':70,'height':70,
+        'text-valign':'bottom','text-halign':'center','text-margin-y':6,
+        'font-weight':600,'border-color':'#484f58','border-width':2,
+      }},
+      {selector:'node[kind="md"]', style:{'background-color':'#56d364','color':'#0d1117'}},
+      {selector:'node[kind="tool"]', style:{
+        'shape':'hexagon','background-color':'#1f6feb','color':'#fff',
+        'border-color':'#79c0ff','border-width':2,
+        'text-outline-color':'#0d1117','text-outline-width':2,'font-weight':'bold',
+      }},
+      {selector:'edge', style:{
+        'width':'mapData(weight, 1, 10, 2, 10)','line-color':'#6e7681',
+        'curve-style':'bezier','label':'data(label)','font-size':11,
+        'color':'#c9d1d9','font-weight':600,
+        'text-background-color':'#0d1117','text-background-opacity':0.9,
+        'text-background-padding':3,
+      }},
+    ],
+    layout: {name:'cose', animate:false, idealEdgeLength:160, nodeRepulsion:18000, padding:60},
+    wheelSensitivity: 0.3, minZoom: 0.1, maxZoom: 5,
+    textureOnViewport: false,
+  });
+  cyCooc.ready(() => {
+    requestAnimationFrame(() => {cyCooc.resize(); cyCooc.fit(undefined, 30); updateZoomLevel();});
+  });
+  cyCooc.on('zoom', () => {
+    updateZoomLevel();
+    if (zoomSaveTimer) clearTimeout(zoomSaveTimer);
+    zoomSaveTimer = setTimeout(() => savePref('zoom.cooc', cyCooc.zoom().toFixed(3)), 300);
+  });
+}
+
+function renderSankey() {
+  const el = document.getElementById('view-sankey');
+  el.innerHTML = '';
+  const data = chainsData.sankey;
+  if (!data.nodes || !data.nodes.length) {
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:#8b949e;">데이터 없음</div>';
+    return;
+  }
+  const W = el.clientWidth, H = el.clientHeight;
+  const svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
+  const sankey = d3.sankey().nodeWidth(28).nodePadding(24).extent([[40,40],[W-280,H-60]]);
+  const graph = sankey({nodes: data.nodes.map(n=>({...n})), links: data.links.map(l=>({...l}))});
+  const COLOR = (name) => {
+    if (name.startsWith('cat:')) return CAT_COLOR[name.slice(4)] || '#6e7681';
+    if (name.startsWith('tool:')) return '#79c0ff';
+    if (name.startsWith('kw:')) return '#f0f6fc';
+    return '#8b949e';
+  };
+  svg.append('g').attr('fill','none').attr('stroke-opacity',0.4)
+    .selectAll('path').data(graph.links).enter().append('path')
+    .attr('d', d3.sankeyLinkHorizontal())
+    .attr('stroke', d=>COLOR(d.source.name))
+    .attr('stroke-width', d=>Math.max(1, d.width));
+  const node = svg.append('g').selectAll('g').data(graph.nodes).enter().append('g');
+  node.append('rect').attr('x',d=>d.x0).attr('y',d=>d.y0)
+    .attr('height',d=>d.y1-d.y0).attr('width',d=>d.x1-d.x0)
+    .attr('fill', d=>COLOR(d.name));
+  node.append('text')
+    .attr('x', d=>d.x0 < W/2 ? d.x1+8 : d.x0-8)
+    .attr('y', d=>(d.y0+d.y1)/2).attr('dy','0.35em')
+    .attr('text-anchor', d=>d.x0 < W/2 ? 'start' : 'end')
+    .attr('fill','#f0f6fc').attr('font-size',14).attr('font-weight',600)
+    .text(d=>d.name);
+}
+
+function getActiveCy(){return currentView==='swimlane'?cySwim:currentView==='cooc'?cyCooc:null;}
+function updateZoomLevel() {
+  const cy = getActiveCy();
+  const el = document.getElementById('zoom-level');
+  el.textContent = cy ? Math.round(cy.zoom()*100)+'%' : '—';
+}
+function updateStat() {
+  const turns = chainsData.turns.length;
+  const reads = chainsData.turns.reduce((s,t)=>s+t.reads.length,0);
+  const tools = chainsData.turns.reduce((s,t)=>s+t.tools.length,0);
+  document.getElementById('stat').textContent = `${turns} turns · ${reads} reads · ${tools} tools`;
+}
+
+function setView(view) {
+  currentView = view;
+  document.querySelectorAll('#toolbar .btn[data-view]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.view===view);
+  });
+  document.querySelectorAll('.view').forEach(el=>el.style.display='none');
+  if (view==='swimlane'){document.getElementById('view-swimlane').style.display='block'; renderSwimlane();}
+  else if (view==='cooc'){document.getElementById('view-cooc').style.display='block'; renderCooc();}
+  else if (view==='sankey'){document.getElementById('view-sankey').style.display='block'; renderSankey();}
+  setTimeout(updateZoomLevel, 200);
+}
+
+document.querySelectorAll('#toolbar .btn[data-view]').forEach(b=>{
+  b.addEventListener('click', ()=>setView(b.dataset.view));
+});
+function zoomBy(f){
+  const cy=getActiveCy(); if(!cy)return;
+  const cx=cy.width()/2, cy_y=cy.height()/2;
+  const z=Math.max(0.1,Math.min(5,cy.zoom()*f));
+  cy.zoom({level:z, renderedPosition:{x:cx,y:cy_y}});
+  updateZoomLevel();
+}
+document.getElementById('zoom-in').addEventListener('click', ()=>zoomBy(1.25));
+document.getElementById('zoom-out').addEventListener('click', ()=>zoomBy(0.8));
+document.getElementById('fit-btn').addEventListener('click', ()=>{
+  const cy=getActiveCy();
+  if(cy){cy.fit(undefined, 30); updateZoomLevel();}
+  else if(currentView==='sankey') renderSankey();
+});
+
+// 영속화 — localStorage 키 prefix
+const LS_PREFIX = 'chainGraph.';
+function savePref(k, v) { try { localStorage.setItem(LS_PREFIX + k, String(v)); } catch {} }
+function loadPref(k, fallback) { try { const v = localStorage.getItem(LS_PREFIX + k); return v === null ? fallback : v; } catch { return fallback; } }
+
+// 페이지 로드 시 저장된 설정 복원
+const CHECKBOX_IDS = ['md-only','hide-bash','hide-edit','hide-agent','agent-only','current-only'];
+CHECKBOX_IDS.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const saved = loadPref(id, null);
+  if (saved !== null) el.checked = (saved === 'true');
+});
+const SLIDER_IDS = ['turn-cap','sess-cap'];
+SLIDER_IDS.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const saved = loadPref(id, null);
+  if (saved !== null) el.value = saved;
+  const val = document.getElementById(id + '-val');
+  if (val) val.textContent = el.value;
+});
+
+// 필터 토글들 — change 시 저장 + 재렌더
+CHECKBOX_IDS.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('change', ()=>{
+    savePref(id, el.checked);
+    if (currentView === 'swimlane') renderSwimlane();
+  });
+});
+
+// 슬라이더 — 값 표시 + 저장 + 재렌더 (turn-cap 은 서버 재페치까지)
+let turnCapFetchTimer = null;
+SLIDER_IDS.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const val = document.getElementById(id + '-val');
+  el.addEventListener('input', ()=>{
+    val.textContent = el.value;
+  });
+  el.addEventListener('change', ()=>{
+    savePref(id, el.value);
+    if (id === 'turn-cap') {
+      // 서버 페치 한도 변경 → debounce 300ms 후 재페치
+      if (turnCapFetchTimer) clearTimeout(turnCapFetchTimer);
+      turnCapFetchTimer = setTimeout(()=>{
+        turnCapFetchTimer = null;
+        loadChains();
+      }, 300);
+    } else if (currentView === 'swimlane') {
+      renderSwimlane();
+    }
+  });
+});
+
+// 뷰 전환도 저장 + 복원
+const savedView = loadPref('view', null);
+if (savedView && ['swimlane','cooc','sankey'].includes(savedView)) {
+  currentView = savedView;
+}
+// 원래 setView 함수 후킹 — 저장 + 줌 레벨 복원
+const _origSetView = setView;
+setView = function(v) {
+  savePref('view', v);
+  const ret = _origSetView.apply(this, arguments);
+  // 저장된 줌 레벨 복원 (뷰별로 분리)
+  setTimeout(() => {
+    const cy = getActiveCy();
+    if (!cy) return;
+    const savedZoom = parseFloat(loadPref('zoom.' + v, ''));
+    if (Number.isFinite(savedZoom) && savedZoom >= 0.1 && savedZoom <= 5) {
+      const cx = cy.width()/2, cy_y = cy.height()/2;
+      cy.zoom({level: savedZoom, renderedPosition: {x: cx, y: cy_y}});
+      updateZoomLevel();
+    }
+  }, 250);
+  return ret;
+};
+
+// ResizeObserver: 창 크기 변경 / 풀스크린 / 탭 전환
+function debouncedResize() {
+  if (cySwim) {cySwim.resize(); if (currentView==='swimlane') cySwim.fit(undefined, 30);}
+  if (cyCooc) {cyCooc.resize(); if (currentView==='cooc') cyCooc.fit(undefined, 30);}
+  if (currentView==='sankey') renderSankey();
+  updateZoomLevel();
+}
+let rzTimer = null;
+window.addEventListener('resize', () => {
+  if (rzTimer) clearTimeout(rzTimer);
+  rzTimer = setTimeout(debouncedResize, 150);
+});
+
+let lastDataSig = '';
+function getFetchTurnLimit() {
+  const el = document.getElementById('turn-cap');
+  const v = parseInt(el?.value || '100', 10);
+  return Number.isFinite(v) && v > 0 ? v : 100;
+}
+function loadChains() {
+  const limit = getFetchTurnLimit();
+  fetch('/chains?turns=' + limit).then(r=>r.json()).then(d=>{
+    // 데이터 변경 감지 — 동일하면 재렌더 스킵 (깜빡임 방지)
+    const turns = d.turns || [];
+    const sig = limit + ':' + turns.length + ':' + turns.reduce((s,t)=>s+(t.reads?.length||0)+(t.tools?.length||0), 0)
+              + ':' + (d.co_occurrence?.length||0) + ':' + (d.sankey?.links?.length||0);
+    chainsData = d;
+    updateStat();
+    if (sig === lastDataSig) return;  // 변경 없음 → 재렌더 스킵
+    lastDataSig = sig;
+    setView(currentView);
+  }).catch(e=>console.error('chains', e));
+}
+
+loadChains();
+// SSE: 새 데이터 들어오면 1.5초 debounce 후 갱신
+const es = new EventSource('/stream-md');
+let refreshTimer = null;
+es.addEventListener('message', ()=>{
+  if (refreshTimer) return;
+  refreshTimer = setTimeout(()=>{refreshTimer=null; loadChains();}, 1500);
+});
+setInterval(loadChains, 30000);
+</script>
+</body>
+</html>

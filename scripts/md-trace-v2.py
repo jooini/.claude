@@ -65,6 +65,58 @@ REQUEST_RULES = [
     (r"^@dev\b|^백엔드|^프론트|^AI엔지니어|^테스터|^리뷰어|^큐에이|^디자이너|^피오|^데이터|^옵스", "agent_call", []),
     # 시각화/관측성 (이번 md-trace 자체)
     (r"시각화|대시보드|chart|sankey|heatmap|관측성", "visualization", []),
+
+    # ========== 사용자 발화 패턴 보강 (2026-05-10 추가, 40개) ==========
+    # A: 액션 키워드
+    (r"\bultrathink\b", "ultrathink", ["CLAUDE.md"]),
+    (r"^(ㅇㅇ|ㄱㄱ|ㅇ|ㄱ)+\s*(다\s*(진행|추가))?", "approve_short", ["CLAUDE.md"]),
+    (r"^(다\s*)?진행(해|ㄱ)|^바로\s*진행|^넘어가|^다음으로", "proceed", ["CLAUDE.md"]),
+    (r"^(걍\s*둬|냅두|니가\s*알아서|승인할|알아서\s*해)", "delegate_full", ["CLAUDE.md"]),
+    (r"yes\s*/\s*no|짧게\s*yes|예/아니오|한\s*줄\s*인용", "yes_no_request", []),
+    # B: 검증/정합성
+    (r"정합성|맞아\s*\?|맞지\s*\?|맞는지|체크해줘|검증해|검증하|확인해봐|확인하", "verify_request", ["CLAUDE.md"]),
+    (r"제대로\s*(호출|되|동작|읽|쓰)|정상적으로\s*(처리|호출|동작)", "verify_correct", ["CLAUDE.md"]),
+    (r"system\s*prompt|시스템\s*프롬프트|systemprompt", "system_prompt_check", ["CLAUDE.md"]),
+    (r"##\s*Knowledge\s*Reference|압축\s*\)|Company-?wide|사내\s*공통|\bADR-?\d+", "knowledge_ref_check", ["CLAUDE.md"]),
+    # C: 의문/계획
+    (r"뭐\s*해야|뭘\s*해야|뭐가\s*있|할\s*일|착수|뭐부터|어디부터|우선순위", "what_to_do", ["workflows/standard-routines.md"]),
+    (r"\d+\s*시간|\d+\s*분|밤샘|overnight|오늘\s*끝|내일\s*하", "time_budget", ["workflows/standard-routines.md"]),
+    (r"무슨\s*말|뭐가\s*뭔지|모르겠|이해\s*안|이해가\s*안", "confused_help", ["workflows/growth.md"]),
+    (r"개선해|개선할|더\s*없|더\s*있|추천|어떤게\s*베스트|어떻게\s*하면", "improvement_request", ["workflows/standard-routines.md"]),
+    # D: 부정/재시도/불만
+    (r"여전(히|한)|똑같이|아직도|다시\s*안", "still_broken", ["workflows/debugging.md"]),
+    (r"잘림|짤림|작은데|안\s*보이|안\s*나오|텍스트.*잘|확대|축소|글씨\s*안", "ui_render_issue", []),
+    (r"이상해|이상한데|뭔가\s*이상|이상\s*하지", "looks_off", ["workflows/debugging.md"]),
+    (r"아니\s|아닌데|봐바|봐도|이게\s*맞", "user_correction", ["CLAUDE.md"]),
+    # E: RAG/지식/도메인
+    (r"\bRAG\b|local-?rag|지식\s*도메인|지식도메인", "rag_domain", ["workflows/standard-routines.md"]),
+    (r"knowledge[_\s-]?graph|graphify|GRAPH_REPORT|인과\s*그래프", "graphify", ["CLAUDE.md"]),
+    (r"compaction|압축\s*\)|context\s*window|토큰\s*다", "context_compaction", ["CLAUDE.md"]),
+    # F: 관측성/md-trace/hook
+    (r"md-?trace|/md-trace", "md_trace", []),
+    (r"trace\b|/trace|훅\s*트레이스|훅\s*추적|훅이\s*왜|어떤\s*명령어", "hook_trace", ["workflows/automation.md"]),
+    (r"self.?model|자기.?모델|/self-model", "self_model", []),
+    # G: 세션/히스토리/핸드오프
+    (r"세션|/handoff|핸드오프|인계|히스토리|기억", "session_mgmt", ["CLAUDE.md"]),
+    (r"/retro|회고|돌아보", "retro", ["workflows/growth.md"]),
+    # H: 외부 시스템/인프라
+    (r"localhost|:\d{4,5}\b|favicon|file://|http://localhost", "local_url", []),
+    (r"\bIAM\b|arn:aws|aws\s*콘솔|policy\s*변경|AllowViewAccountInfo", "aws_iam", ["workflows/standard-routines.md"]),
+    (r"4090|3090|RTX|nvidia-smi|VRAM|cuda|GPU\s*\d", "gpu_hardware", ["workflows/llm-routing.md"]),
+    (r"OLLAMA_|leonard\.local|11434", "ollama_server", ["workflows/llm-routing.md"]),
+    (r"homebrew|brew\s+install|brew\s+update|brew\s+upgrade", "homebrew", []),
+    # I: 도구/스크립트
+    (r"export-?claude|export-claude-config|마이그레이션|\.zip\b|용량", "export_backup", []),
+    (r"backup|백업|영향\s*없게|천천히\s*진행", "safe_backup", []),
+    (r"\.sh\b|scripts?/|쉘\s*스크립트|bash\s*스크립트", "shell_script", []),
+    # J: 시각화 디테일
+    (r"plotly|sankey|heatmap|차트|타임라인|cytoscape|삼각형|글씨\s*보이|색상", "viz_detail", []),
+    (r"별도\s*탭|새\s*탭|패널\s*분리", "ui_layout", []),
+    # K: 기타
+    (r"\bMCP\b|mcp__|mcp\s*server", "mcp", []),
+    (r"^/[a-z][a-z-]+", "slash_command", []),
+    (r"스킬|/[a-z-]+\s*은\s*뭐|이게\s*뭐|이건\s*뭐", "what_is_this", []),
+    (r"플러그인|plugin\b", "plugin", []),
 ]
 
 # .md 카테고리 색상 (디자이너 추천 톤)

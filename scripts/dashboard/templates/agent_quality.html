@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎯 Agent Knowledge Quality</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #0d1117; color: #c9d1d9;
+               font-family: -apple-system, BlinkMacSystemFont, monospace; padding: 16px; }
+  h1 { font-size: 18px; margin-bottom: 12px; }
+  h1 a { color: #58a6ff; text-decoration: none; font-size: 12px; margin-left: 16px; font-weight: normal; }
+  h2 { font-size: 13px; margin: 12px 0 8px; color: #c9d1d9; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #21262d; }
+  th { background: #21262d; color: #c9d1d9; cursor: pointer; user-select: none; }
+  th:hover { background: #2d333b; }
+  tr:hover { background: #1c2128; }
+  td.score { font-weight: 600; text-align: right; }
+  td.score.hi { color: #56d364; }
+  td.score.mid { color: #d29922; }
+  td.score.lo { color: #f85149; }
+  .meter { display: inline-block; width: 80px; height: 8px; background: #21262d; border-radius: 4px; overflow: hidden; vertical-align: middle; margin-left: 4px; }
+  .meter-fill { height: 100%; background: linear-gradient(90deg, #f85149, #d29922, #56d364); }
+  canvas { max-height: 280px; }
+  .filter { padding: 5px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 11px; margin-bottom: 8px; width: 100%; }
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: #8b949e; }
+  .stat-row strong { color: #c9d1d9; }
+  details { margin-top: 4px; }
+  details summary { cursor: pointer; color: #58a6ff; font-size: 10px; }
+  pre { font-size: 10px; color: #8b949e; max-height: 200px; overflow: auto; padding: 6px; background: #0d1117; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>🎯 Agent Knowledge Quality
+  <a href="/" target="_blank">← 메인 ↗</a>
+  <a href="/graph" target="_blank">🧬 Chain Graph ↗</a>
+  <button onclick="rerun()" style="margin-left:16px; background:#238636; color:#fff; border:0; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px;">🔄 재분석 + 룰 학습</button>
+  <button onclick="runSla()" style="margin-left:6px; background:#1f6feb; color:#fff; border:0; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px;">📋 SLA 리포트</button>
+  <span id="action-msg" style="margin-left:12px; font-size:11px; color:#56d364;"></span>
+</h1>
+<dialog id="sla-dialog" style="background:#161b22; color:#c9d1d9; border:1px solid #30363d; border-radius:8px; padding:16px; max-width:80vw; max-height:80vh;">
+  <pre id="sla-content" style="font-size:11px; line-height:1.5; white-space:pre-wrap; max-height:70vh; overflow:auto;"></pre>
+  <button onclick="document.getElementById('sla-dialog').close()" style="margin-top:8px; background:#21262d; color:#c9d1d9; border:1px solid #30363d; padding:4px 10px; border-radius:4px; cursor:pointer;">닫기</button>
+</dialog>
+<script>
+async function rerun() {
+  document.getElementById('action-msg').textContent = '⏳ 분석 중 (~30초)...';
+  document.getElementById('action-msg').style.color = '#d29922';
+  try {
+    const r = await fetch('/agent-quality-rerun');
+    const d = await r.json();
+    document.getElementById('action-msg').textContent = '✅ ' + d.msg + ' — 페이지 새로고침';
+    document.getElementById('action-msg').style.color = '#56d364';
+    setTimeout(() => location.reload(), 1500);
+  } catch (e) {
+    document.getElementById('action-msg').textContent = '❌ ' + e.message;
+    document.getElementById('action-msg').style.color = '#f85149';
+  }
+}
+async function runSla() {
+  document.getElementById('action-msg').textContent = '⏳ SLA 체크 중...';
+  document.getElementById('action-msg').style.color = '#d29922';
+  try {
+    const r = await fetch('/agent-quality-sla');
+    const txt = await r.text();
+    document.getElementById('sla-content').textContent = txt;
+    document.getElementById('sla-dialog').showModal();
+    document.getElementById('action-msg').textContent = '✅ SLA 리포트 표시';
+    document.getElementById('action-msg').style.color = '#56d364';
+  } catch (e) {
+    document.getElementById('action-msg').textContent = '❌ ' + e.message;
+    document.getElementById('action-msg').style.color = '#f85149';
+  }
+}
+</script>
+
+<div class="stat-row" id="overall">로딩...</div>
+
+<div class="grid" style="margin-top:12px">
+  <div class="panel">
+    <h2>Agent Type 별 평균 점수</h2>
+    <canvas id="cv-by-type"></canvas>
+  </div>
+  <div class="panel">
+    <h2>의사결정 패턴 평균 (호출당)</h2>
+    <canvas id="cv-decision"></canvas>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <h2>점수 분포 (히스토그램)</h2>
+    <canvas id="cv-hist"></canvas>
+  </div>
+  <div class="panel">
+    <h2>도메인 적합도 vs 의사결정 깊이</h2>
+    <canvas id="cv-scatter"></canvas>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:12px">
+  <h2>📋 개선 권고 요약 (전체 호출 기준)</h2>
+  <div id="rec-summary" style="font-size: 11px; line-height: 1.8;">로딩...</div>
+  <details style="margin-top:8px;">
+    <summary style="cursor:pointer; color:#58a6ff; font-size:11px;">▶ 권고 종류별 의미와 액션 가이드</summary>
+    <div style="font-size: 11px; line-height: 1.7; padding: 8px; color: #c9d1d9;">
+      <p><strong>🔴 high priority (즉시 액션):</strong></p>
+      <ul style="margin-left: 20px;">
+        <li><strong>too_short</strong>: 출력 500자 미만 — agent 가 작업 거부했거나 결과 누락. <em>액션:</em> kickoff prompt 더 명확히 작성. "다음 5단계로 답해" 같은 구조 강제.</li>
+        <li><strong>domain_zero</strong>: 자기 knowledge 용어 0개 매칭 — 빌드 미반영 or knowledge 부적합. <em>액션:</em> <code>~/.claude/agents/build-agents.sh {agent}</code> 재빌드, 또는 knowledge .md 점검.</li>
+        <li><strong>wrong_agent</strong>: 다른 agent 가 더 적합. <em>액션:</em> 다음번엔 추천 agent 호출. 같은 패턴 반복되면 라우팅 룰 추가.</li>
+      </ul>
+      <p><strong>🟡 medium priority (개선 검토):</strong></p>
+      <ul style="margin-left: 20px;">
+        <li><strong>low_decision</strong>: 의사결정 패턴 거의 없음 (근거/대안/검증 합 &lt; 2). <em>액션:</em> agent system prompt 에 "결정 시 근거+대안 명시" 추가.</li>
+        <li><strong>no_reasoning</strong>: 근거/트레이드오프 0건. <em>액션:</em> "Why this choice over X?" 질문 강제.</li>
+        <li><strong>shallow_domain</strong>: 긴 출력인데 도메인 용어 1~2개만. <em>액션:</em> kickoff 에 자기 knowledge 도메인 명시 (예: "data-analyst knowledge 의 SQL 최적화 패턴 적용").</li>
+      </ul>
+      <p><strong>⚪ low priority (선택적):</strong></p>
+      <ul style="margin-left: 20px;">
+        <li><strong>no_structure</strong>: 헤더/리스트/표/코드 합 &lt; 3 — 산문형 출력. <em>액션:</em> 출력 템플릿 (## 분석, ## 권고, ## 검증) 적용.</li>
+      </ul>
+    </div>
+  </details>
+</div>
+
+<div class="panel" style="margin-top:12px">
+  <h2>전체 호출 (점수 낮은 순으로 정렬 — 개선 필요)</h2>
+  <input class="filter" id="search" placeholder="필터: agent type, kickoff, session...">
+  <div style="overflow:auto; max-height: 700px;">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th data-sort="first_ts_utc">시각</th>
+          <th data-sort="agent_type">agent</th>
+          <th data-sort="score" data-default-desc="1">점수</th>
+          <th data-sort="domain.unique_hits">매칭</th>
+          <th>추천 agent</th>
+          <th data-sort="text_len">길이</th>
+          <th>📋 개선 권고</th>
+          <th>👤 사용자 발화 (왜 호출됐나)</th>
+          <th>📝 Claude 의 kickoff (어떻게 시켰나)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let allData = [];
+let sortKey = 'score';
+let sortDesc = false;  // 점수 낮은 순부터 (개선 필요한 것 위)
+
+function getNested(obj, path) {
+  return path.split('.').reduce((o, k) => o && o[k] !== undefined ? o[k] : null, obj);
+}
+
+function fmtScore(s) {
+  const cls = s >= 50 ? 'hi' : s >= 30 ? 'mid' : 'lo';
+  const w = Math.min(100, Math.max(0, s));
+  return `<span class="score ${cls}">${s.toFixed(1)}</span>` +
+         `<span class="meter"><span class="meter-fill" style="width:${w}%; height:100%;"></span></span>`;
+}
+
+function fmtTs(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+  } catch { return ts.slice(5,16); }
+}
+
+function renderTable() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  let rows = allData.filter(r => {
+    if (!q) return true;
+    return (r.agent_type||'').toLowerCase().includes(q) ||
+           (r.kickoff_prompt||'').toLowerCase().includes(q) ||
+           (r.user_trigger||'').toLowerCase().includes(q) ||
+           (r.session_id||'').toLowerCase().includes(q);
+  });
+  rows.sort((a,b) => {
+    const va = getNested(a, sortKey);
+    const vb = getNested(b, sortKey);
+    if (typeof va === 'number') return sortDesc ? vb - va : va - vb;
+    const sa = String(va||''), sb = String(vb||'');
+    return sortDesc ? sb.localeCompare(sa) : sa.localeCompare(sb);
+  });
+  const tbody = document.querySelector('#tbl tbody');
+  const PRIO = {high:'#f85149', medium:'#d29922', low:'#8b949e'};
+  const PRIO_ICON = {high:'🔴', medium:'🟡', low:'⚪'};
+  tbody.innerHTML = rows.slice(0, 200).map(r => {
+    const score = r.score || 0;
+    const hits = (r.domain && r.domain.unique_hits) || 0;
+    const tcount = (r.domain && r.domain.term_count) || 0;
+    const hitsClass = hits >= 5 ? 'hi' : hits >= 2 ? 'mid' : 'lo';
+    const sugg = r.suggested_agent;
+    const crossTop = (r.cross_top || []).slice(0, 3)
+      .map(c => `${c.agent}(${c.hits})`).join(', ');
+    const suggHtml = sugg
+      ? `<span style="color:#fbbf24; font-weight:600;" title="${crossTop}">⚠️ ${sugg}</span>`
+      : `<span style="color:#8b949e; font-size:10px;" title="${crossTop}">${crossTop || '—'}</span>`;
+    const recs = r.recommendations || [];
+    const recHtml = recs.length
+      ? recs.map(rc => `<div style="margin:2px 0; padding:3px 6px; background:#0d1117; border-left:3px solid ${PRIO[rc.priority]}; border-radius:2px; font-size:10px;">${PRIO_ICON[rc.priority]} ${rc.msg}</div>`).join('')
+      : `<span style="color:#56d364; font-size:10px;">✅ 문제 없음</span>`;
+    const trigEsc = (r.user_trigger||'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+    const kickEsc = (r.kickoff_prompt||'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+    return `<tr>
+      <td>${fmtTs(r.first_ts_utc)}</td>
+      <td>${r.agent_type}</td>
+      <td>${fmtScore(score)}</td>
+      <td class="score ${hitsClass}">${hits}/${tcount}</td>
+      <td>${suggHtml}</td>
+      <td style="text-align:right">${r.text_len}</td>
+      <td style="max-width: 320px; line-height: 1.4;">${recHtml}</td>
+      <td style="white-space: pre-wrap; word-break: break-word; max-width: 360px; line-height: 1.5; color:#79c0ff; background:#0d1117; padding:6px; border-left:3px solid #1f6feb; font-size:11px;">${trigEsc || '<span style=\"color:#8b949e\">— 추적 못함 —</span>'}</td>
+      <td style="white-space: pre-wrap; word-break: break-word; max-width: 480px; line-height: 1.5; font-size:11px;">${kickEsc}</td>
+    </tr>`;
+  }).join('');
+  // 권고 종류별 집계
+  const recCounts = {};
+  const recByAgent = {};  // agent_type → recType → count
+  for (const r of allData) {
+    for (const rc of (r.recommendations || [])) {
+      recCounts[rc.type] = (recCounts[rc.type] || 0) + 1;
+      const at = r.agent_type;
+      recByAgent[at] = recByAgent[at] || {};
+      recByAgent[at][rc.type] = (recByAgent[at][rc.type] || 0) + 1;
+    }
+  }
+  const REC_LABELS = {
+    too_short: '🔴 너무 짧음 (작업 거부 의심)',
+    domain_zero: '🔴 도메인 용어 0매칭 (knowledge 미활용)',
+    wrong_agent: '🔴 다른 agent 가 더 적합',
+    low_decision: '🟡 의사결정 패턴 부족',
+    no_reasoning: '🟡 근거/트레이드오프 없음',
+    shallow_domain: '🟡 긴 출력 대비 도메인 얕음',
+    no_structure: '⚪ 구조화 부족',
+  };
+  const recRows = Object.entries(recCounts).sort((a,b) => b[1]-a[1]);
+  const summaryHtml = recRows.length
+    ? recRows.map(([type, cnt]) => {
+        const label = REC_LABELS[type] || type;
+        // top 3 agent for this rec
+        const topAg = Object.entries(recByAgent)
+          .filter(([_, m]) => m[type])
+          .sort((a,b) => (b[1][type]||0) - (a[1][type]||0))
+          .slice(0, 3)
+          .map(([at, m]) => `${at}(${m[type]})`).join(', ');
+        return `<div style="margin: 4px 0;"><strong>${label}</strong>: ${cnt}건 — 주범: <span style="color:#fbbf24">${topAg}</span></div>`;
+      }).join('')
+    : '<span style="color:#56d364">✅ 권고 사항 없음 — 모두 정상</span>';
+  document.getElementById('rec-summary').innerHTML = summaryHtml;
+
+  const mismatch = allData.filter(r=>r.suggested_agent).length;
+  document.getElementById('overall').innerHTML =
+    `<span><strong>총 호출</strong>: ${allData.length}</span>` +
+    `<span><strong>필터</strong>: ${rows.length}</span>` +
+    `<span><strong>평균</strong>: ${(allData.reduce((s,r)=>s+(r.score||0),0)/Math.max(1,allData.length)).toFixed(1)}</span>` +
+    `<span><strong>50+</strong>: ${allData.filter(r=>r.score>=50).length} (${(allData.filter(r=>r.score>=50).length/Math.max(1,allData.length)*100).toFixed(1)}%)</span>` +
+    `<span><strong>30 미만</strong>: ${allData.filter(r=>r.score<30).length}</span>` +
+    `<span style="color:#fbbf24;"><strong>⚠️ 미스매치 추정</strong>: ${mismatch}</span>`;
+}
+
+function renderCharts() {
+  // 1) Agent Type 별 평균
+  const byType = {};
+  for (const r of allData) {
+    const t = r.agent_type;
+    if (!byType[t]) byType[t] = { total:0, count:0, domain:0, decision:0 };
+    byType[t].total += r.score || 0;
+    byType[t].count++;
+    byType[t].domain += (r.domain && r.domain.ratio) || 0;
+    byType[t].decision += Object.values(r.decision || {}).reduce((a,b)=>a+b, 0);
+  }
+  const typeRows = Object.entries(byType)
+    .filter(([_, v]) => v.count >= 2)
+    .map(([t, v]) => ({
+      type: t, count: v.count,
+      avg: v.total / v.count,
+      avgDomain: v.domain / v.count,
+      avgDecision: v.decision / v.count,
+    }))
+    .sort((a,b) => b.avg - a.avg);
+
+  new Chart(document.getElementById('cv-by-type'), {
+    type: 'bar',
+    data: {
+      labels: typeRows.map(r => `${r.type} (${r.count})`),
+      datasets: [{
+        label: '평균 점수',
+        data: typeRows.map(r => r.avg),
+        backgroundColor: typeRows.map(r => r.avg >= 50 ? '#56d364' : r.avg >= 30 ? '#d29922' : '#f85149'),
+      }],
+    },
+    options: {
+      indexAxis: 'y', maintainAspectRatio: false,
+      scales: { x: { beginAtZero: true, max: 100, ticks: { color: '#8b949e' } }, y: { ticks: { color: '#c9d1d9' } } },
+      plugins: { legend: { display: false } },
+    },
+  });
+
+  // 2) 의사결정 패턴 — 평균
+  const decTotals = { 근거:0, 제약:0, 트레이드오프:0, 대안:0, 검증:0 };
+  for (const r of allData) {
+    for (const k of Object.keys(decTotals)) {
+      decTotals[k] += (r.decision && r.decision[k]) || 0;
+    }
+  }
+  const decAvg = Object.fromEntries(Object.entries(decTotals).map(([k,v]) => [k, v/Math.max(1,allData.length)]));
+  new Chart(document.getElementById('cv-decision'), {
+    type: 'radar',
+    data: {
+      labels: Object.keys(decAvg),
+      datasets: [{
+        label: '평균 등장 횟수',
+        data: Object.values(decAvg),
+        backgroundColor: 'rgba(88,166,255,0.2)',
+        borderColor: '#58a6ff', borderWidth: 2,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: { r: { beginAtZero: true, ticks: { color: '#8b949e', backdropColor: 'transparent' }, grid: { color: '#30363d' } } },
+      plugins: { legend: { labels: { color: '#c9d1d9' } } },
+    },
+  });
+
+  // 3) 점수 히스토그램
+  const bins = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  const hist = new Array(bins.length-1).fill(0);
+  for (const r of allData) {
+    const s = r.score || 0;
+    for (let i = 0; i < bins.length-1; i++) {
+      if (s >= bins[i] && s < bins[i+1]) { hist[i]++; break; }
+    }
+  }
+  new Chart(document.getElementById('cv-hist'), {
+    type: 'bar',
+    data: {
+      labels: bins.slice(0,-1).map((b,i) => `${b}-${bins[i+1]}`),
+      datasets: [{
+        label: 'count',
+        data: hist,
+        backgroundColor: bins.slice(0,-1).map(b => b >= 50 ? '#56d364' : b >= 30 ? '#d29922' : '#f85149'),
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: { x: { ticks: { color: '#8b949e' } }, y: { ticks: { color: '#8b949e' }, beginAtZero: true } },
+      plugins: { legend: { display: false } },
+    },
+  });
+
+  // 4) Scatter: 도메인 적합도 vs 의사결정
+  new Chart(document.getElementById('cv-scatter'), {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'agent calls',
+        data: allData.map(r => ({
+          x: ((r.domain && r.domain.ratio) || 0) * 100,
+          y: Object.values(r.decision || {}).reduce((a,b)=>a+b, 0),
+        })),
+        backgroundColor: 'rgba(88,166,255,0.4)',
+        borderColor: '#58a6ff',
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: {
+        x: { title: { display:true, text:'도메인 적합도 (%)', color:'#8b949e' }, ticks: {color:'#8b949e'} },
+        y: { title: { display:true, text:'의사결정 패턴 합', color:'#8b949e' }, ticks:{color:'#8b949e'}, beginAtZero: true },
+      },
+      plugins: { legend: { labels: { color: '#c9d1d9' } } },
+    },
+  });
+}
+
+document.querySelectorAll('#tbl th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (sortKey === k) sortDesc = !sortDesc;
+    else { sortKey = k; sortDesc = th.dataset.defaultDesc === '1'; }
+    renderTable();
+  });
+});
+document.getElementById('search').addEventListener('input', renderTable);
+
+fetch('/agent-quality-data')
+  .then(r => r.json())
+  .then(d => {
+    allData = d;
+    renderCharts();
+    renderTable();
+  })
+  .catch(e => {
+    document.getElementById('overall').textContent = '데이터 로드 실패: ' + e.message;
+  });
+</script>
+</body>
+</html>
