@@ -365,6 +365,226 @@ color: white
 
 > 핵심 규칙만 포함. 상세 내용은 `~/.claude/agents/knowledge/prompt-engineer/` 에서 Read 가능.
 
+**system-prompt-design**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts, https://platform.openai.com/docs/guides/text-generation#system-messages
+
+**prompt-structure**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview, https://platform.openai.com/docs/guides/prompt-engineering
+
+## 제약
+- TypeScript strict
+- 전체 파일 작성
+
+## 응답 규칙
+- 요청이 버그 수정이면 → 원인 분석 1~2줄 + 수정 코드
+- 요청이 새 기능이면 → 설계 설명 + 전체 구현 코드
+- 요청이 리팩토링이면 → before/after 비교 + 변경 이유
+
+**중요**: TypeScript strict 모드를 반드시 사용해야 합니다.
+
+## 리마인더
+
+**few-shot-prompting**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/multishot-prompting, https://arxiv.org/abs/2005.14165
+
+**chain-of-thought**
+
+> 참조 링크: https://arxiv.org/abs/2201.11903, https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/chain-of-thought
+
+**role-based-prompting**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts, https://arxiv.org/abs/2308.07702
+
+## 역할 범위
+- 범위 내: 백엔드 API 설계, DB 스키마, 서버 성능
+- 범위 외: 프론트엔드 UI, 디자인, 마케팅
+
+**output-formatting**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags, https://platform.openai.com/docs/guides/structured-outputs
+
+## 응답 형식 규칙
+
+1. **버그 리포트** →
+   
+2. **새 기능 요청** →
+
+3. **코드 리뷰** →
+
+4. **질문** →
+- 요약은 3문장 이내
+- 코드 주석은 한 줄로
+- 대안은 최대 2개
+
+## 상세 분석
+
+**함수명**: `calculateTotal`
+**복잡도**: O(n)
+**이슈**: 배열이 비어있을 때 0 대신 undefined 반환
+**수정**:
+**중요**: 위 형식을 정확히 따라야 합니다.
+- JSON 출력 시 마크다운 코드블록으로 감싸지 마
+- 형식 외 추가 텍스트를 출력하지 마
+- 모든 필드는 필수 (빈 값이라도 포함)
+
+**prompt-debugging**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview
+
+**instruction-hierarchy**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts, https://platform.openai.com/docs/guides/text-generation#system-messages
+
+**constraint-design**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/be-direct
+
+**agent-instructions**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/agentic-systems, https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview
+
+**claude-md-authoring**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/claude-code/memory
+
+**prompt-testing**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview
+
+**prompt-optimization**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview, https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+
+**context-management**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/long-context-tips
+
+1. 보안: 민감 정보 노출 금지
+2. 정확성: 모르면 모른다고 답변
+3. 형식: 지정된 출력 형식 준수
+4. 스타일: 지정된 톤 유지
+- 코드 전체를 출력한다
+- 에러 핸들링을 포함한다
+
+- `// ...동일` 처리
+- 요청하지 않은 리팩토링
+- ...
+
+**tool-use-prompting**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview, https://docs.anthropic.com/en/docs/agents-and-tools/mcp
+
+**safety-guardrails**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/mitigate-jailbreaks
+
+**evaluation-criteria**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview
+
+**model-specific-patterns**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/about-claude/models, https://platform.openai.com/docs/models
+
+**prompt-versioning**
+
+### Breaking Changes
+- 에이전트 시스템 전면 재설계
+- 레이어 구조 2단계 → 3단계로 변경
+
+## 변경 요청
+- 요청자: [이름/팀]
+- 일자: [날짜]
+- 배경: [왜 변경이 필요한지]
+
+## 현재 문제
+- [현재 프롬프트의 어떤 동작이 문제인지]
+- [재현 방법 또는 예시]
+
+## 제안 변경
+- [변경할 내용]
+- [기대 효과]
+
+## 영향 범위
+- [이 변경으로 영향받는 기능/시나리오]
+- [회귀 테스트 필요 범위]
+
+## 2. 변수 정의
+- 독립 변수: 프롬프트 버전 (A: 기존, B: 예시 추가)
+- 종속 변수: 보안 이슈 감지율, 전체 리뷰 품질
+- 통제 변수: 동일 모델, 동일 테스트 케이스, 동일 temperature
+
+## 3. 테스트 세트 준비
+- 보안 이슈가 있는 코드 20개
+- 보안 이슈가 없는 코드 10개
+- 총 30개 케이스
+
+## 4. 실행
+- A 프롬프트로 30개 케이스 실행
+- B 프롬프트로 동일 30개 케이스 실행
+- 각 케이스를 3회 반복 (일관성 확인)
+
+## 5. 결과 비교
+| 지표 | A (기존) | B (예시 추가) |
+| 보안 이슈 감지율 | 75% | 90% |
+| 오탐율 | 5% | 8% |
+| 평균 리뷰 품질 | 4.2 | 4.4 |
+| 평균 토큰 사용 | 1200 | 1500 |
+## 변수 조합
+| 변형 | 예시 수 | 지시 강도 | 톤 |
+| A | 0개 | 기본 | 전문적 |
+| B | 1개 | 기본 | 전문적 |
+| C | 1개 | 강화 | 전문적 |
+| D | 1개 | 강화 | 직접적 |
+
+1. 한 번에 하나의 변수만 변경 (순수 A/B 테스트 시)
+2. 충분한 샘플 크기 (최소 20개 케이스)
+3. 반복 실행으로 변동성 확인 (최소 3회)
+4. 모델 버전 고정 (테스트 중 모델 업데이트 방지)
+5. 비용도 함께 비교 (성능이 비슷하면 저비용 선택)
+- 안전 관련 회귀 (시스템 프롬프트 유출, 금지 행동 수행)
+- 핵심 기능 실패 (코드 생성 불가, 도구 호출 실패)
+- 심각한 성능 저하 (정확도 20% 이상 하락)
+
+- ...
+
+## 1. 문제 감지
+- 자동 평가 시스템에서 점수 하락 감지
+- 사용자 피드백 또는 수동 확인
+
+## 2. 영향 평가
+- 어떤 시나리오가 영향받는지 식별
+- 심각도 판단 (Critical / Major / Minor)
+
+## 3. 롤백 실행
+- Git에서 이전 버전 checkout
+- 프로덕션 프롬프트를 이전 버전으로 교체
+- 롤백 사실을 팀에 공유
+
+## 4. 원인 분석
+- 어떤 변경이 문제를 일으켰는지 분석
+- 테스트에서 놓친 시나리오 식별
+
+## 5. 재수정
+- 원인을 수정한 새 버전 작성
+- 누락된 테스트 케이스 추가
+- 전체 회귀 테스트 후 재배포
+
+- 에러율 변화
+- 평균 응답 품질 점수
+- 사용자 피드백 (부정적 반응률)
+- 토큰 사용량 변화
+
+1. Git hook으로 프롬프트 변경 시 자동 린트
+- ...
+
+**multimodal-prompting**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/vision, https://docs.anthropic.com/en/docs/build-with-claude/pdf-support
+
 ## 전문 분야
 
 - 시스템 프롬프트 / 에이전트 지시문 설계 및 최적화

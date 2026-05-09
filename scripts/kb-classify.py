@@ -28,6 +28,24 @@ PATTERNS = {
         "regex": re.compile(r"\b(weaversbrain|speakingmax|maxai|speakingmaxapp|terracore|stt-insight|speech-hub|speech-quality|identity-hub|identity-nginx)\b", re.I),
         "score": 3,
     },
+    # role의 도메인 키워드 — Claude가 알더라도 팀 SOP로 가치 있음
+    "role_domain": {
+        "regex": re.compile(r"(?i)\b(RAG|embedding|vector\s*store|chunking|fine[- ]tun|prompt\s*engineering|"
+                            r"code\s*review|review\s*process|bug\s*detection|"
+                            r"test\s*strategy|test\s*plan|unit\s*test|e2e\s*test|"
+                            r"design\s*system|design\s*principle|wireframe|"
+                            r"state\s*management|component\s*pattern|"
+                            r"window\s*function|query\s*optim|ETL|data\s*model|"
+                            r"PRD|product\s*strategy|product\s*vision|"
+                            r"system\s*prompt|chain[- ]of[- ]thought|"
+                            r"client\s*onboard|escalation|SLA)\b"),
+        "score": 1,
+    },
+    # 번호 매겨진 시리즈 = 큐레이션된 SOP 가이드
+    "numbered_sop": {
+        "regex": re.compile(r"^\d{2}-[a-z]"),  # 파일명 패턴은 별도 처리
+        "score": 0,  # 아래 classify에서 별도 처리
+    },
     "internal_system": {
         "regex": re.compile(r"\b(Identity Hub|B2C\b|B2B\b|identity-nginx|Keycloak.*?(?:exact=True|getUserByUsername)|셀바스|Selvas|클로바노트)\b"),
         "score": 2,
@@ -64,6 +82,8 @@ def classify(path: Path) -> dict:
     hits = {}
     score = 0
     for name, p in PATTERNS.items():
+        if name == "numbered_sop":
+            continue  # 파일명 기반, 아래 별도 처리
         matches = p["regex"].findall(text)
         if matches:
             count = len(matches)
@@ -71,12 +91,36 @@ def classify(path: Path) -> dict:
             hits[name] = {"count": count, "score": sc, "samples": list(set(str(m) for m in matches[:3]))}
             score += sc
 
+    # 파일명 기반 보너스
+    # 1) 번호 매겨진 SOP (NN-name.md)
+    if re.match(r"^\d{2}-[a-z]", path.name):
+        sc = 2
+        hits["numbered_sop"] = {"count": 1, "score": sc, "samples": [path.name]}
+        score += sc
+    # 2) role 디렉토리 안에 있으면 = 그 role의 도메인 가이드
+    try:
+        rel = path.relative_to(KB_ROOT)
+    except ValueError:
+        rel = path
+    parts = rel.parts
+    role_dirs = {
+        "ai-engineer", "backend-developer", "code-reviewer", "code-tester",
+        "data-analyst", "designer", "frontend-developer", "ops-lead",
+        "po", "prompt-engineer", "qa", "debug-master", "dev-lead",
+    }
+    if parts and parts[0] in role_dirs:
+        sc = 1
+        hits["role_dir"] = {"count": 1, "score": sc, "samples": [parts[0]]}
+        score += sc
+
     if score >= 7:
         tier = "⭐⭐⭐ 사내 고유"
-    elif score >= 3:
-        tier = "⭐⭐ 부분"
+    elif score >= 4:
+        tier = "⭐⭐ 부분/도메인 가이드"
+    elif score >= 2:
+        tier = "⭐ 일반 가이드 (보존 가치 있음)"
     else:
-        tier = "⭐ 일반"
+        tier = "⚪ 노이즈"
 
     return {
         "path": str(path.relative_to(KB_ROOT)),
@@ -92,10 +136,14 @@ def main():
     for p in KB_ROOT.rglob("*.md"):
         if p.name.startswith("knowledge-catalog") or p.name == "MAINTENANCE.md":
             continue
-        # archive/templates 제외 (활성 knowledge만 측정)
+        # templates만 제외 (archive는 재분류 대상에 포함)
         rel = str(p.relative_to(KB_ROOT))
-        if rel.startswith("_archive/") or rel.startswith("_templates/"):
+        if rel.startswith("_templates/"):
             continue
+        # archive 파일은 archive/ 접두어 제거하고 원래 경로로 분류
+        if rel.startswith("_archive/"):
+            # 점수만 계산 (실제 위치는 archive)
+            pass
         files.append(p)
     files.sort()
 

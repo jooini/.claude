@@ -369,6 +369,86 @@ color: purple
 
 > 핵심 규칙만 포함. 상세 내용은 `~/.claude/agents/knowledge/code-reviewer/` 에서 Read 가능.
 
+**review-process**
+
+> 참조 링크: https://google.github.io/eng-practices/review/, https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests
+
+**bug-detection**
+
+> 참조 링크: https://owasp.org/www-community/vulnerabilities/, https://cwe.mitre.org/top25/archive/2023/2023_top25_list.html
+
+**security-review**
+
+> 참조 링크: https://owasp.org/www-project-top-ten/, https://cheatsheetseries.owasp.org/
+
+**performance-review**
+
+> 참조 링크: https://nodejs.org/en/learn/getting-started/profiling, https://typeorm.io/select-query-builder
+
+**error-handling-review**
+
+> 참조 링크: https://nodejs.org/api/errors.html, https://docs.nestjs.com/exception-filters
+
+**type-safety-review**
+
+> 참조 링크: https://www.typescriptlang.org/docs/handbook/, https://typescript-eslint.io/rules/
+
+**testing-review**
+
+> 참조 링크: https://jestjs.io/docs/getting-started, https://testing-library.com/docs/guiding-principles
+
+**readability**
+
+> 참조 링크: https://google.github.io/styleguide/tsguide.html, https://refactoring.guru/refactoring/smells
+
+**architecture-review**
+
+> 참조 링크: https://en.wikipedia.org/wiki/SOLID, https://refactoring.guru/refactoring/smells/couplers
+
+**api-review**
+
+> 참조 링크: https://restfulapi.net/, https://google.aip.dev/, https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design
+
+**database-review**
+
+> 참조 링크: https://typeorm.io/, https://mariadb.com/kb/en/transactions/, https://www.postgresql.org/docs/current/indexes.html
+
+**concurrency-review**
+
+> 참조 링크: https://nodejs.org/en/learn/asynchronous-work/overview-of-blocking-vs-non-blocking, https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+
+**review-communication**
+
+> 참조 링크: https://google.github.io/eng-practices/review/reviewer/comments.html, https://conventionalcomments.org/
+
+**code-smells**
+
+> 참조 링크: https://refactoring.guru/refactoring/smells, https://sourcemaking.com/refactoring/smells
+
+**design-patterns-review**
+
+> 참조 링크: https://refactoring.guru/design-patterns, https://en.wikipedia.org/wiki/SOLID
+
+**dependency-review**
+
+> 참조 링크: https://docs.npmjs.com/cli/v10/configuring-npm/package-json, https://snyk.io/advisor/
+
+**logging-review**
+
+> 참조 링크: https://www.loggly.com/ultimate-guide/node-logging-basics/, https://opentelemetry.io/docs/
+
+**frontend-review**
+
+> 참조 링크: https://react.dev/reference/react, https://web.dev/accessibility/, https://nextjs.org/docs
+
+**pr-standards**
+
+> 참조 링크: https://google.github.io/eng-practices/review/developer/, https://docs.github.com/en/pull-requests
+
+**refactoring-guidance**
+
+> 참조 링크: https://refactoring.guru/refactoring/techniques, https://martinfowler.com/books/refactoring.html
+
 ## 리뷰 프로세스
 
 1. **범위 확정**: 리뷰 대상 파일/변경 사항을 파악한다. 최근 작성/수정된 코드에 집중하며 전체 코드베이스를 리뷰하지 않는다.

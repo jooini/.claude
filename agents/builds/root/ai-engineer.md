@@ -366,6 +366,100 @@ color: green
 
 > 핵심 규칙만 포함. 상세 내용은 `~/.claude/agents/knowledge/ai-engineer/` 에서 Read 가능.
 
+**embedding-models**
+
+> 참조 링크: https://platform.openai.com/docs/guides/embeddings, https://docs.voyageai.com/docs/embeddings, https://huggingface.co/MTEB
+
+**chunking-strategies**
+
+> 참조 링크: https://docs.llamaindex.ai/en/stable/module_guides/loading/node_parsers/, https://python.langchain.com/docs/concepts/text_splitters/
+
+**vector-databases**
+
+> 참조 링크: https://www.pinecone.io/docs/, https://qdrant.tech/documentation/, https://github.com/pgvector/pgvector
+
+**rag-architecture**
+
+> 참조 링크: https://arxiv.org/abs/2312.10997, https://docs.llamaindex.ai/en/stable/
+
+**rag-retrieval**
+
+> 참조 링크: https://docs.pinecone.io/guides/data/understanding-hybrid-search, https://arxiv.org/abs/2212.10496
+
+**rag-generation**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/citations, https://arxiv.org/abs/2305.14627
+
+**llm-integration**
+
+> 참조 링크: https://platform.openai.com/docs/api-reference, https://docs.anthropic.com/en/api, https://ai.google.dev/api
+
+**prompt-engineering**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering, https://platform.openai.com/docs/guides/prompt-engineering
+
+**recommendation-systems**
+
+> 참조 링크: https://developers.google.com/machine-learning/recommendation, https://arxiv.org/abs/2209.01860
+
+**data-preprocessing**
+
+> 참조 링크: https://python.langchain.com/docs/concepts/text_splitters/, https://unstructured.io/docs
+
+**evaluation-metrics**
+
+> 참조 링크: https://docs.ragas.io/en/latest/concepts/metrics/, https://docs.llamaindex.ai/en/stable/module_guides/evaluating/
+
+**batch-processing**
+
+> 참조 링크: https://platform.openai.com/docs/guides/batch, https://docs.pinecone.io/guides/data/upsert-data#upsert-records-in-batches
+
+**caching-optimization**
+
+> 참조 링크: https://platform.openai.com/docs/guides/prompt-caching, https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+
+**cost-management**
+
+> 참조 링크: https://openai.com/pricing, https://www.anthropic.com/pricing, https://docs.voyageai.com/docs/pricing
+
+**agent-frameworks**
+
+> 참조 링크: https://js.langchain.com/docs/, https://docs.llamaindex.ai/, https://sdk.vercel.ai/docs
+
+**function-calling**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/tool-use, https://platform.openai.com/docs/guides/function-calling
+
+**streaming-patterns**
+
+> 참조 링크: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events, https://sdk.vercel.ai/docs/ai-sdk-ui/streaming
+
+**multimodal**
+
+> 참조 링크: https://docs.anthropic.com/en/docs/build-with-claude/vision, https://platform.openai.com/docs/guides/vision
+
+**fine-tuning**
+
+> 참조 링크: https://platform.openai.com/docs/guides/fine-tuning, https://huggingface.co/docs/peft
+
+**observability**
+
+> 참조 링크: https://langfuse.com/docs, https://docs.smith.langchain.com/
+
+**security-privacy**
+
+> 참조 링크: https://owasp.org/www-project-top-10-for-large-language-model-applications/, https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+
+**testing-ai**
+
+> 참조 링크: https://docs.ragas.io/, https://docs.confident-ai.com/
+
+**deployment**
+
+> 참조 링크: https://docs.vllm.ai/, https://docs.aws.amazon.com/sagemaker/
+
+**debugging**
+
 ### 크로스 도메인 Knowledge
 
 인프라 연동 시 다른 에이전트 knowledge 참조 가능:

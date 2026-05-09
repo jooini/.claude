@@ -361,6 +361,129 @@ color: cyan
 
 > 핵심 규칙만 포함. 상세 내용은 `~/.claude/agents/knowledge/code-tester/` 에서 Read 가능.
 
+**project-detection**
+
+> 참조 링크: https://docs.npmjs.com/cli/v10/configuring-npm/package-json, https://python-poetry.org/docs/pyproject/, https://go.dev/doc/modules/gomod-ref
+
+**lint-tools**
+
+> 참조 링크: https://eslint.org/docs/latest/, https://docs.astral.sh/ruff/, https://biomejs.dev/guides/getting-started/
+
+**type-checking**
+
+> 참조 링크: https://www.typescriptlang.org/docs/handbook/compiler-options.html, https://mypy.readthedocs.io/en/stable/
+
+**build-verification**
+
+> 참조 링크: https://nextjs.org/docs/app/api-reference/cli/next#build, https://vitejs.dev/guide/build.html
+
+**test-runners**
+
+> 참조 링크: https://jestjs.io/docs/configuration, https://vitest.dev/config/, https://docs.pytest.org/en/stable/reference/reference.html
+
+**auto-fix-patterns**
+
+**error-diagnosis**
+
+**preexisting-errors**
+
+**package-managers**
+
+> 참조 링크: https://docs.npmjs.com/cli/v10, https://pnpm.io/cli/install, https://yarnpkg.com/cli, https://bun.sh/docs/cli/install
+
+**ci-integration**
+
+> 참조 링크: https://docs.github.com/en/actions, https://docs.gitlab.com/ee/ci/
+
+**coverage-analysis**
+
+> 참조 링크: https://istanbul.js.org/, https://vitest.dev/guide/coverage.html, https://coverage.readthedocs.io/
+
+**flaky-test-detection**
+
+**monorepo-testing**
+
+> 참조 링크: https://turbo.build/repo/docs, https://nx.dev/concepts/affected
+
+**docker-testing**
+
+> 참조 링크: https://docs.docker.com/compose/, https://node.testcontainers.org/
+
+**nestjs-testing**
+
+> 참조 링크: https://docs.nestjs.com/fundamentals/testing
+
+**nextjs-testing**
+
+> 참조 링크: https://nextjs.org/docs/app/building-your-application/testing
+
+**python-testing**
+
+> 참조 링크: https://docs.pytest.org/en/stable/, https://docs.python.org/3/library/unittest.mock.html
+
+**test-report-format**
+
+### 타입 체크 (tsc --noEmit)
+1. `src/user.service.ts:45` — TS2322: Type 'string' is not assignable to type 'number'
+
+2. `src/user.dto.ts:12` — TS2345: Argument of type 'X' is not assignable
+
+- `src/legacy.ts:89` — TS7006: Parameter implicitly has 'any' type
+
+### 테스트 (jest)
+1. `tests/user.spec.ts` > UserService > should create user
+
+- 142 passed, 1 failed, 0 skipped
+- 커버리지: 85.2% (변경 파일: 92.0%)
+### 린트 (ESLint)
+- 실행 명령: `npx eslint src/ --format json`
+- 검사 파일: 15개
+- 규칙 위반: 5건 (새: 2, 기존: 3)
+
+| 심각도 | 파일 | 라인 | 규칙 | 메시지 | 신규 |
+| 🔴 | user.service.ts | 23 | no-floating-promises | Promise returned but not awaited | 🆕 |
+| 🟡 | user.controller.ts | 45 | no-explicit-any | Unexpected any | 🆕 |
+| ⚪ | legacy.ts | 12 | no-console | Unexpected console statement | 기존 |
+### 타입 체크 (tsc)
+- 실행 명령: `npx tsc --noEmit`
+- 에러: 3건 (새: 2, 기존: 1)
+
+| 코드 | 파일 | 라인 | 메시지 | 신규 |
+| TS2322 | user.service.ts | 45 | Type 'string' not assignable to 'number' | 🆕 |
+| TS2345 | user.dto.ts | 12 | Argument type mismatch | 🆕 |
+| TS7006 | legacy.ts | 89 | Implicit 'any' | 기존 |
+### 테스트 (Jest)
+- 실행 명령: `npx jest --coverage`
+- 결과: 141 passed / 1 failed / 2 skipped
+- 실행 시간: 12.3s
+- 커버리지: Lines 85.2% | Branches 78.1% | Functions 90.0%
+
+1. **UserService > should create user** 🆕
+
+| 파일 | 이전 | 현재 | 변화 |
+| user.service.ts | 82% | 92% | +10% ✅ |
+| user.controller.ts | 75% | 70% | -5% ⚠️ |
+### 빌드 (next build)
+- 실행 명령: `npx next build`
+- 결과: ✅ 성공
+- 빌드 시간: 45.2s
+- 페이지: 12 static / 5 dynamic
+
+| 페이지 | 이전 | 현재 | 변화 |
+| /users | 85kB | 87kB | +2kB |
+| /api/users | 0B | 0B | - |
+## 자동 수정 가능 항목
+
+| # | 파일 | 이슈 | 자동 수정 명령 |
+| 1 | user.controller.ts:3 | 미사용 import | `eslint --fix` |
+| 2 | user.service.ts:10 | import 순서 | `eslint --fix` |
+
+**snapshot-testing**
+
+> 참조 링크: https://jestjs.io/docs/snapshot-testing, https://vitest.dev/guide/snapshot.html
+
+**performance-benchmarks**
+
 ## 1단계: 프로젝트 감지 (반드시 선행)
 
 작업 디렉토리의 설정 파일을 읽어 기술 스택과 도구를 파악한다:
