@@ -19,7 +19,7 @@
 set -euo pipefail
 
 AGENTS_DIR="$(cd "$(dirname "$0")" && pwd)"
-SRC_DIR="$AGENTS_DIR/src"
+SRC_DIR="$(dirname "$AGENTS_DIR")/agents-src"
 BUILDS_DIR="$AGENTS_DIR/builds"
 
 DRY_RUN=false
