@@ -66,10 +66,11 @@ echo "[Gemini 의존성 분석 백그라운드 시작] ${DEP_TYPE} 변경: ${FIL
 echo "  결과: ${OUTPUT_FILE}"
 echo "  완료 후 \`/usage\` 또는 직접 Read 로 확인"
 
-# Gemini 백그라운드 실행 (timeout 5분, fire-and-forget)
+# Gemini 백그라운드 실행 (timeout 30초, fire-and-forget)
+# 30초 안에 안 끝나면 분석 가치 없음 + 백그라운드 점유 방지
 (
   cd "$SEARCH_DIR" 2>/dev/null || cd "$PROJECT_DIR"
-  RESULT=$(timeout 300 gemini -p "의존성 파일 '${FILENAME}'이 변경되었다. 이 변경이 프로젝트에 미치는 영향을 분석해줘: 1) 추가/제거/변경된 패키지 2) 영향받는 import/코드 3) 잠재적 호환성 이슈. 한글로 답변." 2>/dev/null)
+  RESULT=$(timeout 30 gemini -p "의존성 파일 '${FILENAME}'이 변경되었다. 이 변경이 프로젝트에 미치는 영향을 분석해줘: 1) 추가/제거/변경된 패키지 2) 영향받는 import/코드 3) 잠재적 호환성 이슈. 한글로 답변." 2>/dev/null)
 
   if [ -n "$RESULT" ]; then
     {
