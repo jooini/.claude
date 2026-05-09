@@ -2,6 +2,12 @@
 
 나의 Claude Code 전체 설정 패키지. 에이전트 시스템, 훅, 스킬, 워크플로우를 포함한다.
 
+> **받은 ZIP의 모드 확인**: `MANIFEST.md` 의 "모드 구성" 표를 먼저 확인.
+> - 친구 공유 모드 (기본) — LLM 통합 (Gemini/Codex/Gemma/Qwen/Ollama/ini), `teams/`, `identity-hub/`, `debugging-guides/` 가 **모두 빠져 있음**. 본 README의 일부 섹션 (LLM 훅·스킬·워크플로우 설명)은 해당 파일이 ZIP 안에 없을 수 있음 — 무시하면 됨.
+> - `--with-llm` / `--with-teams` / `--with-identity` / `--with-debugging` / `--backup` 모드면 해당 파일 포함됨.
+> - `setup.sh` 의 `gemini`/`codex` 모듈 선택은 친구 공유 모드 ZIP 에서 무효 (대상 파일 없음).
+> - 자세한 모드별 차이: `scripts/README.md` 참조.
+
 ## 빠른 시작 (받는 사람용)
 
 ### 사전 준비
@@ -79,7 +85,7 @@ cd ~/.claude && ./setup.sh --force
 │   ├── build-agents.sh        # 빌드 스크립트
 │   └── *.md → builds/         # 심볼릭 링크 (활성 빌드)
 │
-├── hooks/                     # 이벤트 훅 스크립트 (28개)
+├── hooks/                     # 이벤트 훅 스크립트 (전체 72개 / 친구 공유 모드 42개 — LLM 통합 훅 30개 제외)
 │   ├── agent-start-notify.sh      # 에이전트 시작 알림
 │   ├── agent-complete-notify.sh   # 에이전트 완료 알림
 │   ├── agent-context-inject.sh    # 에이전트 컨텍스트 자동 주입
@@ -114,7 +120,7 @@ cd ~/.claude && ./setup.sh --force
 │   ├── pipeline.md            # 에이전트 파이프라인 (developer→reviewer→tester)
 │   └── docs-convention.md     # 문서 작성 규칙
 │
-├── commands/                  # 슬래시 커맨드 (9개)
+├── commands/                  # 슬래시 커맨드 (13개)
 │   ├── check-env.md           # 환경 설정 일관성 검증
 │   ├── check-server.md        # 서버 상태 확인
 │   ├── check-user.md          # 사용자 조회 (T_Member + Keycloak)
@@ -125,7 +131,7 @@ cd ~/.claude && ./setup.sh --force
 │   ├── project-status.md      # 다중 프로젝트 상태 확인
 │   └── receipt-pdf.md         # 영수증 이미지 → A4 PDF
 │
-├── skills/                    # 커스텀 스킬 (33개)
+├── skills/                    # 커스텀 스킬 (전체 53개 / 친구 공유 모드 46개 — ask-gemini/ask-codex/ask-gemma/ask-ollama 등 7개 제외)
 │   ├── ask-codex/             # Codex CLI 임시 질문/세컨드 오피니언
 │   ├── ask-gemini/            # Gemini CLI 임시 질문/대규모 컨텍스트 탐색
 │   ├── badge/                 # 배지 생성

@@ -11,7 +11,17 @@
       "Bash(zsh -n /Users/leonard/.claude/scripts/init-claude-config.sh 2>&1)",
       "Bash(zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/maxai-b2c-backend 2>&1 | head -10 && echo \"===\" && zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/speakingmax-backend 2>&1 | head -10 && echo \"===\" && zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/identity-hub 2>&1 | head -10 && echo \"===\" && zsh .claude/scripts/init-claude-config.sh --auto ~/Workspace/identity-hub-frontend 2>&1 | head -10)",
       "Bash(chmod +x ~/Workspace/scripts/geo-debug.sh)",
-      "Bash(chmod +x ~/Workspace/scripts/country-test.sh)"
+      "Bash(chmod +x ~/Workspace/scripts/country-test.sh)",
+      "Bash(zsh /Users/leonard/.claude/scripts/export-claude-config.sh --dry-run)",
+      "Bash(zsh /Users/leonard/.claude/scripts/export-claude-config.sh --with-llm --dry-run)",
+      "Bash(zsh /Users/leonard/.claude/scripts/export-claude-config.sh --backup --dry-run)",
+      "Bash(zsh /Users/leonard/.claude/scripts/export-claude-config.sh --help)",
+      "Bash(xargs -n1 basename)",
+      "Bash(zsh /Users/leonard/.claude/scripts/export-claude-config.sh -o /tmp)",
+      "Bash(rm -rf /tmp/zip-verify)",
+      "Bash(mkdir -p /tmp/zip-verify)",
+      "Bash(unzip -q /tmp/claude-code-config-20260506-1818.zip -d /tmp/zip-verify)",
+      "Bash(~/.claude/scripts/gemma-knowledge-refresh.sh)"
     ]
   }
 }

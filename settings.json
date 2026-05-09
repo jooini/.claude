@@ -2,21 +2,18 @@
   "cleanupPeriodDays": 90,
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "PATH": "/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "PATH": "/opt/homebrew/bin:/opt/homebrew/sbin:/Users/leonard/.local/bin:/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
     "CCGUI_CLI_LOGIN_AUTHORIZED": "1",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   },
   "permissions": {
-    "defaultMode": "auto",
     "allow": [
-      "Bash(ls *)",
       "Bash(/bin/ls *)",
       "Bash(cat *)",
       "Bash(/bin/cat *)",
       "Bash(head *)",
       "Bash(tail *)",
       "Bash(/usr/bin/wc *)",
-      "Bash(wc *)",
       "Bash(file *)",
       "Bash(stat *)",
       "Bash(find *)",
@@ -26,22 +23,14 @@
       "Bash(rg *)",
       "Bash(awk *)",
       "Bash(sed -n *)",
-      "Bash(git status*)",
-      "Bash(git log*)",
-      "Bash(git diff*)",
-      "Bash(git show*)",
-      "Bash(git branch*)",
-      "Bash(git remote*)",
       "Bash(git -C * status*)",
       "Bash(git -C * log*)",
       "Bash(git -C * diff*)",
-      "Bash(cd *)",
       "Bash(pwd)",
       "Bash(echo *)",
       "Bash(/bin/echo *)",
       "Bash(date)",
       "Bash(/bin/date *)",
-      "Bash(which *)",
       "Bash(env)",
       "Bash(printenv *)",
       "Bash(python3 -c *)",
@@ -76,99 +65,114 @@
       "mcp__plugin_claude-mem_mcp-search__smart_unfold",
       "mcp__plugin_claude-mem_mcp-search__timeline",
       "mcp__plugin_claude-mem_mcp-search__get_observations",
-      "Bash(gemini -p *)",
-      "Read",
-      "Glob",
-      "Grep"
-    ]
+      "Bash(gemini -p *)"
+    ],
+    "defaultMode": "auto"
   },
   "hooks": {
-    "PreToolUse": [
+    "ConfigChange": [
       {
-        "matcher": "Bash",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/bash-codegen-block.sh"
-          },
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "matcher": "",
+        "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/danger-keyword-detect.sh",
-            "timeout": 5
-          },
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "matcher": "",
+        "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-commit-draft.sh",
-            "if": "Bash(git commit*)",
-            "timeout": 20,
-            "statusMessage": "Gemma 커밋 초안 생성 중..."
-          },
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "ElicitationResult": [
+      {
+        "matcher": "",
+        "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
-            "timeout": 12,
-            "statusMessage": "Gemma 한글 번역 검사 중..."
-          },
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "InstructionsLoaded": [
+      {
+        "matcher": "",
+        "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-commit-convention.sh",
-            "if": "Bash(git commit*)",
-            "timeout": 12,
-            "statusMessage": "Gemma 커밋 규약 검사 중..."
-          },
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/commit-korean-check.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/commit-no-coauthor.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/pr-create-codex-remind.sh"
+            "command": "/Users/leonard/.claude/hooks/ask-notify.sh"
           }
         ]
       },
       {
-        "matcher": "Edit|Write",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/delegation-enforcer.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/dependency-change-detect.sh"
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
           }
         ]
-      },
+      }
+    ],
+    "PermissionDenied": [
       {
-        "matcher": "Agent",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/agent-start-notify.sh"
-          },
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "",
+        "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/agent-context-inject.sh"
-          },
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "",
+        "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/agent-knowledge-remind.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemini-review-prescan.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-review-prescan.sh"
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
           }
         ]
       }
@@ -179,33 +183,38 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/dangerous-command-detect.sh"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/dangerous-command-detect.sh"
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/error-codex-remind.sh"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/error-codex-remind.sh"
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/tool-usage-log.sh"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/tool-usage-log.sh"
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/branch-switch-detect.sh"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/branch-switch-detect.sh"
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/cwd-change-detect.sh"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/cwd-change-detect.sh"
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemini-auto-scan.sh"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-auto-scan.sh"
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-error-summarize.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-error-summarize.sh",
             "timeout": 15,
             "statusMessage": "Gemma 에러 요약 중..."
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-test-failure-analyze.sh",
+            "timeout": 10
           }
         ]
       },
@@ -214,20 +223,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/agent-usage-log.sh"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-usage-log.sh"
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/agent-complete-notify.sh"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-complete-notify.sh"
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/pipeline-metrics-log.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/pipeline-metrics-log.sh",
             "async": true
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/decision-capture.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/decision-capture.sh",
             "timeout": 8,
             "async": true
           }
@@ -238,28 +247,209 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/knowledge-change-rebuild.sh"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/knowledge-change-rebuild.sh"
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-dependency-summarize.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-dependency-summarize.sh",
             "timeout": 20,
             "statusMessage": "Gemma 의존성 변경 요약 중..."
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/task-progress-tracker.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/task-progress-tracker.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/claudemd-change-broadcast.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/claudemd-change-broadcast.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/rag-auto-index.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/rag-auto-index.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-dependency-impact.sh",
+            "timeout": 45,
+            "statusMessage": "Gemini 의존성 영향 분석 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/precompact-notify.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/bash-codegen-block.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/danger-keyword-detect.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-commit-draft.sh",
+            "if": "Bash(git commit*)",
+            "timeout": 20,
+            "statusMessage": "Gemma 커밋 초안 생성 중..."
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-commit-convention.sh",
+            "if": "Bash(git commit*)",
+            "timeout": 12,
+            "statusMessage": "Gemma 커밋 규약 검사 중..."
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/commit-korean-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/commit-no-coauthor.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-large-diff-prescan.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
+            "timeout": 12,
+            "statusMessage": "Gemma 한글 번역 검사 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(gh pr*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/pr-create-codex-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
+            "timeout": 12,
+            "statusMessage": "Gemma 한글 번역 검사 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/delegation-enforcer.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/dependency-change-detect.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-prescan-enforcer.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-start-notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-context-inject.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-knowledge-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-review-prescan.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-review-prescan.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
           }
         ]
       }
@@ -325,6 +515,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -371,26 +570,80 @@
             "type": "command",
             "command": "/Users/leonard/.claude/hooks/daily-learning-capture.sh",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/turn-summary.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/budget-alert.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
           }
         ]
       }
     ],
-    "PreCompact": [
+    "StopFailure": [
       {
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/precompact-notify.sh"
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
           }
         ]
       }
     ],
-    "Notification": [
+    "SubagentStart": [
       {
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/ask-notify.sh"
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
           }
         ]
       }
@@ -400,43 +653,57 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/auto-scale-detect.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/auto-scale-detect.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/memory-search-suggest.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/memory-search-suggest.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/session-turn-counter.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/session-turn-counter.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/command-suggest.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/command-suggest.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/ultrathink-auto-trigger.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/ultrathink-auto-trigger.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/assumption-warning.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/assumption-warning.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/learning-queue-capture.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/learning-queue-capture.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/simple-query-ollama-route.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/simple-query-ollama-route.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/workflow-md-inject.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
           }
         ]
       }
@@ -460,7 +727,8 @@
     "pr-review-toolkit@claude-plugins-official": false,
     "security-guidance@claude-plugins-official": false,
     "claude-md-management@claude-plugins-official": false,
-    "swift-lsp@claude-plugins-official": false
+    "swift-lsp@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "claude-code-plugins": {
@@ -489,6 +757,8 @@
     }
   },
   "alwaysThinkingEnabled": false,
+  "theme": "dark-daltonized",
+  "remoteControlAtStartup": false,
   "skipAutoPermissionPrompt": true,
   "skills": {
     "userSettings:tool-status": {
@@ -584,7 +854,5 @@
       ],
       "env": {}
     }
-  },
-  "theme": "dark-daltonized",
-  "remoteControlAtStartup": false
+  }
 }
