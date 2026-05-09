@@ -13,12 +13,14 @@ class FileCategory(str, Enum):
 
 
 COMMIT_READY_PATTERNS = {
-    "package-lock.json", "yarn.lock", "uv.lock", "Pipfile.lock",
-    "Cargo.lock", "go.sum", "poetry.lock",
+    p.lower() for p in {
+        "package-lock.json", "yarn.lock", "uv.lock", "Pipfile.lock",
+        "Cargo.lock", "go.sum", "poetry.lock",
+    }
 }
-DELETE_EXTS = {".log", ".tmp", ".bak", ".swp", ".DS_Store"}
-DELETE_NAMES = {"nohup.out", "core", "Thumbs.db"}
-EXPERIMENT_NAME_HINTS = ("scratch", "tmp_", "test_scratch", "_experiment", "draft_")
+DELETE_EXTS = {".log", ".tmp", ".bak", ".swp"}
+DELETE_NAMES = {n.lower() for n in {"nohup.out", "core", "Thumbs.db", ".DS_Store"}}
+EXPERIMENT_NAME_HINTS = ("scratch", "tmp_", "_experiment", "draft_")
 
 
 def classify(path: str, status: str) -> FileCategory:
