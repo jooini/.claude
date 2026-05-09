@@ -94,5 +94,40 @@ def report(
     console.print(f"[green]리포트:[/green] {out}")
 
 
+@app.command()
+def archive(
+    review_md: Path = typer.Argument(..., help="vitality report 마크다운 (체크된 것만 archive)"),
+    archive_dir: Path = typer.Option(Path.home() / "Workspace" / "_archive"),
+    dry_run: bool = typer.Option(True, help="기본 dry-run. --no-dry-run 으로 실제 이동"),
+):
+    """사용자가 [x] archive 체크한 repo를 일괄 이동."""
+    from console.archive import archive_repos
+
+    text = review_md.read_text()
+    targets: list[Path] = []
+    for line in text.splitlines():
+        if "[x] archive" in line.lower() and "|" in line:
+            cells = [c.strip() for c in line.split("|")]
+            if len(cells) < 2:
+                continue
+            name = cells[1]
+            candidate = Path.home() / "Workspace" / name
+            if candidate.exists():
+                targets.append(candidate)
+
+    console.print(f"[yellow]대상 {len(targets)} 개[/yellow]")
+    for t in targets[:10]:
+        console.print(f"  - {t.name}")
+    if len(targets) > 10:
+        console.print(f"  ... +{len(targets) - 10}")
+
+    if dry_run:
+        console.print("[cyan]dry-run. --no-dry-run 으로 실제 이동[/cyan]")
+        return
+
+    moved = archive_repos(targets, archive_dir)
+    console.print(f"[green]이동 완료: {len(moved)}[/green]")
+
+
 if __name__ == "__main__":
     app()
