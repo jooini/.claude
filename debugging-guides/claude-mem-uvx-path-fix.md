@@ -47,6 +47,17 @@ ps -p {새 pid} -E | tr ' ' '\n' | grep ^PATH=
 curl -s "http://127.0.0.1:37777/api/search?query=test&limit=1"
 ```
 
+## 4. End-to-end 검증 (사용자 수행)
+
+worker API가 살아있어도 Claude Code MCP client → worker stdio 경로가 끊어졌을 수 있음. 새 Claude Code 세션에서:
+
+1. Claude Code 재시작
+2. 다음 MCP tool 호출 (Claude에게 요청):
+   - `mcp__plugin_claude-mem_mcp-search__search` (query: "test", limit: 1)
+3. 기대 결과: `Worker API error (500): Executable not found in $PATH: "uvx"` 에러 없이 검색 결과 반환
+
+실패 시: 본 가이드 §3의 worker stop → 자동 재기동 절차 재실행.
+
 ## 예방
 
 `~/.claude/settings.json`의 `env.PATH`에 `/opt/homebrew/bin` 이 들어 있는지 확인. 들어 있으면 다음 worker spawn부터는 자동 적용.
