@@ -2,12 +2,20 @@
 # Claude Code 설정 내보내기/공유 스크립트
 #
 # 사용법:
-#   export-claude-config.sh                    # Claude 설정만 내보냄
+#   export-claude-config.sh                    # 친구 공유용 (LLM/teams/identity-hub 전부 제외)
+#   export-claude-config.sh --with-llm         # LLM 통합 포함 (Gemini/Codex/Ollama/Qwen)
+#   export-claude-config.sh --with-teams       # teams/ 사내 협업 inbox 포함
+#   export-claude-config.sh --with-identity    # identity-hub/ 사내 정책 포함
+#   export-claude-config.sh --backup           # 백업 모드 (위 셋 모두 포함)
 #   export-claude-config.sh --dry-run          # 파일 목록만 출력
 #   export-claude-config.sh -o ~/Desktop       # 출력 경로 지정
 #   export-claude-config.sh --force            # 최종 감사 경고 무시하고 진행
 #
-# 주의: Gemini/Codex/Gemma(로컬 Ollama) 관련 설정은 개인 전용이므로 자동 제외됨
+# 기본 모드 (친구 공유):
+# - LLM 통합 (Gemini/Codex/Gemma/Qwen/Ollama/ini) 자동 제외
+# - teams/ (사내 프로젝트명·세션ID·작업내용) 자동 제외
+# - identity-hub/ (사내 OAuth 정책) 자동 제외
+# - settings.json 은 안전 필드만 추출 (MCP 서버 절대경로 등 제거)
 
 set -eo pipefail
 setopt null_glob 2>/dev/null || true
@@ -31,22 +39,37 @@ header() { echo "\n${BOLD}═══ $1 ═══${NC}\n" }
 DRY_RUN=false
 FORCE=false
 OUT_DIR="$HOME/Desktop"
+INCLUDE_LLM=false
+INCLUDE_TEAMS=false
+INCLUDE_IDENTITY=false
+INCLUDE_DEBUGGING=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --dry-run)      DRY_RUN=true; shift ;;
-        --force)        FORCE=true; shift ;;
-        -o|--output)    OUT_DIR="$2"; shift 2 ;;
+        --dry-run)         DRY_RUN=true; shift ;;
+        --force)           FORCE=true; shift ;;
+        --with-llm)        INCLUDE_LLM=true; shift ;;
+        --with-teams)      INCLUDE_TEAMS=true; shift ;;
+        --with-identity)   INCLUDE_IDENTITY=true; shift ;;
+        --with-debugging)  INCLUDE_DEBUGGING=true; shift ;;
+        --backup)          INCLUDE_LLM=true; INCLUDE_TEAMS=true; INCLUDE_IDENTITY=true; INCLUDE_DEBUGGING=true; shift ;;
+        -o|--output)       OUT_DIR="$2"; shift 2 ;;
         -h|--help)
             echo "사용법: export-claude-config.sh [옵션]"
             echo ""
-            echo "옵션:"
-            echo "  --dry-run        내보낼 파일 목록만 출력"
-            echo "  --force          최종 감사 경고 무시하고 진행"
-            echo "  -o, --output     출력 디렉토리 (기본: ~/Desktop)"
-            echo "  -h, --help       도움말"
+            echo "모드 옵션:"
+            echo "  (기본)            친구 공유용 — LLM/teams/identity-hub 전부 제외"
+            echo "  --with-llm        LLM 통합 포함 (Gemini/Codex/Gemma/Qwen/Ollama/ini)"
+            echo "  --with-teams      teams/ 사내 협업 inbox 포함"
+            echo "  --with-identity   identity-hub/ 사내 정책 포함"
+            echo "  --with-debugging  debugging-guides/ 사내 이슈 디버깅 가이드 포함"
+            echo "  --backup          위 네 가지 모두 포함 (본인 백업용)"
             echo ""
-            echo "Gemini/Codex/Gemma 관련 파일은 개인 전용이므로 자동 제외됨"
+            echo "기타:"
+            echo "  --dry-run         내보낼 파일 목록만 출력"
+            echo "  --force           최종 감사 경고 무시하고 진행"
+            echo "  -o, --output      출력 디렉토리 (기본: ~/Desktop)"
+            echo "  -h, --help        도움말"
             exit 0
             ;;
         *) err "알 수 없는 옵션: $1"; exit 1 ;;
@@ -88,17 +111,35 @@ SENSITIVE_PATTERNS=(
 # ─── 수집 대상 ───
 CLAUDE_DIR="$HOME/.claude"
 
-# 개인 전용 키워드 (Gemma 로컬 Ollama, Codex/Gemini 외부 CLI 보조 파일)
-# 파일명/경로에 이 키워드가 포함되면 수집 단계에서 제외
+# LLM 통합 키워드 (외부/로컬 LLM CLI 보조 파일)
+# --with-llm 미지정 시 파일명/경로에 이 키워드 포함되면 제외
 # 대소문자 무시
-PERSONAL_KEYWORDS=("gemma" "gemini" "codex")
+LLM_KEYWORDS=("gemma" "gemini" "codex" "qwen" "ollama" "ini ")
 
-is_personal() {
+is_llm_file() {
     local name="${1:l}"   # lowercase (zsh)
-    for k in "${PERSONAL_KEYWORDS[@]}"; do
-        [[ "$name" == *"$k"* ]] && return 0
+    for k in "${LLM_KEYWORDS[@]}"; do
+        # 'ini ' trailing space — basename 매칭 회피용 marker, 실제 매칭은 prefix/suffix
+        local kw="${k% }"
+        case "$k" in
+            "ini ")
+                # ini 단독 단어로만 매칭 (예: ask-ini, ini-, .ini) — 'minify' 같은 false positive 회피
+                [[ "$name" == ini-* || "$name" == *-ini || "$name" == *"-ini-"* || "$name" == "ini" ]] && return 0
+                ;;
+            *)
+                [[ "$name" == *"$kw"* ]] && return 0
+                ;;
+        esac
     done
     return 1
+}
+
+# 하위호환 — 기존 코드에서 is_personal 호출하는 부분
+is_personal() {
+    if $INCLUDE_LLM; then
+        return 1
+    fi
+    is_llm_file "$1"
 }
 
 collect_claude_files() {
@@ -126,6 +167,7 @@ collect_claude_files() {
 
     # 에이전트 (재귀: 하위 knowledge/, docs/, builds/, src/ 모두 포함)
     # 단 파일명 기준 is_personal 적용 (디렉토리 이름은 매칭 안 함)
+    # agents/ 직속 *.md 는 builds/ 로의 심볼릭 링크 (활성 빌드) — -type l 로 함께 수집
     if [[ -d "$CLAUDE_DIR/agents" ]]; then
         while IFS= read -r f; do
             local rel="${f#$CLAUDE_DIR/}"
@@ -137,7 +179,7 @@ collect_claude_files() {
             [[ "$base" == *.bak.* ]] && continue
             [[ "$rel" == *".last-build"* ]] && continue
             files+=("$rel")
-        done < <(find "$CLAUDE_DIR/agents" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" \) 2>/dev/null)
+        done < <(find "$CLAUDE_DIR/agents" \( -type f -o -type l \) \( -name "*.md" -o -name "*.json" -o -name "*.sh" \) 2>/dev/null)
     fi
 
     # 스킬 (ask-gemma/ask-gemini/ask-codex 디렉토리 제외 — 디렉토리명에 키워드 매칭)
@@ -181,8 +223,8 @@ collect_claude_files() {
         done
     fi
 
-    # 디버깅 가이드
-    if [[ -d "$CLAUDE_DIR/debugging-guides" ]]; then
+    # 디버깅 가이드 — 사내 이슈 컨텍스트 기반. --with-debugging 시에만 포함
+    if $INCLUDE_DEBUGGING && [[ -d "$CLAUDE_DIR/debugging-guides" ]]; then
         for f in "$CLAUDE_DIR"/debugging-guides/*.md; do
             [[ -f "$f" ]] || continue
             local base=$(basename "$f")
@@ -191,19 +233,16 @@ collect_claude_files() {
         done
     fi
 
-    # 스크립트 (gemma-*, gemini-*, codex-* 제외)
+    # 스크립트 (gemma-*, gemini-*, codex-* 제외) + README.md
     if [[ -d "$CLAUDE_DIR/scripts" ]]; then
-        for f in "$CLAUDE_DIR"/scripts/*.sh; do
+        for f in "$CLAUDE_DIR"/scripts/*.sh "$CLAUDE_DIR"/scripts/*.py "$CLAUDE_DIR"/scripts/*.md; do
             [[ -f "$f" ]] || continue
             local base=$(basename "$f")
             is_personal "$base" && continue
-            files+=("scripts/$base")
-        done
-        # python 스크립트도 포함
-        for f in "$CLAUDE_DIR"/scripts/*.py; do
-            [[ -f "$f" ]] || continue
-            local base=$(basename "$f")
-            is_personal "$base" && continue
+            # 백업 파일 제외
+            [[ "$base" == *.bak ]] && continue
+            [[ "$base" == *.bak.* ]] && continue
+            [[ "$base" == *.bak-* ]] && continue
             files+=("scripts/$base")
         done
     fi
@@ -218,19 +257,19 @@ collect_claude_files() {
         done
     fi
 
-    # 문서 (docs/ 는 공유 가능한 공식 문서. is_personal 필터 미적용)
-    # 단 파일 단위 시크릿 마스킹은 scrub_sensitive 가 처리
+    # 문서 (docs/) — LLM 키워드 매칭 시 친구 공유 모드에서 제외
     if [[ -d "$CLAUDE_DIR/docs" ]]; then
         while IFS= read -r f; do
             local rel="${f#$CLAUDE_DIR/}"
             local base=$(basename "$f")
             [[ "$base" == .DS_Store ]] && continue
+            is_personal "$base" && continue
             files+=("$rel")
         done < <(find "$CLAUDE_DIR/docs" -type f \( -name "*.md" -o -name "*.txt" -o -name "*.yaml" -o -name "*.yml" -o -name "*.json" \) 2>/dev/null)
     fi
 
-    # identity-hub 설정 (사내 공유 — settings.local.json 만 제외)
-    if [[ -d "$CLAUDE_DIR/identity-hub" ]]; then
+    # identity-hub 설정 — 사내 OAuth/JWT 정책. --with-identity 시에만 포함
+    if $INCLUDE_IDENTITY && [[ -d "$CLAUDE_DIR/identity-hub" ]]; then
         while IFS= read -r f; do
             local rel="${f#$CLAUDE_DIR/}"
             local base=$(basename "$f")
@@ -263,16 +302,62 @@ collect_claude_files() {
         done
     fi
 
-    # 팀 설정 (사내 공유 — 개인 키워드 inbox만 제외)
-    if [[ -d "$CLAUDE_DIR/teams" ]]; then
+    # 팀 설정 — 사내 프로젝트명/세션ID/cwd 노출 위험. --with-teams 시에만 포함
+    if $INCLUDE_TEAMS && [[ -d "$CLAUDE_DIR/teams" ]]; then
         while IFS= read -r f; do
             local rel="${f#$CLAUDE_DIR/}"
+            # .archive/ 는 백업 모드에서만 (오래된 작업 inbox)
+            if [[ "$rel" == teams/.archive/* ]] && ! $INCLUDE_TEAMS; then
+                continue
+            fi
             is_personal "$rel" && continue
             files+=("$rel")
         done < <(find "$CLAUDE_DIR/teams" -type f 2>/dev/null)
     fi
 
     printf '%s\n' "${files[@]}"
+}
+
+# ─── settings.json 안전 추출 (친구 공유 모드) ───
+# MCP 서버 절대경로, autoApprove 의 사용자별 path 등 환경 의존 정보 제거
+# allowlist 필드만 추출 + 절대경로 → $HOME 치환
+sanitize_settings_json() {
+    local file="$1"
+    SETTINGS_FILE="$file" python3 - <<'PYEOF'
+import json, os, re
+
+with open(os.environ['SETTINGS_FILE']) as f:
+    s = json.load(f)
+
+home = os.path.expanduser('~')
+
+def scrub_path(v):
+    if isinstance(v, str):
+        v = v.replace(home, '$HOME')
+        v = re.sub(r'/Users/[^/"\s]+', '/Users/USER', v)
+    return v
+
+def deep_scrub(obj):
+    if isinstance(obj, dict):
+        return {k: deep_scrub(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [deep_scrub(x) for x in obj]
+    return scrub_path(obj)
+
+SHARE_FIELDS = {
+    'cleanupPeriodDays', 'theme', 'model', 'alwaysThinkingEnabled',
+    'remoteControlAtStartup', 'skipAutoPermissionPrompt',
+    'permissions', 'hooks', 'autoApprove', 'enabledPlugins',
+    'extraKnownMarketplaces', 'mcpServers', 'skills',
+}
+
+filtered = {k: deep_scrub(v) for k, v in s.items() if k in SHARE_FIELDS}
+
+if 'env' in s:
+    filtered['env'] = {'_NOTE': 'env vars removed for sharing — set your own'}
+
+print(json.dumps(filtered, indent=2, ensure_ascii=False))
+PYEOF
 }
 
 # ─── 민감 정보 스크러빙 ───
@@ -282,6 +367,12 @@ scrub_sensitive() {
     local file="$1"
     local base="$(basename "$file")"
     local ext="${base##*.}"
+
+    # settings.json 은 친구 공유 모드에서 별도 sanitize
+    if [[ "$base" == "settings.json" ]] && ! $INCLUDE_LLM && ! $INCLUDE_TEAMS && ! $INCLUDE_IDENTITY; then
+        sanitize_settings_json "$file"
+        return 0
+    fi
 
     # 텍스트 파일 판정
     case "$ext" in
@@ -352,7 +443,35 @@ audit_tmpdir() {
 }
 
 # ─── 메인 ───
-header "Claude Code 설정 내보내기"
+# 모드 라벨
+MODE_LABEL="친구 공유"
+if $INCLUDE_LLM && $INCLUDE_TEAMS && $INCLUDE_IDENTITY && $INCLUDE_DEBUGGING; then
+    MODE_LABEL="백업 (전체 포함)"
+else
+    extras=()
+    $INCLUDE_LLM && extras+=("LLM")
+    $INCLUDE_TEAMS && extras+=("teams")
+    $INCLUDE_IDENTITY && extras+=("identity-hub")
+    $INCLUDE_DEBUGGING && extras+=("debugging-guides")
+    if (( ${#extras[@]} > 0 )); then
+        MODE_LABEL="친구 공유 + ${(j:, :)extras}"
+    fi
+fi
+
+header "Claude Code 설정 내보내기 — ${MODE_LABEL} 모드"
+
+if ! $INCLUDE_LLM; then
+    info "LLM 통합 (Gemini/Codex/Gemma/Qwen/Ollama/ini) 자동 제외"
+fi
+if ! $INCLUDE_TEAMS; then
+    info "teams/ (사내 협업 inbox) 자동 제외"
+fi
+if ! $INCLUDE_IDENTITY; then
+    info "identity-hub/ (사내 OAuth 정책) 자동 제외"
+fi
+if ! $INCLUDE_DEBUGGING; then
+    info "debugging-guides/ (사내 이슈 가이드) 자동 제외"
+fi
 
 # Claude 파일 수집
 claude_files=()
@@ -376,7 +495,7 @@ if $DRY_RUN; then
 
     echo ""
     info "총 ${total}개 파일 (dry-run, 실제 내보내기 안 함)"
-    info "Gemma/Gemini/Codex 보조 파일은 자동 제외됨"
+    info "모드: ${MODE_LABEL}"
     exit 0
 fi
 
@@ -412,12 +531,27 @@ else
 fi
 
 # 매니페스트 생성
+LLM_LINE="제외"; $INCLUDE_LLM && LLM_LINE="포함"
+TEAMS_LINE="제외"; $INCLUDE_TEAMS && TEAMS_LINE="포함"
+IDENTITY_LINE="제외"; $INCLUDE_IDENTITY && IDENTITY_LINE="포함"
+DEBUGGING_LINE="제외"; $INCLUDE_DEBUGGING && DEBUGGING_LINE="포함"
+
 cat > "$TMPDIR/MANIFEST.md" <<MANIFEST
 # Claude Code 설정 내보내기
 
 - 내보낸 시각: $(date '+%Y-%m-%d %H:%M:%S')
 - 호스트: $(hostname)
+- 모드: ${MODE_LABEL}
 - Claude 파일: ${#claude_files[@]}개
+
+## 모드 구성
+
+| 항목 | 상태 |
+|------|------|
+| LLM 통합 (Gemini/Codex/Gemma/Qwen/Ollama/ini) | ${LLM_LINE} |
+| teams/ (사내 협업) | ${TEAMS_LINE} |
+| identity-hub/ (사내 OAuth) | ${IDENTITY_LINE} |
+| debugging-guides/ (사내 이슈 가이드) | ${DEBUGGING_LINE} |
 
 ## 적용 방법
 
@@ -428,30 +562,34 @@ unzip ${ZIP_NAME} -d ~/claude-config-import
 # 2. Claude 설정 복사 (기존 설정 백업 권장)
 cp -r ~/claude-config-import/claude/* ~/.claude/
 
-# settings.local.json은 포함되지 않음 — 직접 생성 필요
+# settings.local.json 은 포함되지 않음 — 직접 생성 필요
 # API 키/토큰은 REDACTED 처리됨 — 직접 입력 필요
+# 친구 공유 모드: settings.json 의 env 필드 제거됨 — 본인 환경에 맞게 추가 필요
 \`\`\`
 
-## 제외된 항목
+## 항상 제외되는 항목
 
 - \`settings.local.json\` (로컬 전용)
-- \`.claude.json\` (세션/인증)
-- \`memory/\` (개인 메모리)
+- \`.claude.json\`, \`history.jsonl\` (세션/인증)
+- \`memory/\`, \`projects/*/memory/\` (개인 메모리)
 - \`transcripts/\`, \`sessions/\` (대화 기록)
-- \`plugins/cache/\` (설치 캐시, 용량 큼)
-- \`backups/\`, \`cache/\`, \`lancedb/\` (임시 데이터)
-- 개인 전용 보조 파일 (이름에 \`gemma-\`, \`gemini-\`, \`codex-\`, \`ask-gemma\`, \`ask-gemini\`, \`ask-codex\` 포함):
-  - 로컬 Ollama Gemma 훅/스크립트
-  - Gemini/Codex CLI 보조 스킬·훅·문서
+- \`plugins/cache/\`, \`backups/\`, \`cache/\`, \`lancedb/\` (임시/대용량)
+- \`mcp-needs-auth-cache.json\`, \`policy-limits.json\`, \`antigravity-workspace.json\`
 
 ## 마스킹 처리
 
-모든 텍스트 파일(.json/.md/.sh/.yaml/.env 등)에 스크러빙 적용:
-- 키-값 필드: api_key, token, secret, password, bearer, client_secret, private_key, access_key, refresh_token, session_token, webhook_secret, signing_secret, encryption_key, passphrase
+모든 텍스트 파일(.json/.md/.sh/.yaml/.env 등):
+- 키-값 필드: api_key, token, secret, password, bearer 등
 - 고엔트로피 프리픽스: sk-, ghp_, gho_, ghs_, xox[baprs]-, AKIA
-- → 각각 REDACTED 또는 프리픽스+REDACTED로 치환
+- → REDACTED 치환
 
-ZIP 생성 직전 최종 감사 수행. 잔존 비밀 발견 시 중단 (\`--force\`로 강제 진행 가능).
+\`settings.json\` 친구 공유 모드 추가 처리:
+- env 필드 제거
+- /Users/leonard 같은 절대경로 → /Users/USER 치환
+- \$HOME 경로 → \$HOME 변수로 치환
+- 안전 필드만 allowlist 추출 (cleanupPeriodDays, theme, permissions, hooks, autoApprove, mcpServers 등)
+
+ZIP 생성 직전 최종 감사. 잔존 비밀 발견 시 중단 (\`--force\` 로 강제 가능).
 MANIFEST
 
 # ZIP 압축

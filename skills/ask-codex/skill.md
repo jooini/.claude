@@ -26,14 +26,20 @@ allowed-tools: Bash(codex *), Read, Glob, Grep
 ### 2단계: Codex CLI 실행
 
 ```bash
-# 분석/의견 요청 (읽기 전용)
-codex -a "$QUESTION"
+# 분석/의견 요청 (read-only sandbox에서 실행)
+cd ~/.claude && codex exec --skip-git-repo-check "$QUESTION"
 
 # 코드 컨텍스트 포함
-codex -a "$QUESTION" < <(cat [관련 파일들])
+cd ~/.claude && codex exec --skip-git-repo-check "$QUESTION" < <(cat [관련 파일들])
 ```
 
-> codex에 `--write` 플래그는 사용하지 않는다. 코드 수정은 Claude가 직접 한다.
+> 자동 추적: 모든 codex 호출이 `~/.codex/state_5.sqlite`의 `threads` 테이블에 기록됨.
+> `/usage`로 누적 토큰/세션 조회 가능.
+
+⚠️ **잘못된 호출 패턴 주의**:
+- `codex -a "..."`는 `--ask-for-approval` 플래그로 해석됨 → 에러
+- `--write` 플래그 사용 금지 — 코드 수정은 Claude가 직접
+- trusted directory 체크 우회: `--skip-git-repo-check` (~/.claude 등 비-git 디렉토리에서)
 
 ### 3단계: 결과 정리
 

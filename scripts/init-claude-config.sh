@@ -1742,9 +1742,6 @@ feature 태스크 → qa(테스트 설계) → 사용자 확인 → developer(Gr
 ### 컨텍스트 관리
 1 태스크 = 1 세션. 태스크 완료 후 \`/session-handoff\` → 새 세션. Gemini 결과는 파일 저장 후 요약만 전달.
 
-### Caveman 모드
-관사/필러/인사말 생략. 짧은 동의어. 기술 용어 정확히 유지. 항상 적용.
-
 ### 에스컬레이션 (글로벌)
 - developer→tester 3회 실패 → \`codex:codex-rescue\` **foreground** 에스컬레이션
 - 보안/DB/인프라/API breaking change → \`codex:adversarial-review\` 격상

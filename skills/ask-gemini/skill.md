@@ -25,8 +25,12 @@ allowed-tools: Bash(gemini *), Read, Glob, Grep
 
 ### 2단계: Gemini CLI 실행
 
+**우선 telemetry 활성 상태 확인** (이미 활성화됨 — `~/.gemini/settings.json`에 telemetry 섹션):
+- 모든 `gemini -p` 호출이 자동으로 `~/.claude/cache/gemini-telemetry.jsonl`에 토큰 메타 기록됨
+- `/usage` 스킬로 누적량 조회 가능
+
 ```bash
-# 단순 질문
+# 표준 호출 — telemetry가 자동으로 토큰 추적
 gemini -p "$QUESTION"
 
 # 파일 컨텍스트 포함
@@ -34,7 +38,12 @@ gemini -p "$QUESTION" < <(cat [관련 파일들])
 
 # 대규모 스캔
 gemini -p "$QUESTION" < <(find [대상경로] -type f \( -name '*.py' -o -name '*.ts' -o -name '*.kt' \) | head -200 | xargs cat)
+
+# (선택) wrapper로 직접 stats 추출 — caller 식별 필요할 때
+GEMINI_CALLER="ask-gemini" ~/.claude/scripts/gemini-wrapped.sh -p "$QUESTION"
 ```
+
+> 호출 후 `/usage`로 토큰 사용량 확인 가능.
 
 ### 3단계: 결과 정리
 

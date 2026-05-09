@@ -1,8 +1,8 @@
 ---
 name: write-daily-report
-description: 오늘 전체 작업 내용을 자동 수집하여 일일 업무 보고서를 작성합니다. Mattermost 붙여넣기용 변환도 지원(to-mattermost.sh).
+description: claude-mem, 세션 기록, 프로젝트 산출물(Projects/), 전체 Workspace git 커밋을 교차 수집하여 오늘 전체 작업 기반 일일 업무 보고서를 작성합니다. Mattermost 붙여넣기용 변환도 지원(to-mattermost.sh).
 disable-model-invocation: true
-allowed-tools: Bash(git *), Bash(date *), Bash(ls *), Bash(~/.claude/skills/write-daily-report/to-mattermost.sh *), Read, Write, Glob, mcp__plugin_claude-mem_mcp-search__timeline, mcp__plugin_claude-mem_mcp-search__search, mcp__plugin_claude-mem_mcp-search__get_observations
+allowed-tools: Bash(git *), Bash(date *), Bash(ls *), Bash(find *), Bash(~/.claude/skills/write-daily-report/to-mattermost.sh *), Read, Write, Glob, mcp__plugin_claude-mem_mcp-search__timeline, mcp__plugin_claude-mem_mcp-search__search, mcp__plugin_claude-mem_mcp-search__get_observations
 ---
 
 # write-daily-report
@@ -11,7 +11,10 @@ allowed-tools: Bash(git *), Bash(date *), Bash(ls *), Bash(~/.claude/skills/writ
 
 ## 핵심 원칙
 
-- **간결하게**: 세션 기록에 상세 내용 있으므로, 보고서는 요약만
+- **분량 상한**: 1 프로젝트 = **최대 3줄**, 1줄 = **최대 80자**. 초과 시 잘라내기
+- **동사 단문**: 한 줄에 한 동작. "~하고 ~했다" 결합문 금지. "~함" 종결 권장
+- **WHY 1개**: 줄마다 결과만. WHY는 프로젝트당 1줄로 묶어서 따로
+- **세션 기록 상세 위임**: 보고서는 헤드라인만. 디테일/배경/시도과정은 세션 기록에 둠
 - **중복 금지**: frontmatter/파일명에 날짜 있으므로 본문에 날짜 섹션 불필요
 - **커밋 해시 금지**: 커밋 해시를 보고서에 포함하지 않는다. git log로 확인 가능
 - **브랜치 머지 내역 금지**: "feature/xxx 브랜치 머지 완료" 같은 내용 불필요
@@ -33,6 +36,10 @@ ls ~/Workspace/weaversbrain/weaversbrain/Daily/$(date +%Y-%m)/$(date +%Y-%m-%d).
 # 오늘의 세션 히스토리 (1순위 소스)
 ls ~/Workspace/weaversbrain/weaversbrain/Sessions/$(date +%Y-%m)/$(date +%Y-%m-%d)-*.md 2>/dev/null
 
+# 오늘의 프로젝트별 산출물/핸드오프/분석 문서 (Projects/ 전체 스캔)
+find ~/Workspace/weaversbrain/weaversbrain/Projects \
+  -path "*/$(date +%Y-%m)/$(date +%Y-%m-%d)-*.md" -type f 2>/dev/null
+
 # 최근 보고서 (전날 연속성)
 ls -t ~/Workspace/weaversbrain/weaversbrain/Daily/$(date +%Y-%m)/*.md 2>/dev/null | head -3
 ```
@@ -41,19 +48,29 @@ ls -t ~/Workspace/weaversbrain/weaversbrain/Daily/$(date +%Y-%m)/*.md 2>/dev/nul
 
 **우선순위:**
 
-1. **claude-mem timeline** — 전 세션 통합 기록. `mcp__plugin_claude-mem_mcp-search__timeline`으로 오늘 날짜 범위 조회. 다른 프로젝트 세션 포함 모든 작업이 여기 있음. 필요시 `get_observations`로 상세 내용 확인.
-2. **세션 히스토리 파일** — claude-mem에 누락된 세션이 있을 수 있으므로 교차 확인.
-3. **현재 대화 컨텍스트** — 이 세션에서 수행한 작업, 이슈, TODO.
-4. **git 커밋** (보조) — 위 소스들로 부족할 때만:
+1. **claude-mem timeline** — 전 세션 통합 기록. `mcp__plugin_claude-mem_mcp-search__timeline`으로 오늘 날짜 범위 조회. 필요시 `get_observations`로 상세 내용 확인. **단일 장애점 주의** — MCP 미가동/uvx 누락/인덱싱 지연 시 누락 가능. 1순위지만 유일 근거로 쓰지 않는다.
+2. **세션 히스토리 파일** — `Sessions/YYYY-MM/YYYY-MM-DD-*.md`. claude-mem 누락분 교차 확인.
+3. **프로젝트별 산출물** — `Projects/{프로젝트}/YYYY-MM/YYYY-MM-DD-HHMM-*.md`. 핸드오프, 분석, 스펙, metric dictionary, misc 비코드 작업(택시비/경비 정산) 포함. find로 동적 스캔.
+4. **현재 대화 컨텍스트** — 이 세션에서 수행한 작업, 이슈, TODO.
+5. **git 커밋** — Workspace 전체 git 저장소를 동적 스캔. 하드코딩 프로젝트 목록 사용 금지:
 
 ```bash
-for dir in ~/Workspace/identity-hub ~/Workspace/maxai-b2c-backend ~/Workspace/identity-keycloak ~/Workspace/sso-fallback-monitor ~/Workspace/identity-platform-docker ~/Workspace/maxai-docker; do
-  if [ -d "$dir/.git" ]; then
-    echo "=== $(basename $dir) ==="
-    git -C "$dir" log --oneline --since="00:00" --format="%h %s" 2>/dev/null
+find ~/Workspace -maxdepth 2 -name .git -type d 2>/dev/null |
+while read gitdir; do
+  dir="${gitdir%/.git}"
+  commits=$(git -C "$dir" log --since="$(date +%Y-%m-%d) 00:00" --format="%h %s" 2>/dev/null)
+  if [ -n "$commits" ]; then
+    echo "=== $(basename "$dir") ==="
+    printf '%s\n' "$commits"
   fi
 done
 ```
+
+**누락 방지 규칙:**
+- claude-mem timeline은 1순위지만 유일 근거로 쓰지 않는다 (MCP 장애 가능)
+- git 커밋이 있는 프로젝트가 세션/Projects 산출물에 없으면 후보에 포함하고 커밋 제목 기준 요약
+- `Projects/misc/...` 문서는 커밋 없어도 포함 후보
+- 커밋 없는 프로젝트는 대화/세션/Projects 중 하나에서 확인된 경우만 포함
 
 **전날 보고서에서 추출:**
 - "할 일" → 오늘 이어서 한 작업
@@ -65,9 +82,30 @@ done
 
 #### 오늘 한 일
 - 프로젝트별 `###`로 그룹핑
-- **1 프로젝트 = 3~5줄 요약**. 무엇을 왜 했는지만 기술
+- **1 프로젝트 = 최대 3줄, 1줄 = 최대 80자**. 초과 시 잘라낼 것
+- 동사 단문 (예: "녹음 정책 응답에 speechApiUrl 추가"). "~하고 ~했다" 결합 금지
+- 항목별 WHY/배경 금지. 필요하면 프로젝트당 1줄로 묶어서 마지막에 추가
 - 커밋 해시, 브랜치명, 머지 내역 포함 금지
 - "세션 기록 참조" 문구 사용 금지
+
+좋은 예 ✅:
+```
+### speakingmax-backend
+- 녹음 정책 응답에 speechApiUrl 추가
+- outcome/failure_category/extra 자동 판정 6분기 구현
+- mapCellTypeToV2 입력 키 cell_gubun → cell_code 정규화
+```
+
+나쁜 예 ❌ (장황/결합문/배경 포함):
+```
+### speakingmax-backend
+- 녹음 정책 API 응답에 speechApiUrl 필드를 추가하여 환경별 speech-hub baseURL을
+  클라가 부트스트랩 시점에 받아갈 수 있게 함. 기존 XML view의 sttUrl 태그와
+  의미는 같지만 신규 컨벤션으로 도입.
+- outcome/failure_category 등을 자동 판정하는 로직을 6분기로 구현하고 extra에
+  정책 메타 6필드를 JSON으로 적재하여 분석 시 정책 변경 영향을 추적 가능하게 함.
+- ...
+```
 
 #### 이슈
 - `[해결]` 또는 `[미해결]` 접두사
