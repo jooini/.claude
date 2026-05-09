@@ -52,3 +52,29 @@ def test_scan_repos_collects_last_commit(tmp_path: Path):
     # Then
     assert len(repos) == 1
     assert repos[0].last_commit_at is not None
+
+
+def test_scan_repos_skips_permission_denied(tmp_path: Path):
+    # Given: 권한 없는 디렉토리 안에 repo가 있고, 형제로 정상 repo도 있음
+    import os
+    blocked = tmp_path / "blocked"
+    blocked.mkdir()
+    (blocked / "inner_repo").mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=blocked / "inner_repo", check=True)
+
+    sibling = tmp_path / "sibling_repo"
+    sibling.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=sibling, check=True)
+
+    os.chmod(blocked, 0o000)
+    try:
+        # When: scan_repos 호출
+        repos = list(scan_repos(tmp_path, max_depth=3))
+
+        # Then: 권한 없는 디렉토리는 스킵되어도 generator 중단되지 않음
+        # blocked 안의 repo는 발견 안 됨, sibling은 발견됨
+        names = [r.path.name for r in repos]
+        assert "sibling_repo" in names
+        assert all("blocked" not in str(r.path) for r in repos)
+    finally:
+        os.chmod(blocked, 0o700)  # cleanup

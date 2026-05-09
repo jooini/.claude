@@ -31,7 +31,11 @@ def _find_git_dirs(root: Path, max_depth: int) -> Iterator[Path]:
         return
     if not root.is_dir():
         return
-    for child in root.iterdir():
+    try:
+        children = list(root.iterdir())
+    except (PermissionError, OSError):
+        return
+    for child in children:
         if child.name == ".git" and child.is_dir():
             yield child
             continue
@@ -40,20 +44,26 @@ def _find_git_dirs(root: Path, max_depth: int) -> Iterator[Path]:
 
 
 def _count_dirty(repo: Path) -> int:
-    result = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=repo, capture_output=True, text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=repo, capture_output=True, text=True, timeout=5,
+        )
+    except subprocess.TimeoutExpired:
+        return 0
     if result.returncode != 0:
         return 0
-    return len([l for l in result.stdout.splitlines() if l.strip()])
+    return len([line for line in result.stdout.splitlines() if line.strip()])
 
 
 def _last_commit(repo: Path) -> datetime | None:
-    result = subprocess.run(
-        ["git", "log", "-1", "--format=%cI"],
-        cwd=repo, capture_output=True, text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%cI"],
+            cwd=repo, capture_output=True, text=True, timeout=5,
+        )
+    except subprocess.TimeoutExpired:
+        return None
     if result.returncode != 0 or not result.stdout.strip():
         return None
     return datetime.fromisoformat(result.stdout.strip())
