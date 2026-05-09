@@ -1,8 +1,11 @@
 #!/bin/zsh
-# UserPromptSubmit: 세션 턴 카운트 후 50/100/150턴 도달 시 핸드오프 권유
+# UserPromptSubmit: 세션 턴 카운트 후 200/300/500턴 도달 시 핸드오프 권유
 #
 # 목적: 1 태스크 = 1 세션 원칙 강제. 긴 세션은 컨텍스트 오염 → 핸드오프로 분할
 # 효과: 세션 길어질수록 응답 느려지고 추정 늘어나는 것 방지
+#
+# 임계점 변경 이력:
+#   2026-05-09: 50/100/150 → 200/300/500 (사용자 요청, 너무 자주 떴음)
 
 : "${HOME:?}"
 
@@ -24,32 +27,32 @@ fi
 # 사용자 프롬프트 라인 수 = 턴 수 (대략)
 TURN_COUNT=$(/usr/bin/grep -c '"role":"user"' "$TRANSCRIPT" 2>/dev/null || echo 0)
 
-# 50/100/150턴 임계점 도달 감지
+# 200/300/500턴 임계점 도달 감지
 THRESHOLD=""
-if [ "$TURN_COUNT" -ge 150 ]; then
-    THRESHOLD="150"
+if [ "$TURN_COUNT" -ge 500 ]; then
+    THRESHOLD="500"
     LEVEL="🚨 매우 긴 세션"
-elif [ "$TURN_COUNT" -ge 100 ]; then
-    THRESHOLD="100"
+elif [ "$TURN_COUNT" -ge 300 ]; then
+    THRESHOLD="300"
     LEVEL="⚠️ 긴 세션"
-elif [ "$TURN_COUNT" -ge 50 ]; then
-    THRESHOLD="50"
+elif [ "$TURN_COUNT" -ge 200 ]; then
+    THRESHOLD="200"
     LEVEL="📌 중간 길이"
 else
-    # 50턴 미만 — 알림 없음
+    # 200턴 미만 — 알림 없음
     exit 0
 fi
 
 # 정확히 임계점 ±2 범위에서만 알림 (한 번씩)
-# (50, 100, 150 부근에서 한 번씩만 — 매 턴 알림 방지)
-DIFF_50=$((TURN_COUNT - 50))
-DIFF_100=$((TURN_COUNT - 100))
-DIFF_150=$((TURN_COUNT - 150))
+# (200, 300, 500 부근에서 한 번씩만 — 매 턴 알림 방지)
+DIFF_200=$((TURN_COUNT - 200))
+DIFF_300=$((TURN_COUNT - 300))
+DIFF_500=$((TURN_COUNT - 500))
 
 SHOW=0
-[ "$DIFF_50" -ge 0 ] && [ "$DIFF_50" -le 1 ] && SHOW=1
-[ "$DIFF_100" -ge 0 ] && [ "$DIFF_100" -le 1 ] && SHOW=1
-[ "$DIFF_150" -ge 0 ] && [ "$DIFF_150" -le 1 ] && SHOW=1
+[ "$DIFF_200" -ge 0 ] && [ "$DIFF_200" -le 1 ] && SHOW=1
+[ "$DIFF_300" -ge 0 ] && [ "$DIFF_300" -le 1 ] && SHOW=1
+[ "$DIFF_500" -ge 0 ] && [ "$DIFF_500" -le 1 ] && SHOW=1
 
 if [ "$SHOW" -eq 0 ]; then
     exit 0

@@ -1,6 +1,10 @@
 #!/bin/zsh
-# PreToolUse(Edit/Write): 의존성 파일 변경 감지 → Gemini 동기 영향 분석
-# Gemini 완료까지 대기 → 결과를 stdout으로 Claude Code에 전달
+# PreToolUse(Edit/Write): 의존성 파일 변경 감지 → Gemini 비동기 영향 분석
+# 사용자 즉시 응답 (대기 X). 결과는 백그라운드로 ~/.claude/cache/gemini/{project}-deps.md 에 저장.
+#
+# 변경 이력:
+#   2026-05-09: 동기 90초 대기 → 비동기 백그라운드 (사용자 체감 0ms)
+#     이유: Gemini API 응답 90초가 사용자 PreToolUse 대기를 그대로 막음
 
 : "${HOME:?}"
 
@@ -57,19 +61,35 @@ PROJECT_NAME=$(basename "$SEARCH_DIR")
 mkdir -p "$HOME/.claude/cache/gemini"
 OUTPUT_FILE="$HOME/.claude/cache/gemini/${PROJECT_NAME}-deps.md"
 
-echo "[Gemini 의존성 분석 중] ${DEP_TYPE} 변경: ${FILENAME} — 완료까지 대기..."
+# 사용자 즉시 알림 (백그라운드 분석 시작)
+echo "[Gemini 의존성 분석 백그라운드 시작] ${DEP_TYPE} 변경: ${FILENAME}"
+echo "  결과: ${OUTPUT_FILE}"
+echo "  완료 후 \`/usage\` 또는 직접 Read 로 확인"
 
-# Gemini 동기 실행 (타임아웃 90초)
-cd "$SEARCH_DIR" 2>/dev/null || cd "$PROJECT_DIR"
-RESULT=$(timeout 90 gemini -p "의존성 파일 '${FILENAME}'이 변경되었다. 이 변경이 프로젝트에 미치는 영향을 분석해줘: 1) 추가/제거/변경된 패키지 2) 영향받는 import/코드 3) 잠재적 호환성 이슈. 한글로 답변." 2>/dev/null)
+# Gemini 백그라운드 실행 (timeout 5분, fire-and-forget)
+(
+  cd "$SEARCH_DIR" 2>/dev/null || cd "$PROJECT_DIR"
+  RESULT=$(timeout 300 gemini -p "의존성 파일 '${FILENAME}'이 변경되었다. 이 변경이 프로젝트에 미치는 영향을 분석해줘: 1) 추가/제거/변경된 패키지 2) 영향받는 import/코드 3) 잠재적 호환성 이슈. 한글로 답변." 2>/dev/null)
 
-if [ -n "$RESULT" ]; then
-  echo "$RESULT" > "$OUTPUT_FILE"
-  echo "[Gemini 의존성 분석 완료] ${DEP_TYPE}: ${FILENAME}"
-  echo "---"
-  echo "$RESULT"
-else
-  echo "[Gemini 의존성 분석 실패/타임아웃] ${FILENAME} — 수동 확인 필요"
-fi
+  if [ -n "$RESULT" ]; then
+    {
+      echo "# Gemini 의존성 분석: ${FILENAME}"
+      echo ""
+      echo "- 분석 시각: $(date '+%Y-%m-%d %H:%M:%S')"
+      echo "- 의존성 타입: ${DEP_TYPE}"
+      echo "- 프로젝트: ${PROJECT_NAME}"
+      echo ""
+      echo "---"
+      echo ""
+      echo "$RESULT"
+    } > "$OUTPUT_FILE"
+
+    # macOS 알림 (선택)
+    osascript -e "display notification \"${FILENAME} 영향 분석 완료\" with title \"📦 Gemini 의존성 분석\"" 2>/dev/null
+  else
+    echo "[Gemini 분석 실패/타임아웃] $(date '+%Y-%m-%d %H:%M:%S') ${FILENAME}" > "$OUTPUT_FILE"
+  fi
+) &
+disown 2>/dev/null
 
 exit 0
