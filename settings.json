@@ -425,10 +425,6 @@
           },
           {
             "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-review-prescan.sh"
-          },
-          {
-            "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-review-prescan.sh"
           }
         ]
