@@ -7,10 +7,31 @@
 
 INPUT=$(cat)
 
+# 디버그: duration_ms 누락 케이스 분석용 — 전체 페이로드 구조 캡처
+# 30일 누적 후 fallback 로직 추가 결정. 캐시 디렉토리 30일+ 자동 정리됨.
+DEBUG_DIR="$HOME/.claude/cache/pipeline-metrics-debug"
+mkdir -p "$DEBUG_DIR"
+DEBUG_FILE="$DEBUG_DIR/$(date +%Y-%m-%d).jsonl"
+echo "$INPUT" | /usr/bin/python3 -c "
+import sys, json
+try:
+    d = json.loads(sys.stdin.read())
+    keys_top = sorted(d.keys())
+    keys_resp = sorted(d.get('tool_response', {}).keys()) if isinstance(d.get('tool_response'), dict) else []
+    keys_input = sorted(d.get('tool_input', {}).keys()) if isinstance(d.get('tool_input'), dict) else []
+    out = {'ts': '$(date +%Y-%m-%dT%H:%M:%S)', 'top': keys_top, 'tool_response': keys_resp, 'tool_input': keys_input, 'has_duration_ms': 'duration_ms' in str(d)}
+    print(json.dumps(out))
+except Exception as e:
+    print(json.dumps({'ts': '$(date +%Y-%m-%dT%H:%M:%S)', 'error': str(e)}))
+" >> "$DEBUG_FILE" 2>/dev/null
+
 AGENT_TYPE=$(echo "$INPUT" | sed -n 's/.*"subagent_type"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 [ -z "$AGENT_TYPE" ] && AGENT_TYPE="general-purpose"
 
-DURATION_MS=$(echo "$INPUT" | sed -n 's/.*"duration_ms"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p')
+# duration_ms 페이로드 어디에 있을지 모르므로 여러 위치 시도
+DURATION_MS=$(echo "$INPUT" | sed -n 's/.*"duration_ms"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' | head -1)
+[ -z "$DURATION_MS" ] && DURATION_MS=$(echo "$INPUT" | sed -n 's/.*"totalDurationMs"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' | head -1)
+[ -z "$DURATION_MS" ] && DURATION_MS=$(echo "$INPUT" | sed -n 's/.*"executionTimeMs"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' | head -1)
 [ -z "$DURATION_MS" ] && DURATION_MS="0"
 
 EXIT_CODE=$(echo "$INPUT" | sed -n 's/.*"exit_code"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p')

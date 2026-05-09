@@ -8,11 +8,24 @@
 QWEN="$HOME/.local/bin/qwen-cli"
 [ -x "$QWEN" ] || exit 0
 
+INPUT=$(cat)
+
+# 빠른 사전 필터: tool_response에 실패 시그널이 전혀 없으면 파싱 스킵
+# 정상 종료 케이스(95%)에서 python3 콜드스타트 회피
+# 실패 시그널: exit_code 비-0, "error", "Error", "Traceback", "FAIL", stderr 본문 등
+case "$INPUT" in
+    *'"exit_code":0'*|*'"exit_code": 0'*|*'"success":true'*|*'"success": true'*)
+        # 명백한 성공 — 추가 검사 없이 종료
+        # 단 stderr가 비어있지 않거나 명시적 에러 키워드 있으면 통과 시키기 위해 한번 더 검사
+        if ! echo "$INPUT" | grep -qiE '(traceback|error:|failed|fatal|exception)'; then
+            exit 0
+        fi
+        ;;
+esac
+
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
 source "$HOME/.claude/hooks/_lib/ollama-available.sh"
 ollama_available || exit 0
-
-INPUT=$(cat)
 
 # exit code 추출 (0이 아닐 때만 트리거)
 EXIT_CODE=$(echo "$INPUT" | python3 -c "

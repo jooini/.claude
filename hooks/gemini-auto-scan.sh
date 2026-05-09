@@ -51,7 +51,8 @@ OUTPUT_FILE="$CACHE_DIR/${PROJECT_NAME}-scan.md"
 # 이미 최근 스캔 결과가 있으면 (30분 이내) 재사용
 if [ -f "$OUTPUT_FILE" ]; then
   FILE_AGE=$(( $(date +%s) - $(stat -f %m "$OUTPUT_FILE" 2>/dev/null || echo 0) ))
-  if [ "$FILE_AGE" -lt 1800 ]; then
+  # 캐시 2시간 (이전 30분 — 일일 ~47회 호출 → ~12회로 토큰 비용 약 75% 절감)
+  if [ "$FILE_AGE" -lt 7200 ]; then
     echo "[Gemini] ${PROJECT_NAME} 스캔 결과 캐시됨 → cat ${OUTPUT_FILE}"
     exit 0
   fi
