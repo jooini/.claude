@@ -424,10 +424,19 @@ build_agent() {
   process_markers "$src_file" "$detected_lang" "$tmp_file"
 
   # 후처리: 빈 헤더 제거 + 연속 빈 줄 압축
+  # 단, ## 헤더는 ### 헤더가 와도 부모-자식 관계이므로 보존
   local clean_file=$(mktemp)
   awk '
-    # 헤더 줄 버퍼링: 다음 비빈 줄이 또 헤더이면 이전 헤더는 빈 헤더 → 제거
-    /^##+ / {
+    # H2 헤더는 항상 보존 (### 자식이 와도 부모로서 의미 있음)
+    /^## [^#]/ {
+      if (header != "") { print header; print "" }
+      print $0
+      header = ""
+      blank_after = 0
+      next
+    }
+    # H3+ 헤더 버퍼링: 다음 비빈 줄이 또 H3+ 헤더이면 이전 헤더는 빈 헤더 → 제거
+    /^###+ / {
       if (header != "") {
         # 이전 헤더 뒤에 내용 없이 새 헤더 → 이전 헤더 버림
       }
