@@ -31,3 +31,22 @@ def test_delete_removes_files(tmp_path: Path):
     delete_in_repo(repo, ["debug.log"])
 
     assert not (repo / "debug.log").exists()
+
+
+def test_parse_triage_md_handles_nested_repo_path(tmp_path):
+    triage_md = tmp_path / "triage.md"
+    triage_md.write_text(
+        "# Dirty Triage\n\n"
+        "## commit_ready (2)\n\n"
+        "- `meeting-minutes/frontend` :: `package-lock.json` [M]\n"
+        "- `member-api` :: `uv.lock` [??]\n"
+        "\n## delete (1)\n\n"
+        "- `docs` :: `old.bak` [??]\n"
+    )
+
+    from console.cleanup import parse_triage_md
+    result = parse_triage_md(triage_md)
+
+    assert ("meeting-minutes/frontend", "package-lock.json") in result["commit_ready"]
+    assert ("member-api", "uv.lock") in result["commit_ready"]
+    assert ("docs", "old.bak") in result["delete"]

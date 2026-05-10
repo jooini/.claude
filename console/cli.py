@@ -134,7 +134,11 @@ def triage(
     root: Path = typer.Option(Path.home() / "Workspace", help="스캔 root"),
     out: Path = typer.Option(..., help="마크다운 리포트 출력 경로"),
 ):
-    """모든 repo의 미커밋 파일을 분류 → 마크다운 리포트."""
+    """모든 repo의 미커밋 파일을 분류 → 마크다운 리포트.
+
+    출력 형식: ``- `<repo_rel_path>` :: `<file_path>` [<status>]``.
+    repo_rel_path 는 workspace_root 기준 상대 경로(중첩 repo 지원).
+    """
     from console.triage import classify, FileCategory
     from collections import defaultdict
     import subprocess
@@ -151,20 +155,28 @@ def triage(
             )
         except subprocess.TimeoutExpired:
             continue
+
+        # workspace_root 기준 상대 경로 (중첩 repo 지원)
+        try:
+            rel = repo.path.relative_to(root)
+            repo_display = str(rel)
+        except ValueError:
+            repo_display = repo.path.name
+
         for line in result.stdout.splitlines():
             if not line.strip():
                 continue
             status_code = line[:2].strip()
             file_path = line[3:].strip()
             cat = classify(file_path, status_code)
-            by_category[cat].append((repo.path.name, file_path, status_code))
+            by_category[cat].append((repo_display, file_path, status_code))
 
     lines = ["# Dirty Triage — 미커밋 분류\n"]
     for cat in FileCategory:
         items = by_category.get(cat, [])
         lines.append(f"\n## {cat.value} ({len(items)})\n")
         for repo_name, file_path, status_code in items[:50]:
-            lines.append(f"- `{repo_name}/{file_path}` [{status_code}]")
+            lines.append(f"- `{repo_name}` :: `{file_path}` [{status_code}]")
         if len(items) > 50:
             lines.append(f"- ... +{len(items) - 50} more")
 
@@ -178,42 +190,44 @@ def triage(
 def cleanup(
     triage_md: Path = typer.Argument(..., exists=True, help="triage 리포트 마크다운"),
     dry_run: bool = typer.Option(True, help="기본 dry-run. --no-dry-run 으로 실제 처리"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="repo 단위 처리 결과 출력"),
 ):
-    """triage 리포트의 commit_ready 일괄 커밋 + delete 일괄 삭제."""
-    from console.cleanup import commit_ready_in_repo, delete_in_repo
+    """triage 리포트의 commit_ready 일괄 커밋 + delete 일괄 삭제.
+
+    실패 시 침묵하지 않고 사전 검증/실행 단계 별 실패 건수를 명시한다.
+    """
+    from console.cleanup import (
+        commit_ready_in_repo,
+        delete_in_repo,
+        parse_triage_md,
+    )
     from collections import defaultdict
-    import re
     import subprocess
 
-    text = triage_md.read_text()
-    sections: dict[str, list[tuple[str, str]]] = {"commit_ready": [], "delete": []}
-    current = None
-    item_re = re.compile(r"^- `([^/]+)/(.+)` \[")
-
-    for line in text.splitlines():
-        if line.startswith("## commit_ready"):
-            current = "commit_ready"
-            continue
-        if line.startswith("## delete"):
-            current = "delete"
-            continue
-        if line.startswith("## "):
-            current = None
-            continue
-        if current is None:
-            continue
-        m = item_re.match(line)
-        if m:
-            sections[current].append((m.group(1), m.group(2)))
+    sections = parse_triage_md(triage_md)
+    workspace = Path.home() / "Workspace"
 
     by_repo_commit: dict[str, list[str]] = defaultdict(list)
     by_repo_delete: dict[str, list[str]] = defaultdict(list)
-    for repo_name, file_path in sections["commit_ready"]:
-        by_repo_commit[repo_name].append(file_path)
-    for repo_name, file_path in sections["delete"]:
-        by_repo_delete[repo_name].append(file_path)
+    failed_pre: list[tuple[str, str, str]] = []
 
-    workspace = Path.home() / "Workspace"
+    for repo_rel, file_path in sections["commit_ready"]:
+        repo_path = workspace / repo_rel
+        if not (repo_path / ".git").exists():
+            failed_pre.append(("commit_ready", f"{repo_rel}/{file_path}", "repo .git 없음"))
+            continue
+        if not (repo_path / file_path).exists():
+            failed_pre.append(("commit_ready", f"{repo_rel}/{file_path}", "파일 없음"))
+            continue
+        by_repo_commit[repo_rel].append(file_path)
+
+    for repo_rel, file_path in sections["delete"]:
+        repo_path = workspace / repo_rel
+        if not repo_path.exists():
+            failed_pre.append(("delete", f"{repo_rel}/{file_path}", "repo 없음"))
+            continue
+        by_repo_delete[repo_rel].append(file_path)
+
     console.print(
         f"[yellow]commit_ready: {len(sections['commit_ready'])} files in "
         f"{len(by_repo_commit)} repos[/yellow]"
@@ -222,31 +236,91 @@ def cleanup(
         f"[yellow]delete: {len(sections['delete'])} files in "
         f"{len(by_repo_delete)} repos[/yellow]"
     )
+    if failed_pre:
+        console.print(f"[red]사전 검증 실패: {len(failed_pre)}건[/red]")
+        for cat, key, reason in failed_pre[:10]:
+            console.print(f"  - [{cat}] {key} — {reason}")
+        if len(failed_pre) > 10:
+            console.print(f"  ... +{len(failed_pre) - 10}")
 
     if dry_run:
         console.print("[cyan]dry-run. --no-dry-run 으로 실제 처리[/cyan]")
-        return
+        raise typer.Exit(code=0)
 
     committed = 0
-    for repo_name, files in by_repo_commit.items():
-        repo_path = workspace / repo_name
-        if not (repo_path / ".git").exists():
-            continue
+    commit_failed: list[tuple[str, str]] = []
+    for repo_rel, files in by_repo_commit.items():
+        repo_path = workspace / repo_rel
         try:
             commit_ready_in_repo(repo_path, files)
             committed += 1
+            if verbose:
+                console.print(f"  [green]commit ok[/green]: {repo_rel} ({len(files)} files)")
         except subprocess.CalledProcessError as e:
-            console.print(f"[red]commit failed: {repo_name}: {e}[/red]")
+            commit_failed.append((repo_rel, str(e)))
+            console.print(f"  [red]commit fail[/red]: {repo_rel}: {e}")
 
     deleted_count = 0
-    for repo_name, files in by_repo_delete.items():
-        repo_path = workspace / repo_name
-        if not repo_path.exists():
-            continue
+    for repo_rel, files in by_repo_delete.items():
+        repo_path = workspace / repo_rel
         delete_in_repo(repo_path, files)
         deleted_count += len(files)
+        if verbose:
+            console.print(f"  [green]delete ok[/green]: {repo_rel} ({len(files)} files)")
 
-    console.print(f"[green]commit: {committed} repos, delete: {deleted_count} files[/green]")
+    console.print(
+        f"[green]commit: {committed} repos, delete: {deleted_count} files[/green]"
+    )
+    if commit_failed or failed_pre:
+        console.print(
+            f"[red]총 실패: pre={len(failed_pre)}, commit={len(commit_failed)}[/red]"
+        )
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def compare(
+    yesterday: Path = typer.Argument(..., exists=True, help="이전 sweep JSON"),
+    today: Path = typer.Argument(..., exists=True, help="현재 sweep JSON"),
+):
+    """두 sweep JSON diff: 신규 dead/zombie, 부활, 미커밋 변화, 라벨 분포."""
+    a = json.loads(yesterday.read_text())
+    b = json.loads(today.read_text())
+
+    a_by = {r["path"]: r for r in a["repos"]}
+    b_by = {r["path"]: r for r in b["repos"]}
+
+    new_dead = [
+        r for p, r in b_by.items()
+        if r["label"] == "dead" and a_by.get(p, {}).get("label") != "dead"
+    ]
+    new_zombie = [
+        r for p, r in b_by.items()
+        if r["label"] == "zombie" and a_by.get(p, {}).get("label") != "zombie"
+    ]
+    revived = [
+        r for p, r in b_by.items()
+        if r["label"] in ("active", "warm")
+        and a_by.get(p, {}).get("label") in ("dead", "stale", "zombie")
+    ]
+
+    a_dirty = sum(r["dirty_count"] for r in a["repos"])
+    b_dirty = sum(r["dirty_count"] for r in b["repos"])
+
+    console.print(f"[bold]Sweep diff: {yesterday.stem} → {today.stem}[/bold]")
+    console.print(f"미커밋: {a_dirty} → {b_dirty} ({b_dirty - a_dirty:+d})")
+    console.print(
+        f"라벨: {a['summary']['by_label']} → {b['summary']['by_label']}"
+    )
+    console.print(f"\n[red]신규 dead ({len(new_dead)}):[/red]")
+    for r in new_dead[:10]:
+        console.print(f"  - {Path(r['path']).name}")
+    console.print(f"\n[yellow]신규 zombie ({len(new_zombie)}):[/yellow]")
+    for r in new_zombie[:10]:
+        console.print(f"  - {Path(r['path']).name}")
+    console.print(f"\n[green]부활 ({len(revived)}):[/green]")
+    for r in revived[:10]:
+        console.print(f"  - {Path(r['path']).name}")
 
 
 if __name__ == "__main__":
