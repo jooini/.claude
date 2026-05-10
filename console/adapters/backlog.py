@@ -5,20 +5,22 @@ from pathlib import Path
 
 
 _README_NAMES = ("README.md", "README.rst", "README", "readme.md")
+_ACTIVE_PATHS = ("active", "docs/active", ".claude/active")
 
 
 def has_active_backlog(repo: Path) -> bool:
-    """active/ 디렉토리에 미완료 체크박스가 있는 .md 파일이 있는가."""
-    active_dir = repo / "active"
-    if not active_dir.is_dir():
-        return False
-    for path in active_dir.glob("*.md"):
-        try:
-            text = path.read_text(errors="ignore")
-        except OSError:
+    """워크스페이스 컨벤션 3경로 중 하나에 미완료 체크박스가 있는 .md 파일이 있는가."""
+    for relative in _ACTIVE_PATHS:
+        active_dir = repo / relative
+        if not active_dir.is_dir():
             continue
-        if "- [ ]" in text:
-            return True
+        for path in active_dir.glob("*.md"):
+            try:
+                text = path.read_text(errors="ignore")
+            except OSError:
+                continue
+            if "- [ ]" in text:
+                return True
     return False
 
 

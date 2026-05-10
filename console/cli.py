@@ -21,9 +21,15 @@ def sweep(
     out: Path | None = typer.Option(None, help="JSON 리포트 출력 경로"),
 ):
     """모든 repo를 스캔하고 vitality 점수 계산. 리포트 출력."""
+    from console.adapters.backlog import has_active_backlog, has_readme
+
     results = []
     for repo in scan_repos(root, max_depth=2):
-        s = score(repo)
+        s = score(
+            repo,
+            has_backlog=has_active_backlog(repo.path),
+            has_readme_=has_readme(repo.path),
+        )
         results.append({
             "path": str(repo.path),
             "value": s.value,
