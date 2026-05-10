@@ -10,7 +10,7 @@ NC='\033[0m'
 PROJECTS=(
     "docs"
     "maxai-admin-refactor"
-    "stt-insight"
+    "speakingmax-study-insight"
     "dashboard-viewer"
 )
 
