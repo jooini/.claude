@@ -17,7 +17,12 @@ class VitalityScore:
     reason: str
 
 
-def score(repo: RepoStatus) -> VitalityScore:
+def score(
+    repo: RepoStatus,
+    *,
+    has_backlog: bool = False,
+    has_readme_: bool = True,
+) -> VitalityScore:
     if repo.last_commit_at is None:
         return VitalityScore(0, "empty", "커밋 없음")
 
@@ -47,9 +52,25 @@ def score(repo: RepoStatus) -> VitalityScore:
     else:
         dirty_pts = 5
 
-    value = commit_pts + dirty_pts
+    base = commit_pts + dirty_pts
+
+    bonus = 0
+    if has_backlog:
+        bonus += 10
+    if not has_readme_ and base < 50:
+        bonus -= 10
+
+    value = max(0, min(100, base + bonus))
     label = _label(value, repo.dirty_count, days_ago)
-    reason = f"커밋 {days_ago}일 전 + 미커밋 {repo.dirty_count}개"
+
+    extras = []
+    if has_backlog:
+        extras.append("active 백로그 +10")
+    if not has_readme_ and base < 50:
+        extras.append("README 없음 -10")
+    extra_str = f" ({', '.join(extras)})" if extras else ""
+
+    reason = f"커밋 {days_ago}일 전 + 미커밋 {repo.dirty_count}개{extra_str}"
     return VitalityScore(value, label, reason)
 
 
