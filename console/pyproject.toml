@@ -18,5 +18,8 @@ packages = ["console", "console.adapters"]
 "console" = "."
 "console.adapters" = "adapters"
 
+[tool.setuptools.package-data]
+console = ["migrations/*.sql"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
