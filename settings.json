@@ -509,6 +509,16 @@
             "type": "command",
             "command": "/Users/leonard/.claude/hooks/delegation-principle-inject.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/SessionStart/wsq-catalog-refresh.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/SessionStart/wsq-daily-sweep.sh",
+            "timeout": 5
           }
         ]
       },
