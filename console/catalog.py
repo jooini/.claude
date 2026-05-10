@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+import json
 import sqlite3
 from typing import Iterator
 
@@ -151,6 +152,28 @@ def delete_by_type_and_id_prefix(db_path: Path, type_: EntityType, id_prefix: st
         )
         conn.commit()
         return cur.rowcount
+    finally:
+        conn.close()
+
+
+def get_max_mtime(db_path: Path, type_: EntityType) -> str | None:
+    """해당 type의 entity 중 metadata_json.mtime 최대값 반환 (incremental 비교용)."""
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT metadata_json FROM entity WHERE type = ? AND metadata_json IS NOT NULL",
+            (type_.value,),
+        ).fetchall()
+        max_mtime: str | None = None
+        for (meta_str,) in rows:
+            try:
+                meta = json.loads(meta_str)
+                mt = meta.get("mtime") if isinstance(meta, dict) else None
+                if mt and (max_mtime is None or mt > max_mtime):
+                    max_mtime = mt
+            except (json.JSONDecodeError, TypeError):
+                continue
+        return max_mtime
     finally:
         conn.close()
 

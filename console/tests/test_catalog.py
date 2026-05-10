@@ -6,7 +6,7 @@ import pytest
 from console.catalog import (
     Catalog, Entity, EntityType,
     init_db, upsert_entity, find_by_id, search_by_name,
-    delete_by_type_and_id_prefix,
+    delete_by_type_and_id_prefix, get_max_mtime,
 )
 
 
@@ -112,6 +112,42 @@ def test_delete_by_type_and_id_prefix(db_path: Path):
 def test_entity_type_enum_values():
     """EntityType은 6종"""
     assert {t.value for t in EntityType} == {"hook", "skill", "agent", "command", "repo", "mcp"}
+
+
+def test_get_max_mtime_returns_max(db_path: Path):
+    """metadata_json.mtime 중 최대값 반환. 없으면 None."""
+    init_db(db_path)
+    upsert_entity(db_path, Entity(
+        "hook:a", EntityType.HOOK, "a", "/p/a", None, 0, None, None,
+        '{"mtime": "2026-05-09T10:00:00+00:00"}',
+    ))
+    upsert_entity(db_path, Entity(
+        "hook:b", EntityType.HOOK, "b", "/p/b", None, 0, None, None,
+        '{"mtime": "2026-05-10T10:00:00+00:00"}',
+    ))
+    upsert_entity(db_path, Entity(
+        "skill:c", EntityType.SKILL, "c", "/p/c", None, 0, None, None, None,
+    ))
+    assert get_max_mtime(db_path, EntityType.HOOK) == "2026-05-10T10:00:00+00:00"
+    assert get_max_mtime(db_path, EntityType.SKILL) is None
+
+
+def test_get_max_mtime_ignores_invalid_json(db_path: Path):
+    """metadata_json이 잘못된 JSON이거나 mtime 없으면 무시."""
+    init_db(db_path)
+    upsert_entity(db_path, Entity(
+        "hook:bad", EntityType.HOOK, "bad", "/p/bad", None, 0, None, None,
+        'not-json',
+    ))
+    upsert_entity(db_path, Entity(
+        "hook:nomt", EntityType.HOOK, "nomt", "/p/nomt", None, 0, None, None,
+        '{"event": "SessionStart"}',
+    ))
+    upsert_entity(db_path, Entity(
+        "hook:ok", EntityType.HOOK, "ok", "/p/ok", None, 0, None, None,
+        '{"mtime": "2026-05-08T01:00:00+00:00"}',
+    ))
+    assert get_max_mtime(db_path, EntityType.HOOK) == "2026-05-08T01:00:00+00:00"
 
 
 def test_catalog_class_context_manager(db_path: Path):

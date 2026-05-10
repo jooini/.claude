@@ -389,51 +389,95 @@ def search(
     console.print(table)
 
 
+def _skill_roots(home: Path) -> list[Path]:
+    """skills 루트 — 글로벌 + 플러그인 캐시 (2-3 depth)."""
+    import glob
+
+    roots = [home / ".claude/skills"]
+    for p in glob.glob(str(home / ".claude/plugins/cache/*/*/skills")):
+        roots.append(Path(p))
+    for p in glob.glob(str(home / ".claude/plugins/cache/*/*/*/skills")):
+        roots.append(Path(p))
+    return roots
+
+
+def _index_lightweight(db: Path, home: Path) -> tuple[int, int, int, int]:
+    """hooks/skills/agents/commands만 인덱싱. repos 제외 (refresh quick 용)."""
+    from console.indexers.hooks import index_hooks_to_catalog
+    from console.indexers.skills import index_skills_to_catalog
+    from console.indexers.agents import index_agents_to_catalog
+    from console.indexers.commands import index_commands_to_catalog
+
+    h = index_hooks_to_catalog(home / ".claude/hooks", db, home / ".claude/settings.json")
+    s = index_skills_to_catalog(_skill_roots(home), db)
+    a = index_agents_to_catalog(home / ".claude/agents", db)
+    c = index_commands_to_catalog(home / ".claude/commands", db)
+    return h, s, a, c
+
+
 @app.command()
 def index(
     force: bool = typer.Option(False, "--force", help="기존 catalog 무시하고 전체 재인덱싱"),
 ):
     """모든 부품 (hook/skill/agent/command/repo) 일괄 인덱싱."""
-    from console.indexers.hooks import index_hooks_to_catalog
-    from console.indexers.skills import index_skills_to_catalog
-    from console.indexers.agents import index_agents_to_catalog
-    from console.indexers.commands import index_commands_to_catalog
     from console.indexers.repos import index_repos_to_catalog
     import time
-    import glob
 
     db = Path.home() / ".claude" / "console" / "catalog.db"
     home = Path.home()
 
     t0 = time.time()
-    h_count = index_hooks_to_catalog(
-        home / ".claude/hooks", db, home / ".claude/settings.json"
-    )
-    console.print(f"hooks: {h_count} ({time.time()-t0:.1f}s)")
-
-    t0 = time.time()
-    skill_roots = [home / ".claude/skills"]
-    for p in glob.glob(str(home / ".claude/plugins/cache/*/*/skills")):
-        skill_roots.append(Path(p))
-    for p in glob.glob(str(home / ".claude/plugins/cache/*/*/*/skills")):
-        skill_roots.append(Path(p))
-    s_count = index_skills_to_catalog(skill_roots, db)
-    console.print(f"skills: {s_count} ({time.time()-t0:.1f}s)")
-
-    t0 = time.time()
-    a_count = index_agents_to_catalog(home / ".claude/agents", db)
-    console.print(f"agents: {a_count} ({time.time()-t0:.1f}s)")
-
-    t0 = time.time()
-    c_count = index_commands_to_catalog(home / ".claude/commands", db)
-    console.print(f"commands: {c_count} ({time.time()-t0:.1f}s)")
+    h_count, s_count, a_count, c_count = _index_lightweight(db, home)
+    console.print(f"hooks/skills/agents/commands ({time.time()-t0:.1f}s)")
 
     t0 = time.time()
     r_count = index_repos_to_catalog(home / "Workspace", db)
     console.print(f"repos: {r_count} ({time.time()-t0:.1f}s)")
 
     total = h_count + s_count + a_count + c_count + r_count
-    console.print(f"[green]총 {total} entity 인덱싱 완료[/green]")
+    console.print(
+        f"[green]총 {total} entity (hooks={h_count} skills={s_count} "
+        f"agents={a_count} commands={c_count} repos={r_count})[/green]"
+    )
+
+
+@app.command()
+def refresh(
+    quick: bool = typer.Option(
+        True, help="quick=hooks/skills/agents/commands만, --no-quick=전체 (repos 포함)"
+    ),
+):
+    """incremental update — 빠른 재인덱싱. quick 모드는 5초 이내, repos 제외.
+
+    SessionStart hook 에서 백그라운드로 호출하기 위한 명령.
+    repos 갱신은 ``wsq sweep`` / ``wsq index --no-quick`` 으로 별도 수행.
+    """
+    import time
+
+    db = Path.home() / ".claude" / "console" / "catalog.db"
+    home = Path.home()
+
+    if not quick:
+        from console.indexers.repos import index_repos_to_catalog
+
+        t0 = time.time()
+        h, s, a, c = _index_lightweight(db, home)
+        r = index_repos_to_catalog(home / "Workspace", db)
+        elapsed = time.time() - t0
+        console.print(
+            f"[green]full refresh: hooks={h} skills={s} agents={a} "
+            f"commands={c} repos={r} ({elapsed:.1f}s)[/green]"
+        )
+        return
+
+    t0 = time.time()
+    h, s, a, c = _index_lightweight(db, home)
+    elapsed = time.time() - t0
+    console.print(
+        f"[green]quick refresh: hooks={h} skills={s} agents={a} commands={c} "
+        f"({elapsed:.1f}s)[/green]"
+    )
+    console.print("[dim]repos는 wsq sweep / wsq refresh --no-quick 으로 별도 갱신[/dim]")
 
 
 if __name__ == "__main__":
