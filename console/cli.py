@@ -329,5 +329,112 @@ def compare(
         console.print(f"  - {Path(r['path']).name}")
 
 
+def _short_path(path: str) -> str:
+    """홈 디렉토리 ~ 로 축약."""
+    home = str(Path.home())
+    if path.startswith(home):
+        return "~" + path[len(home):]
+    return path
+
+
+@app.command()
+def search(
+    query: str = typer.Argument(..., help="검색어 (이름 prefix)"),
+    type_filter: str | None = typer.Option(None, "--type", "-t", help="hook|skill|agent|command|repo|mcp"),
+    limit: int = typer.Option(20, "-l", "--limit"),
+    show_broken: bool = typer.Option(False, "--broken", help="부서진 부품도 표시"),
+):
+    """catalog.db 단일 검색 — 모든 부품 (hook/skill/agent/command/repo)."""
+    from console.catalog import Catalog, EntityType
+
+    db_path = Path.home() / ".claude" / "console" / "catalog.db"
+    if not db_path.exists():
+        console.print("[red]catalog.db 없음. 먼저 wsq index 실행[/red]")
+        raise typer.Exit(1)
+
+    with Catalog(db_path) as cat:
+        results = cat.search(query, limit=limit * 3)  # 여분 가져와서 필터
+
+    if type_filter:
+        try:
+            t = EntityType(type_filter)
+            results = [e for e in results if e.type == t]
+        except ValueError:
+            console.print(
+                f"[red]잘못된 type: {type_filter}. 가능: hook|skill|agent|command|repo|mcp[/red]"
+            )
+            raise typer.Exit(1)
+
+    if not show_broken:
+        results = [e for e in results if not e.broken_reason]
+
+    results = results[:limit]
+
+    if not results:
+        console.print(f"[yellow]'{query}' 매칭 없음[/yellow]")
+        return
+
+    table = Table(title=f"Search: '{query}' ({len(results)} results)")
+    table.add_column("Type", style="cyan")
+    table.add_column("Name", style="bold")
+    table.add_column("Path", style="dim")
+    table.add_column("Score", justify="right")
+    table.add_column("Status")
+
+    for e in results:
+        score_str = str(e.vitality_score) if e.vitality_score is not None else ""
+        status = "[red]broken[/red]" if e.broken_reason else "[green]ok[/green]"
+        table.add_row(e.type.value, e.name, _short_path(e.path), score_str, status)
+
+    console.print(table)
+
+
+@app.command()
+def index(
+    force: bool = typer.Option(False, "--force", help="기존 catalog 무시하고 전체 재인덱싱"),
+):
+    """모든 부품 (hook/skill/agent/command/repo) 일괄 인덱싱."""
+    from console.indexers.hooks import index_hooks_to_catalog
+    from console.indexers.skills import index_skills_to_catalog
+    from console.indexers.agents import index_agents_to_catalog
+    from console.indexers.commands import index_commands_to_catalog
+    from console.indexers.repos import index_repos_to_catalog
+    import time
+    import glob
+
+    db = Path.home() / ".claude" / "console" / "catalog.db"
+    home = Path.home()
+
+    t0 = time.time()
+    h_count = index_hooks_to_catalog(
+        home / ".claude/hooks", db, home / ".claude/settings.json"
+    )
+    console.print(f"hooks: {h_count} ({time.time()-t0:.1f}s)")
+
+    t0 = time.time()
+    skill_roots = [home / ".claude/skills"]
+    for p in glob.glob(str(home / ".claude/plugins/cache/*/*/skills")):
+        skill_roots.append(Path(p))
+    for p in glob.glob(str(home / ".claude/plugins/cache/*/*/*/skills")):
+        skill_roots.append(Path(p))
+    s_count = index_skills_to_catalog(skill_roots, db)
+    console.print(f"skills: {s_count} ({time.time()-t0:.1f}s)")
+
+    t0 = time.time()
+    a_count = index_agents_to_catalog(home / ".claude/agents", db)
+    console.print(f"agents: {a_count} ({time.time()-t0:.1f}s)")
+
+    t0 = time.time()
+    c_count = index_commands_to_catalog(home / ".claude/commands", db)
+    console.print(f"commands: {c_count} ({time.time()-t0:.1f}s)")
+
+    t0 = time.time()
+    r_count = index_repos_to_catalog(home / "Workspace", db)
+    console.print(f"repos: {r_count} ({time.time()-t0:.1f}s)")
+
+    total = h_count + s_count + a_count + c_count + r_count
+    console.print(f"[green]총 {total} entity 인덱싱 완료[/green]")
+
+
 if __name__ == "__main__":
     app()

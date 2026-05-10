@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import os
 import stat
 import pytest
@@ -90,3 +91,82 @@ def test_index_hooks_replaces_stale(tmp_path: Path, fake_hooks_dir: Path):
     with Catalog(db) as cat:
         assert cat.find_by_id("hook:SessionStart/init.sh") is None  # stale 삭제됨
         assert cat.find_by_id("hook:PreToolUse/check.py") is not None
+
+
+def test_scan_hooks_finds_flat_scripts(tmp_path: Path):
+    """flat ~/.claude/hooks/*.sh 도 인덱싱.
+
+    실제 settings.json 의 command 는 ``…/hooks/<script>`` 형태이므로
+    'hooks/' 토큰이 path 안에 들어 있어야 매핑이 동작한다.
+    """
+    hooks_dir = tmp_path / "hooks"
+    hooks_dir.mkdir()
+    (hooks_dir / "post-hook.sh").write_text("#!/bin/bash")
+    (hooks_dir / "post-hook.sh").chmod(0o755)
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({
+        "hooks": {
+            "PostToolUse": [{"hooks": [{"command": f"{hooks_dir}/post-hook.sh"}]}]
+        }
+    }))
+    hooks = scan_hooks(hooks_dir, settings)
+    by_id = {h.relative_id: h for h in hooks}
+    assert "post-hook.sh" in by_id
+    assert by_id["post-hook.sh"].registered is True
+    assert by_id["post-hook.sh"].event == "PostToolUse"
+
+
+def test_scan_hooks_marks_orphan(tmp_path: Path):
+    """settings 미등록 = orphan."""
+    hooks_dir = tmp_path / "hooks"
+    hooks_dir.mkdir()
+    (hooks_dir / "orphan.sh").write_text("#!/bin/bash")
+    (hooks_dir / "orphan.sh").chmod(0o755)
+    settings = tmp_path / "settings.json"
+    settings.write_text('{"hooks": {}}')
+    hooks = scan_hooks(hooks_dir, settings)
+    by_id = {h.relative_id: h for h in hooks}
+    assert by_id["orphan.sh"].registered is False
+    assert by_id["orphan.sh"].event is None
+
+
+def test_index_hooks_orphan_marked_broken(tmp_path: Path):
+    hooks_dir = tmp_path / "hooks"
+    hooks_dir.mkdir()
+    (hooks_dir / "orphan.sh").write_text("#!/bin/bash")
+    (hooks_dir / "orphan.sh").chmod(0o755)
+    settings = tmp_path / "settings.json"
+    settings.write_text('{"hooks": {}}')
+    db = tmp_path / "catalog.db"
+    init_db(db)
+    index_hooks_to_catalog(hooks_dir, db, settings)
+    with Catalog(db) as cat:
+        e = cat.find_by_id("hook:orphan.sh")
+        assert e is not None
+        assert "orphan" in e.broken_reason
+
+
+def test_scan_hooks_supports_wrapper_command(tmp_path: Path):
+    """`/bin/zsh wrapper.sh /path/to/hooks/target.sh` 같은 다중 토큰 명령에서도
+    실제 타깃 스크립트를 정확히 매핑한다 (real settings.json 패턴)."""
+    hooks_dir = tmp_path / "hooks"
+    hooks_dir.mkdir()
+    lib = hooks_dir / "_lib"
+    lib.mkdir()
+    (lib / "hook-timing.sh").write_text("#!/bin/bash")
+    (lib / "hook-timing.sh").chmod(0o755)
+    (hooks_dir / "real-target.sh").write_text("#!/bin/bash")
+    (hooks_dir / "real-target.sh").chmod(0o755)
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({
+        "hooks": {
+            "PostToolUse": [{"hooks": [{
+                "command": f"/bin/zsh {hooks_dir}/_lib/hook-timing.sh {hooks_dir}/real-target.sh"
+            }]}]
+        }
+    }))
+    hooks = scan_hooks(hooks_dir, settings)
+    by_id = {h.relative_id: h for h in hooks}
+    # 마지막 토큰이 우선이라기보다, 둘 다 인식되어 둘 다 registered=True
+    assert by_id["real-target.sh"].registered is True
+    assert by_id["_lib/hook-timing.sh"].registered is True
