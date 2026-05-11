@@ -10,7 +10,7 @@
 #   ]
 set -euo pipefail
 
-VENV="$HOME/.claude/console/.venv/bin/activate"
+VENV="$HOME/Workspace/claude-harness/.venv/bin/activate"
 [ -f "$VENV" ] || exit 0
 
 # shellcheck disable=SC1090

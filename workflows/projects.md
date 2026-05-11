@@ -18,6 +18,7 @@
 | ios-test | `~/Workspace/ios-test` | iOS + Swift + SwiftUI (Xcode) |
 | maxai-ios | `~/Workspace/maxai-ios` | iOS + Swift |
 | terracore-infra | `~/Workspace/terracore-infra` | Terraform + AWS |
+| claude-harness | `~/Workspace/claude-harness` | Python 3.13 + typer (하네스 전담, wsq CLI) |
 
 프로젝트별 상세 규칙은 각 프로젝트의 CLAUDE.md 참조.
 

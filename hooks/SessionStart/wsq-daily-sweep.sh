@@ -6,12 +6,12 @@
 set -euo pipefail
 
 TODAY=$(date +%Y-%m-%d)
-LAST_FILE=~/.claude/console/.last-sweep
+LAST_FILE=~/Workspace/claude-harness/.last-sweep
 LAST=$(cat "$LAST_FILE" 2>/dev/null || echo "")
 
 [ "$LAST" = "$TODAY" ] && exit 0
 
-VENV=~/.claude/console/.venv/bin/activate
+VENV=~/Workspace/claude-harness/.venv/bin/activate
 [ -f "$VENV" ] || exit 0
 
 # shellcheck disable=SC1090
