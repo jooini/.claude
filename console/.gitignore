@@ -1,8 +1,0 @@
-.venv/
-__pycache__/
-*.egg-info/
-.pytest_cache/
-
-# 빌드 산출물 — wsq index/refresh 로 재생성
-catalog.db
-catalog.db-*
