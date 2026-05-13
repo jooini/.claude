@@ -25,6 +25,7 @@
 | 워크플로우 자동화 (메트릭/규모/결정) | `~/.claude/workflows/automation.md` | 자동 트리거/메트릭 동작 확인 시 Read |
 | 개발 성장 원칙 (학습/회고/3중LLM) | `~/.claude/workflows/growth.md` | 학습/회고/큰 결정 시 Read |
 | terracore-infra | `~/Workspace/terracore-infra` | Terraform 1.9.8 + AWS |
+| speakingmax-study-admin | `~/Workspace/speakingmax-study-admin` | Next.js 15 + React 19 + TypeScript |
 
 ## 에이전트 한글 호출
 
@@ -91,20 +92,41 @@
 | "배포", "Docker", "Terraform", "SPI" | F: ops | 🔴 사람 승인 + 단계별 검증 |
 | "문서", "PRD", "스펙", "정리" | G: docs | po/prompt-engineer + Obsidian |
 
-작업 시작 전 **반드시**:
-1. `claude-mem:mem-search` 으로 과거 솔루션 조회
-2. `local-rag:query_documents` 의미론적 검색
-3. graphify 그래프 있으면 `GRAPH_REPORT.md` 참조
+작업 시작 전 **작업 유형별 1개 이상** 호출 (hook이 자동 권고 — `memory-search-suggest.sh`):
+- 코드 위치/API/구현/디버깅 → `local-rag:query_documents`
+- 과거 결정/판단/반복 실패 패턴 → `claude-mem:mem-search`
+- 디버깅·아키텍처·고위험 변경 → 둘 다
+- graphify 그래프 있으면 `GRAPH_REPORT.md` 참조
+
+**중요**: CLAUDE.md 텍스트만으로는 호출 강제 안 됨 (transcript 검증: 자율 호출 0%). UserPromptSubmit hook이 발화별로 "[메모리 검색 필수]" system-reminder 주입하면 그때 호출. hook 권고 받으면 **반드시 답변 전 호출**. 권고 없는 짧은 발화는 검색 생략 가능.
+
+상세 배경: `Projects/misc/2026-05/2026-05-10-1256-knowledge-domain-loading-failure-analysis.md`
 
 
-## 백로그 정책 (등록 가드)
+## 백로그 정책 (등록 가드 + 트랙 v4)
 
-- 새 백로그 등록 전 `workflows/standard-routines.md` "백로그 등록 가드" 4개 체크 필수
-  - 30분 이상 / WHY 명확 / DONE 측정 가능 / 트리거 있음
+- 새 백로그 등록 전 `workflows/standard-routines.md` "백로그 등록 가드" 5개 체크 필수
+  - 30분 이상 / WHY 명확 / DONE 측정 가능 / 트리거 있음 / **트랙 명확**
 - **30분 미만 작업은 등록 금지** → 즉시 처리
 - 자동 거부 패턴: "TODO 작성", "재사용/튜닝", "테스트 커버리지" (목표치 없음), "정리/청소"
 - 등록 트리거 6종만 허용: 🔒보안 / 🐛버그재현 / ⚡측정된성능 / 🚀요구사항 / 📅일정 / 🔧3파일+리팩터
 - 분기별 `/backlog --stale 90` 자동 정리 (90일 강등, 180일 삭제 후보)
+
+### 7개 트랙 (도메인/실행 컨텍스트)
+
+- **메인**: `backend` / `frontend` / `data` / `infra` / `auth`
+- **메타**: `ops` (운영/모니터링) / `meta` (테스트/문서/리팩터)
+
+### @dev backlog 진입 규칙
+
+| 호출 | 동작 |
+|------|------|
+| `@dev backlog` | 메인 트랙만 후보 (메타 자동 제외) |
+| `@dev backlog {트랙}` | 해당 트랙만 필터 (예: `@dev backlog data`) |
+| `@dev backlog meta` | 메타 명시 진입 (메인 일단락 시점만) |
+| `@dev backlog 전체` | 전 항목 (분기별 점검) |
+
+상세: `workflows/standard-routines.md` "백로그 트랙 정책 (v4)"
 ## 도구 역할 분담
 
 - **Claude Code**: 판단/채택/최종 구현/의사결정
