@@ -971,14 +971,35 @@ analyze_with_gemini() {
 예: '- Repository 패턴: 인터페이스(domain/)와 구현(infrastructure/) 분리'
 
 ===BACKLOG===
-코드를 분석하여 발견한 실제 개선 필요 사항을 backlog 형식으로 작성.
-각 항목은 아래 형식:
-- [ ] **제목** — 설명
-  - 위치: \`파일경로\`
-  - 근거: 이유
+코드를 분석하여 발견한 실제 개선 필요 사항을 backlog 형식 (schema v4) 으로 작성.
 
-우선순위별로 ## 높음 (High), ## 중간 (Medium), ## 낮음 (Low) 섹션에 배치.
-최소 5개, 최대 15개. 실제 코드에서 확인한 것만.
+각 항목은 트랙 라벨 필수. 트랙 7개:
+- 메인: backend / frontend / data / infra / auth
+- 메타: ops (운영/모니터링) / meta (테스트/문서/리팩터)
+
+각 항목 형식:
+- [ ] \`[트랙]\` **제목** — 설명
+  - 위치: \`파일경로:줄번호\` (가능하면)
+  - 트리거: 🔒보안/🐛버그/⚡성능/🚀요구사항/📅일정/🔧리팩터 중 하나 + 사유
+  - DONE: 끝났는지 측정 가능한 기준
+  - 추정: 30m / 1h / 2h / 4h / 1d / 2d
+
+구조:
+## 메인 트랙
+### 높음 (High)  /  ### 중간 (Medium)  /  ### 낮음 (Low)
+## 메타 트랙 (격리)
+### 중간 (Medium)  (테스트/문서/리팩터/lint는 여기로)
+
+분류 원칙:
+- 인증/JWT/JWKS/PII/RBAC → auth
+- DB/SQL/ClickHouse/대시보드 → data
+- Docker/배포/CI/env → infra
+- API/라우트/서버 로직 → backend
+- 페이지/컴포넌트/UI → frontend
+- 헬스체크/모니터링/알림 → ops (메타)
+- 테스트 커버리지/문서/리팩터/lint → meta (메타)
+
+최소 5개, 최대 15개. 실제 코드에서 확인한 것만. 추측 금지.
 
 ===DIRTREE===
 주요 디렉토리를 설명 포함하여 트리 형태로 작성. 예:
@@ -1127,11 +1148,13 @@ analyze_static() {
         ok "아키텍처 패턴 ${arch//[^-]/}" | wc -l | xargs -I{} echo "아키텍처 패턴 감지"
     fi
 
-    # ── Backlog 자동 생성 ──
-    local backlog=""
-    local bl_high="" bl_mid="" bl_low=""
+    # ── Backlog 자동 생성 (schema v4 — 메인/메타 분리) ──
+    # 메인 트랙 (backend/frontend/data/infra/auth)
+    local main_high="" main_mid="" main_low=""
+    # 메타 트랙 (ops/meta)
+    local meta_high="" meta_mid="" meta_low=""
 
-    # TODO/FIXME/HACK 스캔
+    # TODO/FIXME/HACK 스캔 (트랙은 경로 기반 추론)
     local todo_files=$(grep -rl "TODO\|FIXME\|HACK\|XXX" "$dir/src" "$dir/app" "$dir/lib" 2>/dev/null | grep -v __pycache__ | grep -v node_modules | grep -v .git | head -20)
     if [[ -n "$todo_files" ]]; then
         while IFS= read -r tf; do
@@ -1139,40 +1162,49 @@ analyze_static() {
             local todo_line=$(grep -n "TODO\|FIXME\|HACK" "$tf" 2>/dev/null | head -1)
             local line_num="${todo_line%%:*}"
             local todo_text=$(echo "$todo_line" | sed 's/[^:]*://' | sed 's/.*TODO[: ]*//' | sed 's/.*FIXME[: ]*//' | sed 's/.*HACK[: ]*//' | sed 's/^ *//' | head -c 100)
-            [[ -n "$todo_text" ]] && bl_mid="${bl_mid}- [ ] **TODO: ${todo_text}**\n  - 위치: \`${rel_path}:${line_num}\`\n  - 근거: 코드 내 TODO 주석\n\n"
+            # 트랙 추론: 경로 키워드로
+            local track="backend"
+            case "$rel_path" in
+                *auth*|*jwt*|*jwks*|*oauth*|*pii*|*rate-limit*) track="auth" ;;
+                *clickhouse*|*sql*|*dashboard*|*analytics*) track="data" ;;
+                *docker*|*deploy*|*ci*|*infra*) track="infra" ;;
+                *components/*|*page.tsx*|*_components/*) track="frontend" ;;
+                *audit*|*monitor*|*health*) track="ops" ;;
+            esac
+            [[ -n "$todo_text" ]] && main_mid="${main_mid}- [ ] \`[${track}]\` **TODO: ${todo_text}**\n  - 위치: \`${rel_path}:${line_num}\`\n  - 트리거: 🔧 코드 내 TODO 주석\n  - DONE: 해당 TODO 제거 + 동작 확인\n  - 추정: 1h\n\n"
         done <<< "$todo_files"
     fi
 
-    # CORS * 검사
+    # CORS * 검사 → auth 트랙
     if grep -rql 'allow_origins.*\*\|allow_methods.*\*\|allowedOrigins.*\*' "$dir/src" "$dir/app" 2>/dev/null; then
         local cors_file=$(grep -rl 'allow_origins.*\*\|allow_methods.*\*' "$dir/src" "$dir/app" 2>/dev/null | head -1)
         local cors_rel="${cors_file#$dir/}"
-        bl_high="${bl_high}- [ ] **CORS 와일드카드 설정** — \`allow_origins=[\"*\"]\` 또는 \`allow_methods=[\"*\"]\` 프로덕션 보안 위험\n  - 위치: \`${cors_rel}\`\n  - 근거: 프로덕션 배포 시 명시적 허용 목록 필요\n\n"
+        main_high="${main_high}- [ ] \`[auth]\` **CORS 와일드카드 설정** — \`allow_origins=[\"*\"]\` 또는 \`allow_methods=[\"*\"]\` 프로덕션 보안 위험\n  - 위치: \`${cors_rel}\`\n  - 트리거: 🔒 프로덕션 배포 시 명시적 허용 목록 필요\n  - DONE: 환경별 허용 origin 화이트리스트 적용 + 배포 환경 확인\n  - 추정: 2h\n\n"
     fi
 
-    # 테스트 커버리지 검사
+    # 테스트 커버리지 검사 → meta 트랙
     local src_count=$(find "$dir/src" "$dir/app" "$dir/lib" -name "*.py" -o -name "*.kt" -o -name "*.ts" -o -name "*.tsx" -o -name "*.php" 2>/dev/null | grep -v __pycache__ | grep -v node_modules | wc -l | tr -d ' ')
     local test_count=$(find "$dir/tests" "$dir/test" "$dir/__tests__" -name "*.py" -o -name "*.kt" -o -name "*.ts" -o -name "*.spec.*" -o -name "*.test.*" -o -name "*Test.php" 2>/dev/null | grep -v __pycache__ | grep -v node_modules | wc -l | tr -d ' ')
     if [[ $src_count -gt 0 && $test_count -eq 0 ]]; then
-        bl_high="${bl_high}- [ ] **테스트 파일 없음** — 소스 파일 ${src_count}개 대비 테스트 0개\n  - 위치: \`tests/\`\n  - 근거: 코드 안정성을 위해 최소한의 테스트 필요\n\n"
+        meta_mid="${meta_mid}- [ ] \`[meta]\` **테스트 파일 없음** — 소스 파일 ${src_count}개 대비 테스트 0개\n  - 위치: \`tests/\`\n  - 트리거: 🔧 회귀 방어 부재\n  - DONE: 핵심 모듈 happy/error path 각 1쌍 + CI 실행 확인\n  - 추정: 1d\n\n"
     elif [[ $src_count -gt 0 && $test_count -gt 0 ]]; then
         local ratio=$((test_count * 100 / src_count))
         if [[ $ratio -lt 30 ]]; then
-            bl_mid="${bl_mid}- [ ] **테스트 커버리지 부족** — 소스 ${src_count}개 / 테스트 ${test_count}개 (${ratio}%)\n  - 위치: \`tests/\`\n  - 근거: 테스트 커버리지 확대 필요\n\n"
+            meta_mid="${meta_mid}- [ ] \`[meta]\` **테스트 커버리지 부족** — 소스 ${src_count}개 / 테스트 ${test_count}개 (${ratio}%)\n  - 위치: \`tests/\`\n  - 트리거: 🔧 회귀 방어 부족 (30% 미만)\n  - DONE: 핵심 모듈 우선 커버리지 50%+ 또는 측정 가능한 목표 수치 설정\n  - 추정: 2d\n\n"
         fi
     fi
 
-    # Dockerfile 누락
+    # Dockerfile 누락 → infra
     if [[ -f "$dir/docker-compose.yml" || -f "$dir/docker-compose.yaml" || -f "$dir/compose.yml" ]] && [[ ! -f "$dir/Dockerfile" ]]; then
-        bl_low="${bl_low}- [ ] **Dockerfile 누락** — docker-compose 존재하나 Dockerfile 없음\n  - 위치: 프로젝트 루트\n  - 근거: 컨테이너 빌드 설정 필요\n\n"
+        main_low="${main_low}- [ ] \`[infra]\` **Dockerfile 누락** — docker-compose 존재하나 Dockerfile 없음\n  - 위치: 프로젝트 루트\n  - 트리거: 🔧 컨테이너 빌드 설정 필요\n  - DONE: Dockerfile 작성 + compose에서 build 성공\n  - 추정: 2h\n\n"
     fi
 
-    # .env.example 누락
+    # .env.example 누락 → infra
     if [[ -f "$dir/.env" && ! -f "$dir/.env.example" ]]; then
-        bl_mid="${bl_mid}- [ ] **.env.example 누락** — .env 파일 존재하나 예시 파일 없음\n  - 위치: 프로젝트 루트\n  - 근거: 팀원 온보딩 시 환경변수 가이드 필요\n\n"
+        main_mid="${main_mid}- [ ] \`[infra]\` **.env.example 누락** — .env 파일 존재하나 예시 파일 없음\n  - 위치: 프로젝트 루트\n  - 트리거: 🔧 팀원 온보딩 시 환경변수 가이드 필요\n  - DONE: .env에서 민감값 제거한 .env.example 추가\n  - 추정: 30m\n\n"
     fi
 
-    # 큰 파일 감지 (500줄 이상)
+    # 큰 파일 감지 (500줄 이상) → meta 트랙(리팩터)
     local big_files=$(find "$dir/src" "$dir/app" "$dir/lib" \( -name "*.py" -o -name "*.kt" -o -name "*.ts" -o -name "*.php" \) 2>/dev/null | grep -v __pycache__ | grep -v node_modules | while IFS= read -r f; do
         local lines=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
         [[ $lines -gt 500 ]] && echo "${f#$dir/}:${lines}"
@@ -1181,54 +1213,69 @@ analyze_static() {
         while IFS= read -r bf; do
             local bf_path="${bf%%:*}"
             local bf_lines="${bf#*:}"
-            bl_low="${bl_low}- [ ] **대형 파일 분리 검토** — ${bf_path} (${bf_lines}줄)\n  - 위치: \`${bf_path}\`\n  - 근거: 단일 파일 500줄 초과 시 책임 분리 검토\n\n"
+            meta_low="${meta_low}- [ ] \`[meta]\` **대형 파일 분리 검토** — ${bf_path} (${bf_lines}줄)\n  - 위치: \`${bf_path}\`\n  - 트리거: 🔧 단일 파일 500줄 초과 — 책임 분리 검토\n  - DONE: 책임 단위로 분할 + 호출처 회귀 통과\n  - 추정: 1d\n\n"
         done <<< "$big_files"
     fi
 
-    # Alembic 의존성 있는데 migrations 없음
+    # Alembic 의존성 있는데 migrations 없음 → infra (DB 마이그레이션 기반)
     if grep -q "alembic" "$dir/pyproject.toml" 2>/dev/null && [[ ! -d "$dir/alembic/versions" ]]; then
-        bl_high="${bl_high}- [ ] **Alembic 마이그레이션 설정** — alembic 의존성은 있으나 마이그레이션 디렉토리 미구성\n  - 위치: 프로젝트 루트\n  - 근거: DB 스키마 변경 관리 필수\n\n"
+        main_high="${main_high}- [ ] \`[infra]\` **Alembic 마이그레이션 설정** — alembic 의존성은 있으나 마이그레이션 디렉토리 미구성\n  - 위치: 프로젝트 루트\n  - 트리거: 📅 DB 스키마 변경 관리 필수\n  - DONE: alembic init + 첫 마이그레이션 생성 + upgrade 동작 확인\n  - 추정: 2h\n\n"
     fi
 
-    # README 부실 검사
+    # README 부실 검사 → meta
     if [[ -f "$dir/README.md" ]]; then
         local readme_lines=$(wc -l < "$dir/README.md" | tr -d ' ')
         if [[ $readme_lines -lt 10 ]]; then
-            bl_low="${bl_low}- [ ] **README 보강** — README.md가 ${readme_lines}줄로 부실\n  - 위치: \`README.md\`\n  - 근거: 프로젝트 소개, 설치, 실행 방법 필요\n\n"
+            meta_low="${meta_low}- [ ] \`[meta]\` **README 보강** — README.md가 ${readme_lines}줄로 부실\n  - 위치: \`README.md\`\n  - 트리거: 🔧 프로젝트 소개·설치·실행 방법 필요\n  - DONE: 정체성/스택/빌드/실행/테스트 5섹션 채움\n  - 추정: 1h\n\n"
         fi
     fi
 
-    # backlog 조합
+    # 헬퍼: 섹션 출력
+    local _emit_section() {
+        local title="$1" content="$2" empty_msg="$3"
+        echo "### ${title}"
+        echo ""
+        if [[ -n "$content" ]]; then
+            printf '%b' "$content"
+        else
+            echo "(${empty_msg})"
+            echo ""
+        fi
+    }
+
+    # backlog 조합 (v4)
+    local proj_name=$(basename "$dir")
     {
-        echo "## 높음 (High)"
+        echo "# Backlog"
         echo ""
-        if [[ -n "$bl_high" ]]; then
-            printf '%b' "$bl_high"
-        else
-            echo "(분석 결과 고우선 항목 없음)"
-            echo ""
-        fi
-        echo "## 중간 (Medium)"
+        echo "<!-- schema: v4 -->"
+        local total_main=$(printf '%b%b%b' "$main_high" "$main_mid" "$main_low" | grep -c '^\- \[ \]')
+        local total_meta=$(printf '%b%b%b' "$meta_high" "$meta_mid" "$meta_low" | grep -c '^\- \[ \]')
+        local total_all=$((total_main + total_meta))
+        echo "> 프로젝트: \`${proj_name}\`  ·  총 ${total_all}건  ·  메인 ${total_main} / 메타 ${total_meta}"
         echo ""
-        if [[ -n "$bl_mid" ]]; then
-            printf '%b' "$bl_mid"
-        else
-            echo "(분석 결과 중간 항목 없음)"
-            echo ""
-        fi
-        echo "## 낮음 (Low)"
+        echo "## 메인 트랙"
         echo ""
-        if [[ -n "$bl_low" ]]; then
-            printf '%b' "$bl_low"
-        else
-            echo "(분석 결과 낮음 항목 없음)"
-            echo ""
-        fi
+        echo "진입: \`@dev backlog\` (무지정 시 이 섹션만 후보)"
+        echo ""
+        _emit_section "높음 (High)" "$main_high" "분석 결과 고우선 항목 없음"
+        _emit_section "중간 (Medium)" "$main_mid" "분석 결과 중간 항목 없음"
+        _emit_section "낮음 (Low)" "$main_low" "분석 결과 낮음 항목 없음"
+        echo "## 메타 트랙 (격리)"
+        echo ""
+        echo "진입: \`@dev backlog meta\` 명시 호출 시만. \`@dev backlog\` 무지정 호출 시 **자동 제외**."
+        echo ""
+        _emit_section "높음 (High)" "$meta_high" "없음"
+        _emit_section "중간 (Medium)" "$meta_mid" "없음"
+        _emit_section "낮음 (Low)" "$meta_low" "없음"
+        echo "## 완료"
+        echo ""
+        echo "(완료 항목은 archive/로 이동)"
     } > "$AI_ANALYSIS_DIR/backlog.md"
 
     local total_items
     total_items=$(grep -c '^\- \[ \]' "$AI_ANALYSIS_DIR/backlog.md" 2>/dev/null) || total_items=0
-    ok "정적 분석 완료: backlog ${total_items}건"
+    ok "정적 분석 완료: backlog ${total_items}건 (v4 schema)"
 }
 
 # ═══════════════════════════════════════════
@@ -1326,14 +1373,29 @@ apply_ai_analysis() {
         fi
     fi
 
-    # Backlog 적용
+    # Backlog 적용 (v4 schema — AI 분석 결과를 통째로 덮어쓰기)
     if [[ -s "$AI_ANALYSIS_DIR/backlog.md" && -f "$dir/docs/backlog.md" ]]; then
         local bl_items
         bl_items=$(grep -c '^\- \[ \]' "$AI_ANALYSIS_DIR/backlog.md" 2>/dev/null) || bl_items=0
         if [[ $bl_items -gt 0 ]]; then
             local backlog_content=$(cat "$AI_ANALYSIS_DIR/backlog.md")
-            cat > "$dir/docs/backlog.md" << BL_EOF
+            # AI 분석 결과가 v4 헤더(`# Backlog` + `<!-- schema: v4 -->`)를 이미 포함하면 그대로 사용
+            # Gemini 출력이 본문만(### 섹션부터) 오는 경우 v4 헤더로 감싸기
+            if echo "$backlog_content" | head -3 | grep -q "schema: v4"; then
+                # 이미 v4 완성형
+                cp "$AI_ANALYSIS_DIR/backlog.md" "$dir/docs/backlog.md"
+            else
+                # Gemini가 본문만 출력한 경우 — v4 래퍼 추가
+                local proj_name=$(basename "$dir")
+                cat > "$dir/docs/backlog.md" << BL_EOF
 # Backlog
+
+<!-- schema: v4 -->
+> 프로젝트: \`${proj_name}\`  ·  AI 분석 결과 (Gemini)
+
+> 트랙: \`backend\` / \`frontend\` / \`data\` / \`infra\` / \`auth\` (메인) · \`ops\` / \`meta\` (메타)
+> 진입 규칙: \`@dev backlog\` 무지정 시 메인 트랙만 후보.
+> 상세: \`~/.claude/workflows/standard-routines.md\` "백로그 트랙 정책 (v4)"
 
 ${backlog_content}
 
@@ -1341,7 +1403,8 @@ ${backlog_content}
 
 (완료 항목은 archive/로 이동)
 BL_EOF
-            ok "backlog.md 채움 (${bl_items}건)"
+            fi
+            ok "backlog.md 채움 (${bl_items}건, v4 schema)"
         fi
     fi
 
@@ -2012,34 +2075,51 @@ TESTREADME_EOF
         ok "생성: docs/testing/README.md"
     fi
 
-    # docs/backlog.md
+    # docs/backlog.md (schema v4 — 트랙 분리)
     if [[ ! -f "$dir/docs/backlog.md" ]]; then
         cat > "$dir/docs/backlog.md" << BACKLOG_EOF
 # Backlog
 
-## 높음 (High)
+<!-- schema: v4 -->
+> 프로젝트: \`${name}\`  ·  총 0건  ·  메인 0 / 메타 0
 
-- [ ] **항목 제목** — 설명
+> 트랙: \`backend\` / \`frontend\` / \`data\` / \`infra\` / \`auth\` (메인) · \`ops\` / \`meta\` (메타)
+> 진입 규칙: \`@dev backlog\` 무지정 시 메인 트랙만 후보. 메타는 \`@dev backlog meta\` 명시 호출 필요.
+> 상세: \`~/.claude/workflows/standard-routines.md\` "백로그 트랙 정책 (v4)"
+
+## 메인 트랙
+
+진입: \`@dev backlog\` (무지정 시 이 섹션만 후보)
+
+### 높음 (High)
+
+- [ ] \`[트랙]\` **항목 제목** — 설명
   - 위치: \`경로/파일.ext\`
-  - 근거: 왜 필요한지
+  - 트리거: 🔒/🐛/⚡/🚀/📅/🔧 중 하나 + 구체 사유
+  - DONE: 끝났는지 판단할 측정 기준
+  - 추정: 30m / 1h / 2h / 1d / 2d
 
-## 중간 (Medium)
+### 중간 (Medium)
 
-- [ ] **항목 제목** — 설명
-  - 위치: \`경로/파일.ext\`
-  - 근거: 왜 필요한지
+(없음)
 
-## 낮음 (Low)
+### 낮음 (Low)
 
-- [ ] **항목 제목** — 설명
-  - 위치: \`경로/파일.ext\`
-  - 근거: 왜 필요한지
+(없음)
+
+## 메타 트랙 (격리)
+
+진입: \`@dev backlog meta\` 명시 호출 시만. \`@dev backlog\` 무지정 호출 시 **자동 제외**.
+
+### 중간 (Medium)
+
+(없음)
 
 ## 완료
 
 (완료 항목은 archive/로 이동)
 BACKLOG_EOF
-        ok "생성: docs/backlog.md"
+        ok "생성: docs/backlog.md (schema v4)"
     fi
 }
 
