@@ -26,6 +26,7 @@
 | 개발 성장 원칙 (학습/회고/3중LLM) | `~/.claude/workflows/growth.md` | 학습/회고/큰 결정 시 Read |
 | terracore-infra | `~/Workspace/terracore-infra` | Terraform 1.9.8 + AWS |
 | speakingmax-study-admin | `~/Workspace/speakingmax-study-admin` | Next.js 15 + React 19 + TypeScript |
+| speakingmax-study-insight | `~/Workspace/speakingmax-study-insight` | Docker Compose 인프라 관리 |
 
 ## 에이전트 한글 호출
 

@@ -348,6 +348,45 @@ detect_stack() {
         return
     fi
 
+    # 1.4.5단계: monorepo 감지 (루트에 manifest 없고 워크스페이스 마커 있음)
+    # — pnpm-workspace.yaml / turbo.json / lerna.json / nx.json / rush.json
+    # — apps/ 또는 packages/ 디렉토리 안에 실제 프로젝트
+    local is_monorepo=false
+    if [[ -f "$dir/pnpm-workspace.yaml" || -f "$dir/turbo.json" || -f "$dir/lerna.json" || -f "$dir/nx.json" || -f "$dir/rush.json" ]]; then
+        is_monorepo=true
+    elif [[ -f "$dir/package.json" ]] && grep -q '"workspaces"' "$dir/package.json" 2>/dev/null; then
+        is_monorepo=true
+    fi
+    if $is_monorepo; then
+        # 자식 앱 스택을 모아 가장 빈도 높은 것 우선, 단 React/Next가 있으면 frontend 우선
+        local _next_count=0 _react_count=0 _py_count=0 _node_count=0
+        for sub in "$dir/apps"/* "$dir/packages"/*; do
+            [[ -d "$sub" ]] || continue
+            if [[ -f "$sub/package.json" ]]; then
+                grep -q '"next"' "$sub/package.json" 2>/dev/null && _next_count=$((_next_count+1)) && continue
+                grep -q '"react"' "$sub/package.json" 2>/dev/null && _react_count=$((_react_count+1)) && continue
+                _node_count=$((_node_count+1))
+            fi
+            if [[ -f "$sub/pyproject.toml" ]]; then
+                _py_count=$((_py_count+1))
+            fi
+        done
+        # 혼합 monorepo (Next + Python) → nextjs 우선 (DEV_AGENT_TYPE frontend-developer)
+        if (( _next_count > 0 )); then
+            echo "monorepo-nextjs"
+            return
+        elif (( _react_count > 0 )); then
+            echo "monorepo-react"
+            return
+        elif (( _py_count > 0 )); then
+            echo "monorepo-python"
+            return
+        elif (( _node_count > 0 )); then
+            echo "monorepo-node"
+            return
+        fi
+    fi
+
     # 1.5단계: 루트 docker-compose (서브디렉토리 탐색보다 우선)
     if [[ -f "$dir/docker-compose.yml" || -f "$dir/docker-compose.yaml" || -f "$dir/compose.yml" ]]; then
         echo "docker"
@@ -657,6 +696,53 @@ load_stack_preset() {
             FORMAT_CMD=""
             TYPECHECK_CMD="npx tsc --noEmit"
             DEV_AGENT_TYPE="frontend-developer"
+            ;;
+        monorepo-nextjs|monorepo-react|monorepo-node|monorepo-python)
+            # monorepo: 루트는 워크스페이스 메타만, 실제 빌드는 자식 앱에서
+            local _pkg_mgr="pnpm"
+            [[ -f "$PROJECT_DIR/yarn.lock" ]] && _pkg_mgr="yarn"
+            [[ -f "$PROJECT_DIR/package-lock.json" ]] && _pkg_mgr="npm"
+            [[ -f "$PROJECT_DIR/pnpm-lock.yaml" ]] && _pkg_mgr="pnpm"
+            # 자식 앱 목록 수집
+            local _apps_list=""
+            for sub in "$PROJECT_DIR/apps"/* "$PROJECT_DIR/packages"/*; do
+                [[ -d "$sub" ]] || continue
+                _apps_list="${_apps_list}$(basename "$sub"), "
+            done
+            _apps_list="${_apps_list%, }"
+            case "$stack_id" in
+                monorepo-nextjs)
+                    STACK="Monorepo (Next.js + ${_pkg_mgr})"
+                    STACK_DETAIL="${_pkg_mgr} workspace · apps: ${_apps_list:-?}"
+                    LANG="typescript"
+                    DEV_AGENT_TYPE="frontend-developer"
+                    ;;
+                monorepo-react)
+                    STACK="Monorepo (React + ${_pkg_mgr})"
+                    STACK_DETAIL="${_pkg_mgr} workspace · apps: ${_apps_list:-?}"
+                    LANG="typescript"
+                    DEV_AGENT_TYPE="frontend-developer"
+                    ;;
+                monorepo-python)
+                    STACK="Monorepo (Python)"
+                    STACK_DETAIL="${_pkg_mgr} workspace · apps: ${_apps_list:-?}"
+                    LANG="python"
+                    DEV_AGENT_TYPE="backend-developer"
+                    ;;
+                monorepo-node)
+                    STACK="Monorepo (Node.js)"
+                    STACK_DETAIL="${_pkg_mgr} workspace · apps: ${_apps_list:-?}"
+                    LANG="typescript"
+                    DEV_AGENT_TYPE="backend-developer"
+                    ;;
+            esac
+            PKG_MGR="$_pkg_mgr"
+            BUILD_CMD="${_pkg_mgr} install"
+            RUN_CMD="${_pkg_mgr} -F web dev  # 또는 -F api"
+            TEST_CMD="${_pkg_mgr} -r test"
+            LINT_CMD="${_pkg_mgr} -r lint"
+            FORMAT_CMD=""
+            TYPECHECK_CMD="${_pkg_mgr} -r typecheck"
             ;;
         keycloak-spi|gradle)
             STACK="Keycloak SPI"
