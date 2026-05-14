@@ -58,12 +58,11 @@
 
 ```
 1. Gemini Phase 0 (의존성 그래프 + God Nodes 식별)
-2. graphify 그래프 있으면 GRAPH_REPORT.md 먼저 참조
-3. Plan agent → 단계별 분해 (worktree 추천)
-4. 병렬 worktree 디스패치 (superpowers:dispatching-parallel-agents)
-5. 각 worktree: developer → tester
-6. 통합 시 Gemini 최종 통합 검증
-7. 3중 리뷰
+2. Plan agent → 단계별 분해 (worktree 추천)
+3. 병렬 worktree 디스패치 (superpowers:dispatching-parallel-agents)
+4. 각 worktree: developer → tester
+5. 통합 시 Gemini 최종 통합 검증
+6. 3중 리뷰
 ```
 
 ### TYPE-D: 디자인/UI (design)
@@ -217,8 +216,7 @@
 ```
 1. claude-mem:mem-search → "이전에 같은 문제 풀었나?"
 2. local-rag:query_documents → 의미론적 코드 검색
-3. graphify (있으면) → 의존성/구조
-4. Grep/Glob/Read → 정확 검색
+3. Grep/Glob/Read → 정확 검색
 ```
 
 검색 안 하고 바로 추정 → 같은 추정 두 번 금지 규칙 위반.

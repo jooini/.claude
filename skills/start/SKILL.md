@@ -91,6 +91,40 @@ done
 
 백로그 대기 항목 + active 진행 중 항목 요약.
 
+#### 1-6. 학습 컨텍스트 (자동 진단)
+
+학습 큐 + Hook 차단 + 최근 노트를 한 번에 조회한다. 보조 스크립트 사용:
+
+```bash
+~/.claude/scripts/learning-morning-context.sh
+```
+
+스크립트 출력에 다음이 포함된다 (실측 — 가정 금지):
+- 어제 큐에 추가된 항목 N개 (어제 날짜 grep)
+- 미정리 큐 항목 수 + 가장 오래된 미정리 (며칠 경과)
+- 어제/오늘 차단된 발화 수 (Hook 효과 확인)
+- 최근 7일 학습 노트 N개
+
+직접 호출하려면:
+```bash
+# 어제 큐 추가
+grep "$(date -v-1d +%Y-%m-%d)" ~/Workspace/weaversbrain/weaversbrain/Learning/learning-queue.md | wc -l
+
+# 미정리 + 가장 오래된
+grep -c "^- \[ \]" ~/Workspace/weaversbrain/weaversbrain/Learning/learning-queue.md
+grep "^- \[ \]" ~/Workspace/weaversbrain/weaversbrain/Learning/learning-queue.md | head -1
+
+# 어제 차단
+grep "$(date -v-1d +%Y-%m-%d)" ~/.claude/cache/learning-queue-blocked.log | wc -l
+
+# 최근 7일 학습 노트
+find ~/Workspace/weaversbrain/weaversbrain/Learning -name "*.md" -mtime -7 -not -name "learning-queue*" | wc -l
+```
+
+권고 규칙 (스크립트가 자동 출력):
+- 미정리 ≥ 5개 → `/deep-learn queue` 제안
+- 가장 오래된 > 14일 → 즉시 close 또는 학습
+
 ### 2단계: 요약 출력
 
 수집 결과를 아래 형식으로 출력:
@@ -115,6 +149,12 @@ done
   7. {프로젝트} — {N}건 대기, {M}건 진행중
   8. ...
   💡 `/orchestrator --dry-run` 으로 상세 확인
+
+📚 학습 컨텍스트
+  • 어제 큐 추가: {N}건 / 미정리: {M}건
+  • 어제/오늘 차단: {a}/{b}건 (Hook 효과)
+  • 최근 7일 노트: {K}개
+  • (조건부) 권고: /deep-learn queue / 14일 경과 항목 처리
 
 ──────────────────────────────────────────
 💡 추천: {가장 먼저 할 것}
