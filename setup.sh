@@ -64,8 +64,10 @@ typeset -A MODULE_DESC=(
 )
 
 # 모듈별 관련 훅 (settings.json에서 제거할 훅 파일명)
+# 주의: gemini-auto-scan / gemini-test-failure-analyze 는 bash-postproc-sync.sh 에 통합됨 (2026-05-14)
+#       gemini 모듈 OFF 시에는 bash-postproc-sync.sh 내부에서 gemini 명령 부재 분기로 자동 noop
 typeset -A MODULE_HOOKS=(
-    gemini     "gemini-auto-scan.sh gemini-review-prescan.sh"
+    gemini     "gemini-review-prescan.sh"
     codex      "codex-session-notify.sh codex-prompt-notify.sh error-codex-remind.sh pr-create-codex-remind.sh"
     gitlab     ""
     rag        ""

@@ -16,7 +16,7 @@
 ## 우선순위
 
 - Codex MCP가 기존 `codex:codex-rescue` 스킬(Bash 기반)보다 **우선**
-- `ask-codex` 스킬은 파이프라인 밖 임시 질문용으로 유지
+- `ask-codex` 스킬은 파이프라인 밖 임시 질문용으로 유지 — **내부 호출은 `mcp__codex-cli__codex` MCP 기본**, CLI(`codex exec`)는 MCP 장애 시 폴백 (2026-05-14 전환)
 - Codex MCP 호출 시 `workingDirectory`에 프로젝트 경로 명시
 
 ## 규칙 요약
