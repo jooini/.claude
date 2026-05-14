@@ -453,14 +453,11 @@ def print_human(data, days):
 
     print()
     print("📁 데이터 출처:")
-    print("   Claude Code: ~/.claude/projects/**/*.jsonl")
-    print("   Codex:       ~/.codex/state_5.sqlite (threads)")
-    print("   Gemini:      ~/.claude/cache/gemini-calls.jsonl  (gemini-wrapped.sh)")
-    print("   Ollama:      ~/.claude/cache/gemma-calls.jsonl")
-    print()
-    print("ℹ️  Gemini 추적 활성화 방법 2가지:")
-    print("   1) 호출 시 gemini-wrapped.sh 사용 (즉시 가능)")
-    print("   2) ~/.gemini/settings.json에 telemetry 섹션 추가 (interactive까지 캡처)")
+    print("   Claude Code: ~/.claude/projects/**/*.jsonl  (message.usage)")
+    print("   Codex:       ~/.codex/state_5.sqlite        (threads.tokens_used)")
+    print("   Gemini:      ~/.claude/cache/gemini-telemetry.jsonl  (gemini_cli.api_response, telemetry)")
+    print("                + ~/.claude/cache/gemini-calls.jsonl    (gemini-wrapped.sh, caller 식별용)")
+    print("   Ollama:      ~/.claude/cache/gemma-calls.jsonl       (부분 기록)")
     print("❌ GPT 직접:    별도 인증 안 됨 — Codex가 곧 GPT 사용량")
 
 
