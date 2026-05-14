@@ -100,17 +100,20 @@ echo "$ERROR_LOG" | ~/.local/bin/qwen-cli -p - --profile debugger
 **Fallback — curl 직접 호출** (qwen-cli 미설치 시만):
 
 ```bash
-# 단발 질의
-curl -s --max-time 120 http://leonard.local:11434/api/generate -d '{
+# 단발 질의 — 응답을 변수로 받고 sanitize 후 파싱 (제어문자 방어)
+RESP=$(curl -s --max-time 120 http://leonard.local:11434/api/generate -d '{
   "model": "qwen3.5:9b",
   "prompt": "질문",
   "stream": false,
   "keep_alive": "30m",
   "options": {"num_ctx": 8192}
-}' | jq -r '.response'
+}')
+printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\010\013\014\016-\037' | jq -r '.response' \
+  || printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\037' | jq -r '.response' \
+  || printf '%s' "$RESP" | python3 -c 'import json,sys; print(json.loads(sys.stdin.read(), strict=False).get("response",""))'
 
 # 채팅 (시스템 프롬프트 포함)
-curl -s --max-time 120 http://leonard.local:11434/api/chat -d '{
+RESP=$(curl -s --max-time 120 http://leonard.local:11434/api/chat -d '{
   "model": "qwen2.5-coder:14b",
   "messages": [
     {"role": "system", "content": "한국어로 간결하게. 코드는 fenced block."},
@@ -119,8 +122,16 @@ curl -s --max-time 120 http://leonard.local:11434/api/chat -d '{
   "stream": false,
   "keep_alive": "30m",
   "options": {"num_ctx": 8192}
-}' | jq -r '.message.content'
+}')
+printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\010\013\014\016-\037' | jq -r '.message.content' \
+  || printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\037' | jq -r '.message.content' \
+  || printf '%s' "$RESP" | python3 -c 'import json,sys; print(json.loads(sys.stdin.read(), strict=False).get("message",{}).get("content",""))'
 ```
+
+**제어문자 sanitize 이유**: qwen3.5가 `thinking` 필드나 ANSI escape (0x1B), BEL (0x07) 등 raw 제어문자를 응답에 흘리면 jq가 RFC 8259 strict 모드로 `Invalid string: control characters from U+0000 through U+001F must be escaped` 에러. 3단계 fallback:
+1. **보수적 tr** — 0x09(TAB)/0x0A(LF)/0x0D(CR) 보존하면서 나머지 제어문자만 제거. UTF-8 한글/이모지(0x80↑)는 영향 없음.
+2. **공격적 tr** — 0x00-0x1F 전부 제거 (string 안에 raw TAB/LF가 들어있는 비정상 케이스).
+3. **python json.loads(strict=False)** — macOS 기본 탑재라 의존성 0. 위 두 단계도 실패한 깨진 JSON 최후 보루.
 
 **`num_ctx` 가이드** (RTX 4090 Laptop 16GB 기준):
 
@@ -179,6 +190,8 @@ curl -s --max-time 120 http://leonard.local:11434/api/chat -d '{
 | VRAM 부족 (31b) | 16GB 한계 | 26b 또는 더 작은 모델로 |
 | 속도 갑자기 느림 (10 tok/s 이하) | KV 캐시가 VRAM 초과 → 부분 오프로드 | `options.num_ctx: 8192` 추가, 환경변수 `OLLAMA_MAX_LOADED_MODELS=1` |
 | `ollama ps`에서 GPU 100% 미만 | 동시 모델 적재 또는 큰 num_ctx | 위와 동일 |
+| `jq: parse error: Invalid string: control characters from U+0000 through U+001F` | 모델이 raw 제어문자(BEL 0x07, ESC 0x1B 등) 또는 `<thinking>` 토큰을 escape 없이 흘림. 30KB 응답이라도 1바이트만 끼면 전체 fail | 위 fallback 체인(보수적 tr → 공격적 tr → python json.loads(strict=False)) 적용. **응답을 변수로 받고 파싱은 sanitize 후** 하는 패턴 고정 |
+| 응답 받았는데 빈 문자열만 출력 | sanitize 후에도 jq는 성공했지만 `.response` 필드 자체가 비어있고 `.thinking`에만 내용 있음 (qwen 일부 모델) | `jq -r '.response // .thinking // .message.content'` 로 fallback 키 체크 |
 
 ## ask-gemma와의 관계
 

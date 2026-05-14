@@ -40,6 +40,34 @@ def _log_call(record: dict) -> None:
         pass
 
 
+_CTRL_KEEP_TAB_LF_CR = bytes(
+    b for b in range(0x20) if b not in (0x09, 0x0A, 0x0D)
+).decode("latin-1")
+_CTRL_ALL = "".join(chr(b) for b in range(0x20))
+
+
+def _loads_lenient(raw: bytes) -> dict:
+    """Parse Ollama JSON response tolerant of raw control characters.
+
+    Ollama (qwen3.5 등 일부 모델)가 응답 문자열에 raw 제어문자(BEL 0x07, ESC 0x1B,
+    <thinking> 토큰 등) 또는 raw LF/CR/TAB을 escape 없이 흘리면 json.loads strict
+    모드가 fail. 3단계 fallback — strict → TAB/LF/CR 보존 sanitize → 0x00-0x1F 전체 제거.
+    UTF-8 multi-byte(0x80↑)는 영향 없음.
+    """
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        pass
+    text = raw.decode("utf-8", errors="replace")
+    cleaned = text.translate({ord(c): None for c in _CTRL_KEEP_TAB_LF_CR})
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+    cleaned = text.translate({ord(c): None for c in _CTRL_ALL})
+    return json.loads(cleaned)
+
+
 def _call_ini(prompt: str, model: str, timeout: int) -> tuple[str | None, str]:
     """Returns (response or None on failure, stderr_preview)."""
     if not INI_BIN.exists() or not os.access(INI_BIN, os.X_OK):
@@ -87,7 +115,7 @@ def _call_urllib(prompt: str, model: str, num_predict: int, temperature: float, 
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            data = json.loads(r.read())
+            data = _loads_lenient(r.read())
         result = data.get("message", {}).get("content", "")
         meta = {
             "done_reason": data.get("done_reason"),
@@ -176,7 +204,7 @@ def _call_urllib_messages(messages: list[dict], model: str, num_predict: int,
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            data = json.loads(r.read())
+            data = _loads_lenient(r.read())
         result = data.get("message", {}).get("content", "").strip()
         meta = {
             "done_reason": data.get("done_reason"),
@@ -235,7 +263,7 @@ def call_ollama_messages(
         )
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                data = json.loads(r.read())
+                data = _loads_lenient(r.read())
             response = data.get("message", {}).get("content", "").strip()
             meta = {
                 "done_reason": data.get("done_reason"),

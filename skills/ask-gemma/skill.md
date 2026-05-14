@@ -48,16 +48,19 @@ curl -s --max-time 3 http://leonard.local:11434/api/tags | jq -r '.models[].name
 ### 2단계: API 호출 (gemma4:e4b 고정)
 
 ```bash
-# 기본 - 단발 질의
-curl -s --max-time 60 http://leonard.local:11434/api/generate -d '{
+# 기본 - 단발 질의 (응답 변수로 받고 sanitize 후 파싱)
+RESP=$(curl -s --max-time 60 http://leonard.local:11434/api/generate -d '{
   "model": "gemma4:e4b",
   "prompt": "질문 내용",
   "stream": false,
   "keep_alive": "30m"
-}' | jq -r '.response'
+}')
+printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\010\013\014\016-\037' | jq -r '.response' \
+  || printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\037' | jq -r '.response' \
+  || printf '%s' "$RESP" | python3 -c 'import json,sys; print(json.loads(sys.stdin.read(),strict=False).get("response",""))'
 
 # 채팅 포맷 (시스템 프롬프트 포함)
-curl -s --max-time 60 http://leonard.local:11434/api/chat -d '{
+RESP=$(curl -s --max-time 60 http://leonard.local:11434/api/chat -d '{
   "model": "gemma4:e4b",
   "messages": [
     {"role": "system", "content": "한국어로 간결하게 답변"},
@@ -65,8 +68,13 @@ curl -s --max-time 60 http://leonard.local:11434/api/chat -d '{
   ],
   "stream": false,
   "keep_alive": "30m"
-}' | jq -r '.message.content'
+}')
+printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\010\013\014\016-\037' | jq -r '.message.content' \
+  || printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\037' | jq -r '.message.content' \
+  || printf '%s' "$RESP" | python3 -c 'import json,sys; print(json.loads(sys.stdin.read(),strict=False).get("message",{}).get("content",""))'
 ```
+
+**제어문자 sanitize 이유**: 모델이 `<thinking>` 토큰이나 ANSI escape(0x1B), BEL(0x07) 등을 raw로 흘리면 jq가 RFC 8259 strict 모드로 fail. 3단계 fallback — 보수적 tr(TAB/LF/CR 보존) → 공격적 tr(0x00-0x1F 전체 제거) → python json.loads(strict=False, macOS 기본 탑재). UTF-8 한글/이모지(0x80↑)는 tr 범위 밖이라 안전.
 
 **`keep_alive: "30m"`**: 모델을 30분 동안 메모리에 유지해서 다음 질의 시 로딩 시간 제거. 첫 호출만 느리고 이후는 즉답.
 
@@ -75,21 +83,27 @@ curl -s --max-time 60 http://leonard.local:11434/api/chat -d '{
 사용자가 "26b로", "31b로", "고품질로", "크게 해서" 등 명시적으로 요청할 때만 사용:
 
 ```bash
-# 고품질 (응답 느림 — ~14 tok/s)
-curl -s --max-time 300 http://leonard.local:11434/api/generate -d '{
+# 고품질 (응답 느림 — ~14 tok/s) — sanitize fallback 적용
+RESP=$(curl -s --max-time 300 http://leonard.local:11434/api/generate -d '{
   "model": "gemma4:26b",
   "prompt": "...",
   "stream": false,
   "keep_alive": "30m"
-}' | jq -r '.response'
+}')
+printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\010\013\014\016-\037' | jq -r '.response' \
+  || printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\037' | jq -r '.response' \
+  || printf '%s' "$RESP" | python3 -c 'import json,sys; print(json.loads(sys.stdin.read(),strict=False).get("response",""))'
 
 # 최고품질
-curl -s --max-time 600 http://leonard.local:11434/api/generate -d '{
+RESP=$(curl -s --max-time 600 http://leonard.local:11434/api/generate -d '{
   "model": "gemma4:31b",
   "prompt": "...",
   "stream": false,
   "keep_alive": "30m"
-}' | jq -r '.response'
+}')
+printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\010\013\014\016-\037' | jq -r '.response' \
+  || printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\037' | jq -r '.response' \
+  || printf '%s' "$RESP" | python3 -c 'import json,sys; print(json.loads(sys.stdin.read(),strict=False).get("response",""))'
 ```
 
 ### 3단계: 결과 정리
@@ -127,3 +141,4 @@ curl -s --max-time 600 http://leonard.local:11434/api/generate -d '{
 | `model not found` | 모델 미설치 | 윈도우에서 `ollama pull gemma4:e4b` |
 | `127.0.0.1 only` 바인딩 | `OLLAMA_HOST` 미설정 | 윈도우 환경변수 `OLLAMA_HOST=0.0.0.0:11434` 후 재시작 |
 | 응답 느림 | 모델 미적재 / 콜드 스타트 | `keep_alive: "30m"` 설정으로 재로딩 방지 |
+| `jq: parse error: Invalid string: control characters from U+0000 through U+001F` | 모델이 raw 제어문자(BEL/ESC/`<thinking>` 토큰)를 escape 없이 흘림 | 응답을 변수로 받고 위 3단계 sanitize fallback 적용 (보수적 tr → 공격적 tr → python strict=False) |
