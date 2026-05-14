@@ -5,6 +5,8 @@
 
 : "${HOME:?}"
 
+source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
+
 INPUT_FILE=$(mktemp)
 trap 'rm -f "$INPUT_FILE"' EXIT
 cat > "$INPUT_FILE"
@@ -34,6 +36,7 @@ if echo "$CMD" | grep -qE 'cat[[:space:]]+<<.*[[:space:]]*>[[:space:]]*[^[:space
 
 이유: Bash heredoc은 검증/리뷰 우회 + 토큰 비효율
 MSGEOF
+  outcome_log "bash-codegen-block" "block" "heredoc" "heredoc-redirect"
   exit 2
 fi
 
@@ -43,7 +46,9 @@ if echo "$CMD" | grep -qE '(echo|printf)[[:space:]]+["'\''].*["'\''][[:space:]]*
 
 Write 도구 또는 Codex 위임 사용.
 MSGEOF
+  outcome_log "bash-codegen-block" "block" "echo-printf" "echo-redirect"
   exit 2
 fi
 
+outcome_log "bash-codegen-block" "pass" "" "no-match"
 exit 0

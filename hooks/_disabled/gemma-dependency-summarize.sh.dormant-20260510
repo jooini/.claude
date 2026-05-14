@@ -1,11 +1,11 @@
 #!/bin/zsh
-# PostToolUse(Edit|Write): 의존성 파일 수정 감지 → qwen-cli(writer 페르소나)가 추가/제거/업그레이드 패키지 한 줄 요약
-# 기존 curl + Ollama 직접 호출을 qwen-cli stdin pipe로 교체
+# PostToolUse(Edit|Write): 의존성 파일 수정 감지 → ini(writer 페르소나)가 추가/제거/업그레이드 패키지 한 줄 요약
+# 기존 curl + Ollama 직접 호출을 ini stdin pipe로 교체
 # 출력: hookSpecificOutput.additionalContext로 Claude에 주입
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/qwen-cli"
+QWEN="$HOME/.local/bin/ini"
 [ -x "$QWEN" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
@@ -72,7 +72,7 @@ import json, os
 print(json.dumps({
     'hookSpecificOutput': {
         'hookEventName': 'PostToolUse',
-        'additionalContext': '[qwen-cli 의존성 변경 요약 — ' + os.environ['BASENAME'] + ']\n' + os.environ['QWEN_RESULT']
+        'additionalContext': '[ini 의존성 변경 요약 — ' + os.environ['BASENAME'] + ']\n' + os.environ['QWEN_RESULT']
     }
 }))
 "

@@ -1,11 +1,11 @@
 #!/bin/zsh
-# PostToolUse(Bash): 테스트 실행 실패 감지 → qwen-cli가 {flaky/실제 버그/환경 문제} 분류
+# PostToolUse(Bash): 테스트 실행 실패 감지 → ini가 {flaky/실제 버그/환경 문제} 분류
 # 출력: hookSpecificOutput.additionalContext로 Claude에 주입
 # 3회 연속 실패 시 Codex rescue 권고 플래그 추가 (기존 규칙과 통합)
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/qwen-cli"
+QWEN="$HOME/.local/bin/ini"
 [ -x "$QWEN" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
@@ -84,7 +84,7 @@ COUNT=$(cat "$COUNT_FILE" 2>/dev/null || echo 0)
 COUNT=$((COUNT + 1))
 echo "$COUNT" > "$COUNT_FILE"
 
-# qwen-cli 호출 — debugger 페르소나 (qwen2.5-coder:14b 자동 적용)
+# ini 호출 — debugger 페르소나 (qwen2.5-coder:14b 자동 적용)
 PROMPT=$(printf '테스트가 실패했다. 출력을 분석해서 한국어로 분류해줘.\n\n출력 형식 (정확히):\n**분류**: <flaky | 실제 버그 | 환경 문제 | 불명>\n**증상**: <1줄 요약>\n**원인 추정**: <1~2줄>\n**다음 조치**: <1줄 권고>\n\n분류 기준:\n- flaky: 타이밍, race condition, 외부 의존성 가변성, 랜덤 실패\n- 실제 버그: 코드 로직/타입/assertion 실제 오류\n- 환경 문제: DB 연결 실패, 포트 충돌, 환경변수 누락, 의존성 미설치\n- 불명: 출력으로 판단 불가\n\n명령: %s\n실패 횟수: %s회 연속\n\n출력:\n%s' "$CMD" "$COUNT" "$OUTPUT")
 
 RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile debugger --num-ctx 8192 2>/dev/null)
@@ -106,7 +106,7 @@ import json, os
 print(json.dumps({
     'hookSpecificOutput': {
         'hookEventName': 'PostToolUse',
-        'additionalContext': '[qwen-cli 테스트 triage]\n' + os.environ['GEMMA_RESULT'] + os.environ.get('ESCALATION', '')
+        'additionalContext': '[ini 테스트 triage]\n' + os.environ['GEMMA_RESULT'] + os.environ.get('ESCALATION', '')
     }
 }))
 "

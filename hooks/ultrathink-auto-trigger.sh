@@ -14,6 +14,8 @@
 
 : "${HOME:?}"
 
+source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
+
 INPUT=$(cat)
 PROMPT=$(echo "$INPUT" | sed -n 's/.*"prompt"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p' | head -c 2000)
 
@@ -30,18 +32,25 @@ fi
 
 # 트리거 키워드 감지
 TRIGGER_REASON=""
+TRIGGER_TAG=""
 if [ "$EXPLICIT" -eq 1 ]; then
     TRIGGER_REASON="명시적 ultrathink 요청"
+    TRIGGER_TAG="explicit-ultrathink"
 elif echo "$PROMPT" | grep -qiE '(비교|diff|똑같|다른지|차이.*뭐|차이가)'; then
     TRIGGER_REASON="비교/diff 작업"
+    TRIGGER_TAG="compare-diff"
 elif echo "$PROMPT" | grep -qiE '(다시 확인|왜 자꾸|왜 그래|왜 틀리|결과 ?다르|결과가 ?이상|이상한데)'; then
     TRIGGER_REASON="재검증/오류 의심"
+    TRIGGER_TAG="recheck-suspicion"
 elif echo "$PROMPT" | grep -qiE '(프로젝트 ?[0-9]+개|두 ?코드|전체적으로|한꺼번에 ?확인)'; then
     TRIGGER_REASON="멀티 소스 분석"
+    TRIGGER_TAG="multi-source"
 elif echo "$PROMPT" | grep -qiE '(맞아 ?\?|맞는거|확실해|진짜야)'; then
     TRIGGER_REASON="확실성 의심"
+    TRIGGER_TAG="certainty-doubt"
 else
     # 트리거 없음 — 스킵
+    outcome_log "ultrathink-auto-trigger" "pass" "" "no-trigger"
     exit 0
 fi
 
@@ -119,4 +128,5 @@ cat <<EOF
 규칙: 같은 추정 두 번 금지. 첫 답변에 깊이 있게.
 EOF
 
+outcome_log "ultrathink-auto-trigger" "trigger" "$TRIGGER_REASON" "$TRIGGER_TAG"
 exit 0

@@ -5,6 +5,8 @@
 
 : "${HOME:?}"
 
+source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
+
 QWEN="$HOME/.local/bin/ini"
 [ -x "$QWEN" ] || exit 0
 
@@ -102,4 +104,5 @@ print(json.dumps({
 }))
 "
 
+outcome_log "gemma-error-summarize" "summarize" "exit=${EXIT_CODE}" "bash-exit-nonzero"
 exit 0

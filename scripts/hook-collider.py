@@ -30,7 +30,7 @@ OUT_JSON = Path.home() / ".claude/cache/hook-audit.json"
 
 # 외부 CLI 패턴
 CLI_PATTERNS = {
-    "gemma": re.compile(r"\b(qwen-cli|qwen3\.5|qwen2\.5-coder|gemma4|ollama)\b"),
+    "gemma": re.compile(r"\b(ini|qwen-cli|qwen3\.5|qwen2\.5-coder|gemma4|ollama)\b"),
     "gemini": re.compile(r"\bgemini\s+(-p|--prompt|generate)\b"),
     "codex": re.compile(r"\bcodex\s+(exec|--skip-git-repo-check|exec --)"),
     "git": re.compile(r"\bgit\s+(diff|log|status|show|blame)\b"),

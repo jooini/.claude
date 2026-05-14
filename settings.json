@@ -201,12 +201,17 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "mcp__local-rag__|mcp__plugin_claude-mem_mcp-search__",
         "hooks": [
           {
             "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/mcp-knowledge-telemetry.sh"
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
           {
             "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/turn-finalize.sh"
@@ -514,26 +519,19 @@
     "Bash(uv *)",
     "Bash(gemini *)",
     "Bash(codex *)",
-    "Bash(composer *)",
     "Bash(php *)",
-    "Bash(gradle *)",
     "Bash(wc *)",
     "Bash(which *)",
     "Bash(gh *)",
     "mcp__local-rag__*",
     "mcp__plugin_claude-mem_mcp-search__*",
     "mcp__plugin_playwright_playwright__*",
-    "mcp__memory__*",
-    "mcp__context7__*",
     "mcp__ssh__*",
     "mcp__gitlab__*",
     "Skill(ask-gemini)",
     "Skill(ask-codex)",
     "Skill(debug)",
-    "Skill(logs)",
-    "Skill(cross-check)",
-    "Skill(check-sso-compat)",
-    "Bash(vendor/bin/*)"
+    "Skill(logs)"
   ],
   "mcpServers": {
     "gitlab": {

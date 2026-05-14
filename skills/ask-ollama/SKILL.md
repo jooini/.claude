@@ -1,7 +1,7 @@
 ---
 name: ask-ollama
-description: 로컬 Ollama 서버(leonard.local:11434)에 질문하고 결과를 한국어로 정리. 기본 호출은 qwen-cli(권장), 미설치 환경은 curl fallback. 키워드 기반 모델 자동 라우팅 — 코딩→qwen2.5-coder:14b, 한국어/일반→qwen3.5:9b, 빠른 단순 질의→gemma4:e4b, 깊은 추론→gemma4:26b. 사용자가 모델 명시하면 그것 우선.
-allowed-tools: Bash(qwen-cli *), Bash(~/.local/bin/qwen-cli *), Bash(curl *), Bash(jq *), Read, Glob, Grep
+description: 로컬 Ollama 서버(leonard.local:11434)에 질문하고 결과를 한국어로 정리. 기본 호출은 ini(권장, 이전 qwen-cli/gemma-cli의 후계), 미설치 환경은 curl fallback. 키워드 기반 모델 자동 라우팅 — 코딩→qwen2.5-coder:14b, 한국어/일반→qwen3.5:9b, 빠른 단순 질의→gemma4:e4b, 깊은 추론→gemma4:26b. 사용자가 모델 명시하면 그것 우선.
+allowed-tools: Bash(ini *), Bash(~/.local/bin/ini *), Bash(curl *), Bash(jq *), Read, Glob, Grep
 ---
 
 # Ask Ollama (Local Multi-Model)
@@ -49,11 +49,11 @@ allowed-tools: Bash(qwen-cli *), Bash(~/.local/bin/qwen-cli *), Bash(curl *), Ba
 ### 0단계: 연결 + 도구 확인
 
 ```bash
-# qwen-cli 우선 (권장)
-[ -x ~/.local/bin/qwen-cli ] && echo "qwen-cli 사용 가능" || echo "qwen-cli 없음 — curl fallback"
+# ini 우선 (권장)
+[ -x ~/.local/bin/ini ] && echo "ini 사용 가능" || echo "ini 없음 — curl fallback"
 
-# 서버 헬스체크 (qwen-cli 또는 curl 둘 중 하나)
-~/.local/bin/qwen-cli -p "ping" --num-ctx 1024 2>/dev/null \
+# 서버 헬스체크 (ini 또는 curl 둘 중 하나)
+~/.local/bin/ini -p "ping" --num-ctx 1024 2>/dev/null \
   || curl -s --max-time 3 http://leonard.local:11434/api/tags | jq -r '.models[].name' \
   || echo "서버 연결 실패"
 ```
@@ -67,20 +67,20 @@ allowed-tools: Bash(qwen-cli *), Bash(~/.local/bin/qwen-cli *), Bash(curl *), Ba
 - 없으면 위 라우팅 표 적용
 - 애매하면 기본값 `qwen3.5:9b`
 
-### 2단계: 호출 (qwen-cli 권장)
+### 2단계: 호출 (ini 권장)
 
-**기본 — qwen-cli 단발 호출** (`num_ctx`/`keep_alive`/페르소나 자동 적용):
+**기본 — ini 단발 호출** (`num_ctx`/`keep_alive`/페르소나 자동 적용):
 
 ```bash
 # 짧은 질의 — 인자로 직접
-~/.local/bin/qwen-cli -p "deprecated 뜻" -m qwen3.5:9b --num-ctx 4096
+~/.local/bin/ini -p "deprecated 뜻" -m qwen3.5:9b --num-ctx 4096
 
 # 긴 입력/멀티라인 — stdin pipe
-echo "긴 질문 또는 코드 본문..." | ~/.local/bin/qwen-cli -p - --profile coder
+echo "긴 질문 또는 코드 본문..." | ~/.local/bin/ini -p - --profile coder
 
 # 페르소나 명시 (frontmatter의 model 자동 적용)
-echo "$DIFF" | ~/.local/bin/qwen-cli -p - --profile commit
-echo "$ERROR_LOG" | ~/.local/bin/qwen-cli -p - --profile debugger
+echo "$DIFF" | ~/.local/bin/ini -p - --profile commit
+echo "$ERROR_LOG" | ~/.local/bin/ini -p - --profile debugger
 ```
 
 **페르소나 매핑** (자주 쓰는 것):
@@ -97,7 +97,7 @@ echo "$ERROR_LOG" | ~/.local/bin/qwen-cli -p - --profile debugger
 | `architect` | qwen2.5-coder:14b | 깊이 분석 |
 | `brainstorm` | qwen3.5:9b | 캐묻기 위주 |
 
-**Fallback — curl 직접 호출** (qwen-cli 미설치 시만):
+**Fallback — curl 직접 호출** (ini 미설치 시만):
 
 ```bash
 # 단발 질의 — 응답을 변수로 받고 sanitize 후 파싱 (제어문자 방어)
@@ -181,8 +181,8 @@ printf '%s' "$RESP" | LC_ALL=C tr -d '\000-\010\013\014\016-\037' | jq -r '.mess
 
 | 증상 | 원인 | 해결 |
 |------|------|------|
-| `qwen-cli: command not found` | PATH 미등록 또는 미설치 | `~/.local/bin/qwen-cli` 절대경로 사용. 빌드: `cd ~/Workspace/gemma-cli && cargo build --release && cp target/release/qwen-cli ~/.local/bin/` |
-| qwen-cli 응답 늦음 (콜드 5초+) | 모델 첫 로드 | `--keep-alive 30m`로 다음 호출 빠르게. 또는 백그라운드에서 미리 ping |
+| `ini: command not found` | PATH 미등록 또는 미설치 | `~/.local/bin/ini` 절대경로 사용. 빌드: `cd ~/Workspace/ini && cargo build --release && cp target/release/ini ~/.local/bin/` |
+| ini 응답 늦음 (콜드 5초+) | 모델 첫 로드 | `--keep-alive 30m`로 다음 호출 빠르게. 또는 백그라운드에서 미리 ping |
 | `Connection refused` | 윈도우 Ollama 미실행 | `ollama serve` 또는 트레이 |
 | `timeout` | 방화벽/콜드 스타트 | 방화벽 11434 허용, `keep_alive: "30m"` |
 | `model not found` | 모델 미설치 | `curl -X POST http://leonard.local:11434/api/pull -d '{"name":"모델명"}'` |
