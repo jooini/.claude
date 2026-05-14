@@ -37,7 +37,8 @@ TRACE_DIR = HOME / ".claude" / "cache" / "hook-trace"
 
 WHITELIST = {
     # 데이터 수집 (jsonl 기록만, output 없는 게 정상)
-    "tool-trace", "tool-usage-log", "md-read-trace", "agent-trace", "agent-usage-log",
+    "bash-postproc-async", "bash-postproc-sync",  # 2026-05-14 통합본
+    "md-read-trace", "agent-trace", "agent-usage-log",
     "pipeline-metrics-log", "learning-note-auto-ingest", "decision-capture",
     "knowledge-change-rebuild", "rag-auto-index", "turn-marker",
     # 가드 (위험 패턴 검출 안 되면 noop이 정상)

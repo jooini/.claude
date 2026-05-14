@@ -75,19 +75,11 @@
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/tool-usage-log.sh"
+            "command": "$HOME/.claude/hooks/bash-postproc-async.sh"
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/branch-switch-detect.sh"
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/cwd-change-detect.sh"
-          },
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/gemini-auto-scan.sh"
+            "command": "$HOME/.claude/hooks/bash-postproc-sync.sh"
           }
         ]
       },

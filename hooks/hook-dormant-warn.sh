@@ -44,7 +44,8 @@ trace_dir = home / '.claude' / 'cache' / 'hook-trace'
 # 정상 noop 화이트리스트 (데이터 수집/가드 — output 0이 정상)
 WHITELIST = {
     # 데이터 수집
-    'tool-trace', 'tool-usage-log', 'md-read-trace', 'agent-trace', 'agent-usage-log',
+    'bash-postproc-async', 'bash-postproc-sync',  # 2026-05-14 통합본 (구 tool-trace/tool-usage-log/branch-switch-detect/cwd-change-detect/gemini-auto-scan/gemini-test-failure-analyze)
+    'md-read-trace', 'agent-trace', 'agent-usage-log',
     'pipeline-metrics-log', 'learning-note-auto-ingest', 'decision-capture',
     'knowledge-change-rebuild', 'rag-auto-index', 'turn-marker',
     # 가드 (위험 패턴 검출 안 되면 noop)
