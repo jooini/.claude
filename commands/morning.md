@@ -43,6 +43,18 @@ dev2-backend 컨테이너 상태:
 - 충돌 발생 프로젝트
 - 어제 작업 마무리 안 된 곳
 
+### 4.3단계: 최근 정리노트 surface (`vault-find`)
+
+어제~7일 사이 작성한 정리노트가 무엇이었는지 한눈에. "내가 어제 뭘 결정했더라" 망각 방지.
+
+```bash
+python3 ~/.claude/skills/vault-find/scripts/search.py --recent 7 --limit 10
+```
+
+출력은 마크다운 표 (날짜 / 프로젝트 / 제목 / `obsidian://` 링크). 표 그대로 5단계 종합 출력에 포함.
+
+> 인덱스가 6시간 이상 오래되면 자동 재생성됨. `vault-find` 스킬 = Obsidian Vault 전체 검색 도구. 자세히는 `/vault-find` 또는 `~/.claude/skills/vault-find/SKILL.md`.
+
 ### 4.5단계: 학습 컨텍스트 (자동 진단)
 
 `~/.claude/scripts/learning-morning-context.sh` 를 실행해서 다음을 출력에 포함:
@@ -85,6 +97,10 @@ find ~/Workspace/weaversbrain/weaversbrain/Learning -name "*.md" -mtime -7 -not 
 
 🖥️ 서버: ✅ 모두 정상 / ⚠️ 1개 unhealthy
 📂 프로젝트: ⚠️ X 프로젝트 미커밋 (어제 마무리 필요)
+
+📝 최근 정리노트 (7일):
+  • [날짜] [프로젝트] 제목 → obsidian://...
+  • ... (최대 10개)
 
 📚 학습:
   • 어제 큐 추가 N건 / 미정리 M건 (가장 오래된 X일 경과)
