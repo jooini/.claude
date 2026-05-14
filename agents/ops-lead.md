@@ -1,1 +1,1 @@
-/Users/leonard/.claude/agents/builds/python/ops-lead.md
+/Users/leonard/.claude/agents/builds/root/ops-lead.md
