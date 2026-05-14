@@ -23,7 +23,7 @@
 ## 사용 규칙
 
 - ✅ admin API 호출 시 위 두 함수 함께 사용
-- ❌ Keycloak 직접 호출 금지 (ADR-007)
+- ❌ Keycloak 직접 호출 금지 — identity-hub 경유만
 - ❌ token 직접 캐싱 금지 — `getServiceToken()` 내부에서 처리
 
 ## 함정

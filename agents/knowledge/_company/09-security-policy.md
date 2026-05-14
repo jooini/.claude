@@ -7,11 +7,11 @@
 ### 인증 (SSO)
 
 - ✅ **계정 중복 허용**: 전화번호/이메일 중복 허용 (레거시 유지)
-- ✅ **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만 (ADR-007)
+- ✅ **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만
 - ✅ **PHP 세션/쿠키에 refresh_token 저장 금지**
 - ✅ **토큰 갱신**: `POST {hub}/api/v1/auth/refresh` body `{access_token}` 경유
 - ✅ **`getUserByUsername`** 호출 시 `exact=True` 필수
-- ✅ **Keycloak 직접 호출 금지** — identity-hub 경유만 (ADR-007)
+- ✅ **Keycloak 직접 호출 금지** — identity-hub 경유만
 - ✅ **인증 모드**: `auth_mode=sso|legacy` (config/keycloak.php). 2026-04-17 기준 LOCAL/DEV/QA/PP/LIVE 모두 `sso`
 
 ### 키 / 토큰 관리
@@ -52,7 +52,7 @@
 
 - ⚠️ admin API 호출 시 service-token 4:30 시점 fail 위험 (TTL 5분 / 캐시 4분 갭)
 - ⚠️ 사내 cert이라 `verify_peer=false` — 운영에서 실수로 켜면 다운
-- ⚠️ Keycloak 직접 호출은 ADR-007 위반 (절대 금지)
+- ⚠️ Keycloak 직접 호출 금지 (identity-hub 경유만)
 
 ## 사용 시 주의
 

@@ -50,4 +50,3 @@
 
 - ⚠️ `prod` ClickHouse DB만 prefix 없음 — 환경 분기 코드에서 자주 실수
 - ⚠️ 도메인 헷갈림: `weaversbrain.com` (회사) ≠ `maxaiapp.com` (B2C 서비스)
-- ⚠️ STT 자동 받아쓰기는 사람 이름 정확도 낮음 → "현주"/"홍주" → 항상 **"현준"** 으로 정정

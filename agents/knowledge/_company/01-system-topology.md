@@ -61,9 +61,9 @@
 [레거시 인증 (B2C 직접)]
 ```
 
-## 핵심 결정 (ADR 매핑)
+## 핵심 결정
 
-- **ADR-007**: Keycloak 직접 호출 금지 → identity-hub 경유 (`IdentityHub_lib::getServiceToken()`)
+- **Keycloak 직접 호출 금지**: 모든 컴포넌트는 identity-hub 경유 (`IdentityHub_lib::getServiceToken()`)
 - **BFF 패턴**: `client_secret`은 Identity Hub만 보유. refresh_token도 Hub에서만 관리.
 - **인증 모드**: `auth_mode=sso|legacy` (config/keycloak.php). LOCAL/DEV/QA/PP/LIVE 모두 `sso` (2026-04-17 기준).
 - **계정 중복 허용**: 전화번호/이메일 중복 허용 (레거시 유지)
