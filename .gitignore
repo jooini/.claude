@@ -50,3 +50,18 @@ teams/
 
 # 자동 갱신 캐시
 stats-cache.json
+
+# 자기반성 텔레메트리 (프로젝트별 자동 생성, 매번 diff 큼)
+self-model/
+
+# 다른 프로젝트의 plan 산출물이 모이는 곳
+plans/
+
+# 빈/외부 MCP 등록 파일 (런타임 관리)
+mcp.json
+
+# cleanup 마커 (timestamp 자동 갱신)
+.last-cleanup
+
+# 자동 인덱싱 상태
+skills/index-rag/.index-state.json
