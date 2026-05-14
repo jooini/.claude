@@ -1,5 +1,5 @@
 #!/bin/zsh
-# PreToolUse(Agent): code-reviewer 실행 전 qwen-cli(로컬 Ollama) 프리스캔
+# PreToolUse(Agent): code-reviewer 실행 전 ini(로컬 Ollama) 프리스캔
 # Gemini와 병렬로 동작. 민감 코드/로컬 세컨드 오피니언 담당
 # exit 0 + stdout = 비차단 리마인더
 
@@ -37,32 +37,32 @@ OUTPUT_FILE="$CACHE_DIR/${PROJECT_NAME}-review-prescan.md"
 if [ -f "$OUTPUT_FILE" ]; then
     FILE_AGE=$(( $(date +%s) - $(stat -f %m "$OUTPUT_FILE" 2>/dev/null || echo 0) ))
     if [ "$FILE_AGE" -lt 300 ]; then
-        echo "[qwen-cli 프리스캔 캐시] code-reviewer에 아래 컨텍스트 포함할 것:"
+        echo "[ini 프리스캔 캐시] code-reviewer에 아래 컨텍스트 포함할 것:"
         cat "$OUTPUT_FILE"
         exit 0
     fi
 fi
 
-# qwen-cli 바이너리 확인
-QWEN_CLI="$HOME/.local/bin/qwen-cli"
+# ini 바이너리 확인
+QWEN_CLI="$HOME/.local/bin/ini"
 if [ ! -x "$QWEN_CLI" ]; then
-    echo "[qwen-cli 프리스캔 스킵] $QWEN_CLI 미설치 — code-reviewer 단독 진행"
+    echo "[ini 프리스캔 스킵] $QWEN_CLI 미설치 — code-reviewer 단독 진행"
     exit 0
 fi
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (캐시 5분, 신선 시 0.03초)
 source "$HOME/.claude/hooks/_lib/ollama-available.sh"
 if ! ollama_available; then
-    echo "[qwen-cli 프리스캔 스킵] Ollama 서버 접근 불가 — code-reviewer 단독 진행"
+    echo "[ini 프리스캔 스킵] Ollama 서버 접근 불가 — code-reviewer 단독 진행"
     exit 0
 fi
 
-echo "[qwen-cli 리뷰 프리스캔 실행 중] 완료까지 최대 30초..."
+echo "[ini 리뷰 프리스캔 실행 중] 완료까지 최대 30초..."
 
 # diff 500줄 컷
 DIFF_TRUNCATED=$(echo "$DIFF" | head -500)
 
-# qwen-cli stdin 프롬프트 구성 (reviewer 페르소나가 시스템 프롬프트 담당)
+# ini stdin 프롬프트 구성 (reviewer 페르소나가 시스템 프롬프트 담당)
 PROMPT=$(cat <<EOF
 다음 코드 변경사항을 간결하게 리뷰해줘. 한국어로 답하고 핵심 문제만 지적:
 1. 로직 오류 / 엣지 케이스 누락
@@ -78,11 +78,11 @@ RESULT=$(printf '%s' "$PROMPT" | "$QWEN_CLI" -p - --profile reviewer --num-ctx 8
 
 if [ -n "$RESULT" ]; then
     echo "$RESULT" > "$OUTPUT_FILE"
-    echo "[qwen-cli 프리스캔 완료] code-reviewer 프롬프트에 아래 컨텍스트 포함할 것:"
+    echo "[ini 프리스캔 완료] code-reviewer 프롬프트에 아래 컨텍스트 포함할 것:"
     echo "---"
     echo "$RESULT"
 else
-    echo "[qwen-cli 프리스캔 실패/타임아웃] — code-reviewer 단독 진행"
+    echo "[ini 프리스캔 실패/타임아웃] — code-reviewer 단독 진행"
 fi
 
 exit 0

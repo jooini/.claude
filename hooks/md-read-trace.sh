@@ -77,8 +77,8 @@ case "$FILE_PATH" in
     */MEMORY.md|*/memory/*.md) CATEGORY="memory" ;;
     */workflows/*.md) CATEGORY="workflow" ;;
     */skills/*/skill.md|*/skills/*/SKILL.md|*/skills/*.md) CATEGORY="skill" ;;
+    */agents/knowledge/*.md|*/knowledge/*.md) CATEGORY="knowledge" ;;
     */agents-src/*.md|*/agents/builds/*/*.md|*/agents/*.md) CATEGORY="agent" ;;
-    */knowledge/*.md) CATEGORY="knowledge" ;;
 esac
 
 LOG_DIR="$HOME/.claude/cache/md-live"

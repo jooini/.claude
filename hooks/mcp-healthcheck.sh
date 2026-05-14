@@ -50,10 +50,54 @@ if [ ! -d "$RAG_DB" ]; then
     ERRORS+=("local-rag: DB 디렉토리 없음 ($RAG_DB)")
 fi
 
-# 2. claude-mem worker (port 37777)
+# 2. claude-mem worker (port 37777) — 깨졌으면 자동 재기동 시도
 HEALTH=$(/usr/bin/curl -s --max-time 2 http://localhost:37777/health 2>/dev/null)
 if [ -z "$HEALTH" ] || ! echo "$HEALTH" | /usr/bin/grep -q "ok"; then
-    ERRORS+=("claude-mem worker (port 37777): 응답 없음 — 메모리 검색 작동 안 함")
+    # 자동 재기동: worker-cli.js start (detached)
+    # Codex 권고: kill 단독은 PID/캐시 꼬임 → worker-service의 start 명령 사용
+    WORKER_DIR="$HOME/.claude/plugins/cache/thedotmack/claude-mem/10.6.2"
+
+    if [ -d "$WORKER_DIR" ] && [ -x "/opt/homebrew/bin/node" ]; then
+        # Stale PID 파일 정리 (프로세스 죽었는데 파일만 남은 경우)
+        OLD_PID_FILE="$HOME/.claude-mem/worker.pid"
+        if [ -f "$OLD_PID_FILE" ]; then
+            OLD_PID=$(/usr/bin/python3 -c "
+import json
+try:
+    print(json.load(open('$OLD_PID_FILE')).get('pid',''))
+except: pass
+" 2>/dev/null)
+            if [ -n "$OLD_PID" ] && ! /bin/kill -0 "$OLD_PID" 2>/dev/null; then
+                /bin/rm -f "$OLD_PID_FILE"
+            fi
+        fi
+
+        # 새 워커 detached spawn
+        (
+            cd "$WORKER_DIR" && \
+            /usr/bin/nohup /opt/homebrew/bin/node scripts/bun-runner.js scripts/worker-cli.js start \
+                </dev/null >/dev/null 2>&1 &
+        ) 2>/dev/null
+
+        # 최대 5초 대기 후 재검증
+        REVIVED=""
+        for i in 1 2 3 4 5; do
+            sleep 1
+            NEW_HEALTH=$(/usr/bin/curl -s --max-time 1 http://localhost:37777/health 2>/dev/null)
+            if echo "$NEW_HEALTH" | /usr/bin/grep -q "ok"; then
+                REVIVED="$i"
+                break
+            fi
+        done
+
+        if [ -n "$REVIVED" ]; then
+            ERRORS+=("claude-mem worker: 자동 재기동 성공 (port 37777, ${REVIVED}초)")
+        else
+            ERRORS+=("claude-mem worker (port 37777): 응답 없음 + 자동 재기동 실패 (5초 timeout) — 메모리 검색 작동 안 함")
+        fi
+    else
+        ERRORS+=("claude-mem worker (port 37777): 응답 없음 — plugin 디렉토리 또는 node 없음")
+    fi
 fi
 
 # 3. Ollama (Gemma 호출용)

@@ -6,11 +6,11 @@
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/qwen-cli"
+QWEN="$HOME/.local/bin/ini"
 INTENT_DIR="$HOME/.claude/intent"
 mkdir -p "$INTENT_DIR"
 
-# qwen-cli 미설치 시 즉시 스킵
+# ini 미설치 시 즉시 스킵
 [ -x "$QWEN" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
@@ -121,7 +121,7 @@ LAST_CONTEXT=$(echo "$LAST_CONTEXT" | /usr/bin/tail -c 3000)
 # 프롬프트 구성
 PROMPT=$(printf '다음은 방금 끝난 Claude Code 세션의 마지막 부분이다.\n"다음 세션에서 이어서 할 일"을 추출해라.\n\n세션 프로젝트: %s\n\n세션 기록 (마지막 부분):\n%s\n\n출력 형식 (정확히 5줄, 한국어):\n마지막 목표: <이 세션에서 하려던 최종 목표 한 줄>\n마지막 시도: <실제 마지막으로 시도한 구체 작업 한 줄>\n중단 이유: <완료? 막힘? 사용자 중단? 한 줄 추정>\n다음 작업: <바로 이어서 할 구체 행동 한 줄>\n주의점: <이어서 할 때 놓치면 안 되는 맥락 한 줄>\n\n규칙:\n- 세션 기록 근거만 사용. 추측 금지.\n- 완결된 세션이면 "없음"으로 표시.\n- 장식/이모지 금지.\n' "$PROJECT" "$LAST_CONTEXT")
 
-# qwen-cli stdin 호출 — writer 페르소나 (qwen3.5:9b 자동 적용)
+# ini stdin 호출 — writer 페르소나 (qwen3.5:9b 자동 적용)
 RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile writer --num-ctx 8192 2>/dev/null)
 EXIT=$?
 
@@ -143,7 +143,7 @@ LATEST_LINK="$PROJECT_DIR/latest.md"
     echo ""
     echo "세션: $SESSION_ID"
     echo "종료: $(date +%Y-%m-%d\ %H:%M:%S)"
-    echo "엔진: qwen-cli (writer / qwen3.5:9b)"
+    echo "엔진: ini (writer / qwen3.5:9b)"
     echo ""
     echo "$RESULT"
 } > "$OUTPUT_FILE"

@@ -16,8 +16,10 @@ import re
 import subprocess
 import sys
 import time
-import urllib.request
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from _lib_ini_call import call_ollama  # noqa: E402
 
 OLLAMA = os.environ.get("OLLAMA_HOST_LAN", "leonard.local:11434")
 
@@ -27,20 +29,14 @@ def log(msg):
 
 
 def call_gemma(prompt: str, num_predict: int = 1500) -> str:
-    body = json.dumps({
-        "model": "gemma4:e4b",
-        "messages": [{"role": "user", "content": prompt}],
-        "stream": False,
-        "keep_alive": "30m",
-        "options": {"num_predict": num_predict, "temperature": 0.4}
-    }).encode()
-    req = urllib.request.Request(
-        f"http://{OLLAMA}/api/chat",
-        data=body,
-        headers={"Content-Type": "application/json"}
+    return call_ollama(
+        prompt,
+        model="gemma4:e4b",
+        num_predict=num_predict,
+        temperature=0.4,
+        timeout=60,
+        caller="gemma-puzzle",
     )
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read()).get("message", {}).get("content", "")
 
 
 def generate_hypotheses(symptom: str, context: str = "") -> str:

@@ -1,18 +1,18 @@
 #!/bin/zsh
-# Stop hook: 세션 종료 시 jsonl을 qwen-cli decisions 페르소나에 넘겨 의사결정 추출
+# Stop hook: 세션 종료 시 jsonl을 ini decisions 페르소나에 넘겨 의사결정 추출
 # 결정 발견 시 Obsidian Vault Decisions 디렉토리에 yaml 본문 그대로 저장
-# 비차단 — qwen-cli 미설치/실패/짧은 세션이면 즉시 스킵
-# 페르소나: decisions (qwen3.5:9b, ~/Library/Application Support/com.weaversmind.qwen-cli/profiles/decisions.md)
+# 비차단 — ini 미설치/실패/짧은 세션이면 즉시 스킵
+# 페르소나: decisions (qwen3.5:9b, ~/Library/Application Support/com.weaversmind.ini/profiles/decisions.md)
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/qwen-cli"
+QWEN="$HOME/.local/bin/ini"
 PROCESSED_DIR="$HOME/.claude/cache/qwen-decision-processed"
 DECISIONS_DIR="$HOME/Workspace/weaversbrain/weaversbrain/Decisions"
 MIN_RECORDS=10
 MAX_RECORDS=300
 
-# qwen-cli 미설치 시 즉시 스킵
+# ini 미설치 시 즉시 스킵
 [ -x "$QWEN" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
@@ -133,7 +133,7 @@ if [ -z "$EXTRACTED" ]; then
     exit 0
 fi
 
-# qwen-cli decisions 페르소나 호출 (--quiet 로 배너 차단)
+# ini decisions 페르소나 호출 (--quiet 로 배너 차단)
 RESULT=$(printf '%s\n' "$EXTRACTED" | "$QWEN" -p - --profile decisions --num-ctx 8192 --quiet 2>/dev/null)
 EXIT=$?
 
@@ -181,7 +181,7 @@ DATE_FULL=$(date +"%Y-%m-%d %H:%M:%S")
     echo "project: ${PROJECT}"
     echo "type: decision"
     echo "source: qwen-decision-capture"
-    echo "engine: qwen-cli (decisions / qwen3.5:9b)"
+    echo "engine: ini (decisions / qwen3.5:9b)"
     echo "tags: [decision, auto-capture, ${PROJECT}]"
     echo "---"
     echo ""

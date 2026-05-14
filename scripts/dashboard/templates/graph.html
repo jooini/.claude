@@ -731,7 +731,7 @@ es.addEventListener('message', ()=>{
   if (refreshTimer) return;
   refreshTimer = setTimeout(()=>{refreshTimer=null; loadChains();}, 1500);
 });
-setInterval(loadChains, 30000);
+setInterval(loadChains, 5000);
 </script>
 </body>
 </html>

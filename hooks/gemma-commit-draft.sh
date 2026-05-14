@@ -1,15 +1,15 @@
 #!/bin/zsh
-# PreToolUse(Bash): git commit 감지 → staged diff를 qwen-cli에 넘겨 커밋 메시지 초안 생성
+# PreToolUse(Bash): git commit 감지 → staged diff를 ini에 넘겨 커밋 메시지 초안 생성
 # exit 0 + stdout = 비차단 힌트 (사용자/Claude가 최종 결정)
 # 실패/서버다운/타임아웃 시 즉시 스킵 (원본 커밋 흐름 블로킹 없음)
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/qwen-cli"
+QWEN="$HOME/.local/bin/ini"
 CACHE_DIR="$HOME/.claude/cache/gemma"
 mkdir -p "$CACHE_DIR"
 
-# qwen-cli 미설치 시 즉시 스킵
+# ini 미설치 시 즉시 스킵
 [ -x "$QWEN" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
@@ -47,7 +47,7 @@ fi
 
 # 민감 파일 스테이징 감지 시 호출 스킵 (유출 위험)
 if echo "$STAGED" | grep -qE '(\.env$|\.env\.|credentials|\.pem$|\.key$|secrets?\.(json|yaml|yml))'; then
-    echo "[커밋 초안 스킵] 민감 파일 스테이징 감지 — qwen-cli 호출 안 함"
+    echo "[커밋 초안 스킵] 민감 파일 스테이징 감지 — ini 호출 안 함"
     exit 0
 fi
 
@@ -62,7 +62,7 @@ if [ -f "$OUTPUT_FILE" ] && [ -f "$CACHED_HASH_FILE" ]; then
     CACHED_HASH=$(cat "$CACHED_HASH_FILE" 2>/dev/null)
     FILE_AGE=$(( $(date +%s) - $(stat -f %m "$OUTPUT_FILE" 2>/dev/null || echo 0) ))
     if [ "$CACHED_HASH" = "$DIFF_HASH" ] && [ "$FILE_AGE" -lt 60 ]; then
-        echo "[커밋 메시지 초안 (qwen-cli 캐시)]"
+        echo "[커밋 메시지 초안 (ini 캐시)]"
         echo "---"
         cat "$OUTPUT_FILE"
         echo "---"
@@ -79,9 +79,9 @@ if [ -z "$DIFF_TRUNCATED" ]; then
     exit 0
 fi
 
-echo "[qwen-cli 커밋 초안 생성 중] 최대 15초..."
+echo "[ini 커밋 초안 생성 중] 최대 15초..."
 
-# qwen-cli stdin pipe — commit 페르소나가 모델/시스템 프롬프트 자동 적용
+# ini stdin pipe — commit 페르소나가 모델/시스템 프롬프트 자동 적용
 PROMPT=$(printf '변경 파일 통계:\n%s\n\n변경 내용:\n%s' "$STAT" "$DIFF_TRUNCATED")
 
 RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile commit --num-ctx 8192 2>/dev/null)
@@ -90,7 +90,7 @@ EXIT=$?
 if [ "$EXIT" -eq 0 ] && [ -n "$RESULT" ]; then
     echo "$RESULT" > "$OUTPUT_FILE"
     echo "$DIFF_HASH" > "$CACHED_HASH_FILE"
-    echo "[커밋 메시지 초안 (qwen-cli)]"
+    echo "[커밋 메시지 초안 (ini)]"
     echo "---"
     echo "$RESULT"
     echo "---"

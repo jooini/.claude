@@ -15,6 +15,9 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _lib_ini_call import call_ollama  # noqa: E402
+
 OLLAMA = os.environ.get("OLLAMA_HOST_LAN", "leonard.local:11434")
 WORKSPACE = Path.home() / "Workspace"
 OUT_DIR = Path.home() / ".claude" / "cache" / "triage-dirty"
@@ -116,22 +119,16 @@ diff stat (상위 30):
 권고 조치: <커밋 / 폐기 / 스태시 / 더 작업 필요 — 한 줄 이유>
 예상 커밋 수: <숫자>
 """
-    body = json.dumps({
-        "model": "gemma4:e4b",
-        "messages": [{"role": "user", "content": prompt}],
-        "stream": False,
-        "keep_alive": "30m",
-        "options": {"num_predict": 300, "temperature": 0.3}
-    }).encode()
-    req = urllib.request.Request(
-        f"http://{OLLAMA}/api/chat",
-        data=body,
-        headers={"Content-Type": "application/json"}
-    )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read())
-        return data.get("message", {}).get("content", "").strip()
+        response = call_ollama(
+            prompt,
+            model="gemma4:e4b",
+            num_predict=300,
+            temperature=0.3,
+            timeout=30,
+            caller="gemma-triage-dirty",
+        )
+        return response.strip() if response else "[분석 실패: empty response]"
     except Exception as e:
         return f"[분석 실패: {e}]"
 

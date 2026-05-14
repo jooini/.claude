@@ -1,11 +1,11 @@
 #!/bin/zsh
-# PostToolUse(Bash): Bash 명령 실패 시 stderr/stdout을 qwen-cli에 넘겨 한글 요약 생성
+# PostToolUse(Bash): Bash 명령 실패 시 stderr/stdout을 ini에 넘겨 한글 요약 생성
 # 목적: Claude 컨텍스트 절약 — 긴 stack trace 대신 3줄 요약을 Claude에 주입
 # 출력: hookSpecificOutput.additionalContext로 Claude 모델에 컨텍스트 주입
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/qwen-cli"
+QWEN="$HOME/.local/bin/ini"
 [ -x "$QWEN" ] || exit 0
 
 INPUT=$(cat)
@@ -81,7 +81,7 @@ case "$CMD_LINE" in
         exit 0 ;;
 esac
 
-# qwen-cli 호출 — debugger 페르소나 (qwen2.5-coder:14b 자동 적용)
+# ini 호출 — debugger 페르소나 (qwen2.5-coder:14b 자동 적용)
 PROMPT=$(printf '다음 Bash 명령이 실패했다. 출력을 분석해서 한국어로 간결하게 정리.\n\n형식 (정확히 3줄):\n**원인**: <1줄>\n**위치**: <파일:라인 또는 함수명, 없으면 "불명">\n**다음 조치**: <1줄 권고>\n\n원문 복사/장황한 설명 금지.\n\n명령 및 출력:\n%s' "$PAYLOAD_RAW")
 
 RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile debugger --num-ctx 8192 2>/dev/null)
@@ -97,7 +97,7 @@ import json, os
 print(json.dumps({
     'hookSpecificOutput': {
         'hookEventName': 'PostToolUse',
-        'additionalContext': '[qwen-cli 에러 요약]\n' + os.environ['GEMMA_RESULT']
+        'additionalContext': '[ini 에러 요약]\n' + os.environ['GEMMA_RESULT']
     }
 }))
 "

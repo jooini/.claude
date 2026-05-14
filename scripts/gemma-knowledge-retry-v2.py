@@ -18,6 +18,9 @@ import time
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _lib_ini_call import call_ollama_messages  # noqa: E402
+
 OLLAMA = os.environ.get("OLLAMA_HOST_LAN", "leonard.local:11434")
 KB_ROOT = Path.home() / ".claude" / "agents" / "knowledge"
 OUT_DIR = Path.home() / ".claude" / "cache" / "knowledge-index"
@@ -71,26 +74,15 @@ def smart_trim(content: str, max_chars: int = 1200) -> str:
 
 
 def gemma_call(messages, num_predict=400, temperature=0.2, timeout=45):
-    body = json.dumps({
-        "model": "qwen2.5-coder:14b",
-        "messages": messages,
-        "stream": False,
-        "keep_alive": "30m",
-        "options": {
-            "num_predict": num_predict,
-            "temperature": temperature,
-            "top_k": 40,
-            "top_p": 0.9
-        }
-    }).encode()
-    req = urllib.request.Request(
-        f"http://{OLLAMA}/api/chat",
-        data=body,
-        headers={"Content-Type": "application/json"}
+    return call_ollama_messages(
+        messages,
+        model="qwen2.5-coder:14b",
+        num_predict=num_predict,
+        temperature=temperature,
+        timeout=timeout,
+        caller="gemma-knowledge-retry-v2",
+        extra_options={"top_k": 40, "top_p": 0.9},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        data = json.loads(resp.read())
-    return data.get("message", {}).get("content", "").strip()
 
 
 def try_structured_text(path: Path, content: str) -> dict:

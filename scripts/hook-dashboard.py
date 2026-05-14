@@ -44,6 +44,10 @@ def _load_template(name):
 HTML = _load_template("index.html")
 GRAPH_HTML = _load_template("graph.html")
 AGENT_QUALITY_HTML = _load_template("agent_quality.html")
+try:
+    MCP_KNOWLEDGE_HTML = _load_template("mcp_knowledge.html")
+except FileNotFoundError:
+    MCP_KNOWLEDGE_HTML = "<h1>mcp_knowledge.html missing</h1>"
 
 # /usage endpoint 캐시 (60초 TTL — 풀 스캔 8~9초이므로 매 호출 회피)
 _usage_cache = {}
@@ -65,6 +69,95 @@ def _warm_usage_cache():
         except Exception:
             pass
         time.sleep(45)  # 45초 — TTL 60초 안에 항상 갱신
+
+
+def _pending_finalizer():
+    """백그라운드: 3초마다 _pending/*.jsonl 의 미finalize 발화를 turns.jsonl 로 옮긴다.
+    PostToolUse hook 이 세션 중 동적으로 안 잡힐 때를 위한 안전망.
+    transcript 마지막 user.promptId 를 끄집어와 매칭."""
+    import re
+    pending_dir = LIVE_DIR / "_pending"
+    turns_file = LIVE_DIR / "turns.jsonl"
+    while True:
+        try:
+            if pending_dir.exists():
+                for pfile in pending_dir.glob("*.jsonl"):
+                    try:
+                        raw = pfile.read_text()
+                    except Exception:
+                        continue
+                    if '"finalized":false' not in raw and '"finalized": false' not in raw:
+                        continue
+                    lines = [ln for ln in raw.splitlines() if ln.strip()]
+                    parsed = []
+                    for ln in lines:
+                        try:
+                            parsed.append(json.loads(ln))
+                        except Exception:
+                            parsed.append(None)
+                    # 미finalize 가장 오래된 1건
+                    target_idx = None
+                    for i, d in enumerate(parsed):
+                        if d and not d.get("finalized", False):
+                            target_idx = i; break
+                    if target_idx is None:
+                        continue
+                    target = parsed[target_idx]
+                    ts_path = target.get("transcript", "")
+                    if not ts_path or not Path(ts_path).exists():
+                        continue
+                    # transcript 에서 이미 turns.jsonl 에 없는 가장 최근 user.promptId 추출
+                    existing_tids = set()
+                    if turns_file.exists():
+                        for tl in turns_file.read_text().splitlines():
+                            m = re.search(r'"turn_id"\s*:\s*"([^"]+)"', tl)
+                            if m: existing_tids.add(m.group(1))
+                    new_pid = ""
+                    try:
+                        with open(ts_path) as f:
+                            for ln in f:
+                                try:
+                                    td = json.loads(ln)
+                                except Exception:
+                                    continue
+                                if td.get("type")=="user" and "toolUseResult" not in td:
+                                    msg = td.get("message", {})
+                                    c = msg.get("content") if isinstance(msg, dict) else None
+                                    if isinstance(c, str):
+                                        pid = td.get("promptId")
+                                        if pid and pid not in existing_tids:
+                                            new_pid = pid
+                                            break  # 가장 오래된 미사용 promptId
+                    except Exception:
+                        continue
+                    if not new_pid:
+                        continue
+                    # turns.jsonl 에 한 줄 추가 + 펜딩 finalized 마킹
+                    turn_line = {
+                        "turn_id": new_pid,
+                        "session": target.get("session", ""),
+                        "ts_utc": target.get("ts_utc", ""),
+                        "prompt_preview": target.get("prompt_preview", ""),
+                    }
+                    try:
+                        with open(turns_file, "a") as f:
+                            f.write(json.dumps(turn_line, ensure_ascii=False) + "\n")
+                    except Exception:
+                        continue
+                    target["finalized"] = True
+                    parsed[target_idx] = target
+                    out_lines = []
+                    for orig_ln, d in zip(lines, parsed):
+                        if d is None:
+                            out_lines.append(orig_ln)
+                        else:
+                            out_lines.append(json.dumps(d, ensure_ascii=False))
+                    tmp = pfile.with_suffix(pfile.suffix + ".tmp")
+                    tmp.write_text("\n".join(out_lines) + "\n")
+                    tmp.replace(pfile)
+        except Exception:
+            pass
+        time.sleep(3)
 
 
 def _rotate_old_logs():
@@ -168,6 +261,41 @@ class StreamServer(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(msg.encode("utf-8"))
             return
+        if self.path == "/mcp-knowledge":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(MCP_KNOWLEDGE_HTML.encode("utf-8"))
+            return
+        if self.path.startswith("/mcp-knowledge-data"):
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            days = int(qs.get("days", ["7"])[0])
+            import subprocess
+            try:
+                subprocess.run(
+                    ["/usr/bin/python3",
+                     str(Path.home() / ".claude/scripts/mcp-knowledge-citation-analyze.py"),
+                     str(days)],
+                    capture_output=True, timeout=30,
+                )
+            except Exception:
+                pass
+            data_path = Path.home() / ".claude" / "cache" / f"mcp-knowledge-citation-{days}d.json"
+            payload = {}
+            if data_path.exists():
+                try:
+                    payload = json.loads(data_path.read_text())
+                except Exception as e:
+                    payload = {"error": str(e)}
+            else:
+                payload = {"error": "data file not found"}
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+            return
         if self.path == "/agent-quality-data":
             qfile = LIVE_DIR / "agent-quality.jsonl"
             data = []
@@ -253,39 +381,54 @@ class StreamServer(http.server.SimpleHTTPRequestHandler):
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "keep-alive")
             self.end_headers()
-            f = get_today_md_live_file()
-            offset = f.stat().st_size if f.exists() else 0
+
+            # 추적 대상: md reads + agent-trace(tools) + turns(prompts)
+            # 한 파일이라도 새 라인이 들어오면 SSE 이벤트 push → 클라이언트 디바운스 후 /chains 재요청.
+            def _today_targets():
+                today = datetime.now().strftime("%Y-%m-%d")
+                return [
+                    LIVE_DIR / f"{today}.jsonl",                # md reads
+                    LIVE_DIR / f"agent-trace-{today}.jsonl",    # tool calls
+                    LIVE_DIR / "turns.jsonl",                   # 발화 마커
+                ]
+
+            targets = _today_targets()
+            offsets = {p: (p.stat().st_size if p.exists() else 0) for p in targets}
             try:
                 while True:
-                    cur_file = get_today_md_live_file()
-                    if not cur_file.exists():
-                        # heartbeat 후 파일 생기길 대기
-                        try:
-                            self.wfile.write(b": ping\n\n")
-                            self.wfile.flush()
-                        except (BrokenPipeError, ConnectionResetError):
-                            return
-                        time.sleep(1.0)
-                        continue
-                    if cur_file != f:
-                        f = cur_file
-                        offset = 0
-                    size = cur_file.stat().st_size
-                    if size > offset:
-                        with cur_file.open() as fh:
-                            fh.seek(offset)
-                            for line in fh:
-                                line = line.strip()
-                                if not line:
-                                    continue
-                                try:
-                                    json.loads(line)
-                                    self.wfile.write(f"data: {line}\n\n".encode("utf-8"))
-                                    self.wfile.flush()
-                                except Exception:
-                                    pass
-                            offset = fh.tell()
-                    else:
+                    cur = _today_targets()
+                    # 날짜 롤오버 감지 — 경로 바뀐 파일은 offset 0 으로 리셋
+                    if [str(p) for p in cur] != [str(p) for p in targets]:
+                        new_off = {}
+                        for p in cur:
+                            new_off[p] = offsets.get(p, 0) if p in offsets else 0
+                        offsets = new_off
+                        targets = cur
+                    any_new = False
+                    for p in targets:
+                        if not p.exists():
+                            continue
+                        size = p.stat().st_size
+                        prev = offsets.get(p, 0)
+                        if size > prev:
+                            with p.open() as fh:
+                                fh.seek(prev)
+                                for line in fh:
+                                    line = line.strip()
+                                    if not line:
+                                        continue
+                                    try:
+                                        json.loads(line)
+                                        self.wfile.write(f"data: {line}\n\n".encode("utf-8"))
+                                        self.wfile.flush()
+                                        any_new = True
+                                    except Exception:
+                                        pass
+                                offsets[p] = fh.tell()
+                        elif size < prev:
+                            # 파일이 회전/잘림 — offset 리셋
+                            offsets[p] = 0
+                    if not any_new:
                         try:
                             self.wfile.write(b": ping\n\n")
                             self.wfile.flush()
@@ -355,6 +498,8 @@ def main():
     threading.Thread(target=_warm_usage_cache, daemon=True).start()
     # 30일 이상 된 로그 자동 회전
     threading.Thread(target=_rotate_old_logs, daemon=True).start()
+    # 펜딩 발화 finalize 안전망 (PostToolUse hook 동적 미반영 대비)
+    threading.Thread(target=_pending_finalizer, daemon=True).start()
 
     # SO_REUSEADDR을 bind 전에 설정 (재시작 시 TIME_WAIT 회피)
     socketserver.ThreadingTCPServer.allow_reuse_address = True

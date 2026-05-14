@@ -62,7 +62,6 @@ RULES=(
     "(기능 ?추가|새 ?기능|리팩터|refactor|UI |화면|디자인|쿼리|대시보드|배포|deploy|Docker|Terraform|SPI)|standard-routines.md"
     "(훅|hook|자동화|automation|메트릭|measurement)|automation.md"
     "(학습|회고|성장|3중 ?LLM|deep[- ]?learn|retro)|growth.md"
-    "(CLAUDE.md|settings.json|훅 ?수정|설정 ?수정)|self-modification-pattern.md"
     "(프로젝트 ?목록|어떤 ?프로젝트|workspace 구조)|projects.md"
 )
 

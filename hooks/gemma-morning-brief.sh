@@ -27,8 +27,8 @@ if [ "$CURRENT_HOUR" -lt 5 ]; then
     exit 0
 fi
 
-# qwen-cli 확인 (Ollama 백엔드도 우회 헬스체크)
-QWEN_CLI="$HOME/.local/bin/qwen-cli"
+# ini 확인 (Ollama 백엔드도 우회 헬스체크)
+QWEN_CLI="$HOME/.local/bin/ini"
 if [ ! -x "$QWEN_CLI" ]; then
     exit 0
 fi
@@ -108,7 +108,7 @@ if [ -z "$GIT_STATUS" ]; then
     exit 0
 fi
 
-# qwen-cli 호출 - 간결한 브리핑 생성 (writer 페르소나, qwen3.5:9b)
+# ini 호출 - 간결한 브리핑 생성 (writer 페르소나, qwen3.5:9b)
 export GIT_STATUS YESTERDAY_CONTEXT TODAY YESTERDAY
 
 PROMPT=$(python3 <<'PYEOF'

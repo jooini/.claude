@@ -12,6 +12,9 @@ import time
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _lib_ini_call import call_ollama_messages  # noqa: E402
+
 OLLAMA = os.environ.get("OLLAMA_HOST_LAN", "leonard.local:11434")
 WORKSPACE = Path.home() / "Workspace"
 OUT_DIR = Path.home() / ".claude" / "cache" / "project-kb"
@@ -103,24 +106,16 @@ def gemma_summarize(proj_name: str, evidence: str) -> str:
 증거:
 {evidence}
 """
-    body = json.dumps({
-        "model": "gemma4:e4b",
-        "messages": [
+    return call_ollama_messages(
+        [
             {"role": "system", "content": "한국어로 구조화된 프로젝트 요약만 출력. 인사/설명 금지."},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": prompt},
         ],
-        "stream": False,
-        "keep_alive": "30m"
-    }).encode()
-
-    req = urllib.request.Request(
-        f"http://{OLLAMA}/api/chat",
-        data=body,
-        headers={"Content-Type": "application/json"}
+        model="gemma4:e4b",
+        num_predict=800,
+        timeout=60,
+        caller="gemma-kb-build",
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = json.loads(resp.read())
-    return data.get("message", {}).get("content", "")
 
 def main():
     # Ollama 연결 확인

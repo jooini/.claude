@@ -37,6 +37,38 @@ if [ -z "$TOPIC" ]; then
     exit 0
 fi
 
+# 차단 로그 헬퍼
+BLOCK_LOG="$HOME/.claude/cache/learning-queue-blocked.log"
+/bin/mkdir -p "$(/usr/bin/dirname "$BLOCK_LOG")"
+log_block() {
+    /bin/echo "$(/bin/date +%Y-%m-%dT%H:%M:%S) [$1] $(echo "$PROMPT" | /usr/bin/head -c 100)" >> "$BLOCK_LOG"
+}
+
+# 필터 1: 감정/짜증 표현
+if echo "$PROMPT" | /usr/bin/grep -qiE '(ㅡㅡ|ㅠㅠ|ㅜㅜ|뭐하는 ?거냐|멈춰|뭐 ?시켰|니멋대로|아니 ?ㅡ|개같|짜증|화나)'; then
+    log_block "EMOTION"
+    exit 0
+fi
+
+# 필터 2: 너무 짧은 단편 (4단어 미만 + 영문 식별자 없음)
+WORD_COUNT=$(echo "$PROMPT" | /usr/bin/wc -w | /usr/bin/tr -d ' ')
+if [ "$WORD_COUNT" -lt 4 ] && ! echo "$PROMPT" | /usr/bin/grep -qE '[A-Za-z_]{3,}'; then
+    log_block "SHORT_FRAGMENT"
+    exit 0
+fi
+
+# 필터 3: 작업 지시 (학습 X)
+if echo "$PROMPT" | /usr/bin/grep -qiE '(구현해|만들어|처리해|수정해|고쳐|진행해|작성해)'; then
+    log_block "TASK_REQUEST"
+    exit 0
+fi
+
+# 필터 4: 코드 한정 단순 질문 (함수명() + 6단어 미만)
+if echo "$PROMPT" | /usr/bin/grep -qE '[a-zA-Z_]+\(\)' && [ "$WORD_COUNT" -lt 6 ]; then
+    log_block "CODE_SPECIFIC_FRAGMENT"
+    exit 0
+fi
+
 # 슬래시 명령은 제외 (이미 알고 호출 중)
 if echo "$PROMPT" | grep -qE '^/'; then
     exit 0

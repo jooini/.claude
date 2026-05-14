@@ -1,6 +1,6 @@
 #!/bin/zsh
 # PreToolUse(Bash): git commit -m 감지 → 메시지가 Conventional Commits 규약 따르는지 검사
-# 위반 시 로컬 LLM(qwen-cli)이 올바른 타입 제안, stdout으로 힌트 출력 (비차단)
+# 위반 시 로컬 LLM(ini)이 올바른 타입 제안, stdout으로 힌트 출력 (비차단)
 
 : "${HOME:?}"
 
@@ -52,8 +52,8 @@ if echo "$FIRST_LINE" | grep -qE '^(feat|fix|refactor|chore|docs|test|style|perf
     exit 0
 fi
 
-# qwen-cli 확인
-QWEN="$HOME/.local/bin/qwen-cli"
+# ini 확인
+QWEN="$HOME/.local/bin/ini"
 [ -x "$QWEN" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)

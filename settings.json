@@ -215,6 +215,11 @@
             "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-test-failure-analyze.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/tool-trace.sh",
+            "timeout": 3
           }
         ]
       },
@@ -239,6 +244,28 @@
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/decision-capture.sh",
             "timeout": 8,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-trace.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-build-verify.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-quality-incremental.sh",
+            "timeout": 3,
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/suggestion-outcome-track.sh",
+            "timeout": 3,
+            "async": true
           }
         ]
       },
@@ -248,12 +275,6 @@
           {
             "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/knowledge-change-rebuild.sh"
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-dependency-summarize.sh",
-            "timeout": 20,
-            "statusMessage": "Gemma 의존성 변경 요약 중..."
           },
           {
             "type": "command",
@@ -275,6 +296,26 @@
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-dependency-impact.sh",
             "timeout": 45,
             "statusMessage": "Gemini 의존성 영향 분석 중..."
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/tool-trace.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/learning-note-auto-ingest.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/md-read-trace.sh",
+            "timeout": 3
           }
         ]
       },
@@ -284,6 +325,14 @@
           {
             "type": "command",
             "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/mcp-knowledge-telemetry.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/turn-finalize.sh"
           }
         ]
       }
@@ -426,6 +475,11 @@
           {
             "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-review-prescan.sh"
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-routing-suggest.sh",
+            "timeout": 3
           }
         ]
       },
@@ -452,73 +506,12 @@
     ],
     "SessionStart": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/node-version-sync.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/session-build-agents.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/session-detect-language.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/session-active-tasks.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-morning-brief.sh",
-            "timeout": 35,
-            "statusMessage": "Gemma 세션 브리핑 생성 중..."
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/qwen-weekly-retro.sh",
-            "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/qwen-alias-suggest.sh",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-intent-restore.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/session-today-reminder.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/qwen-project-context-inject.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/mcp-healthcheck.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/delegation-principle-inject.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/SessionStart/wsq-catalog-refresh.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/SessionStart/wsq-daily-sweep.sh",
-            "timeout": 5
+            "command": "$HOME/.claude/hooks/session-start-router.sh",
+            "timeout": 120
           }
         ]
       },
@@ -545,16 +538,9 @@
           },
           {
             "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-session-summarize.sh",
-            "timeout": 60,
-            "statusMessage": "Gemma 세션 요약 생성 중...",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "/Users/leonard/.claude/hooks/gemma-intent-capture.sh",
-            "timeout": 60,
-            "statusMessage": "Gemma 의도 기록 중...",
+            "command": "/Users/leonard/.claude/hooks/gemma-session-stop-unified.sh",
+            "timeout": 90,
+            "statusMessage": "세션 요약+의도 통합 생성 중...",
             "async": true
           },
           {
@@ -586,6 +572,10 @@
             "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/budget-alert.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/turn-finalize.sh"
           }
         ]
       },
@@ -595,6 +585,16 @@
           {
             "type": "command",
             "command": "\"/Users/leonard/Library/Application Support/GitKrakenCLI/gk\" ai hook run --host claude-code"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/closure-gate-stop.sh",
+            "timeout": 10
           }
         ]
       }
@@ -656,51 +656,12 @@
     ],
     "UserPromptSubmit": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/auto-scale-detect.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/memory-search-suggest.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/session-turn-counter.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/command-suggest.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/ultrathink-auto-trigger.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/assumption-warning.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/learning-queue-capture.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/simple-query-ollama-route.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/workflow-md-inject.sh",
-            "timeout": 5
+            "command": "$HOME/.claude/hooks/user-prompt-router.sh",
+            "timeout": 10
           }
         ]
       },

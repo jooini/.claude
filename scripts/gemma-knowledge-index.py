@@ -6,11 +6,26 @@
 """
 import json
 import os
+import sys
 import time
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _lib_ini_call import call_ollama_messages  # noqa: E402
+
 OLLAMA = os.environ.get("OLLAMA_HOST_LAN", "leonard.local:11434")
+
+
+def _call_via_helper(messages):
+    return call_ollama_messages(
+        messages,
+        model="qwen2.5-coder:14b",
+        num_predict=500,
+        timeout=60,
+        caller="gemma-knowledge-index",
+        force_format="json",
+    )
 KB_ROOT = Path.home() / ".claude" / "agents" / "knowledge"
 OUT_DIR = Path.home() / ".claude" / "cache" / "knowledge-index"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -68,27 +83,10 @@ def gemma_summarize(path: Path, content: str) -> dict:
 {body_trimmed}
 """
 
-    body = json.dumps({
-        "model": "qwen2.5-coder:14b",
-        "messages": [
-            {"role": "system", "content": "JSON만 출력. 설명/인사/코드블록 금지."},
-            {"role": "user", "content": prompt}
-        ],
-        "stream": False,
-        "keep_alive": "30m",
-        "format": "json",
-        "options": {"num_predict": 500}
-    }).encode()
-
-    req = urllib.request.Request(
-        f"http://{OLLAMA}/api/chat",
-        data=body,
-        headers={"Content-Type": "application/json"}
-    )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = json.loads(resp.read())
-
-    raw = data.get("message", {}).get("content", "").strip()
+    raw = _call_via_helper([
+        {"role": "system", "content": "JSON만 출력. 설명/인사/코드블록 금지."},
+        {"role": "user", "content": prompt}
+    ]).strip()
     # JSON 파싱
     try:
         parsed = json.loads(raw)

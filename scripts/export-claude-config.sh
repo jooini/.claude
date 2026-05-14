@@ -245,6 +245,15 @@ collect_claude_files() {
             [[ "$base" == *.bak-* ]] && continue
             files+=("scripts/$base")
         done
+
+        # dashboard/templates/ 하위 html 포함 (5/10 추가 — mcp_knowledge.html 등)
+        if [[ -d "$CLAUDE_DIR/scripts/dashboard/templates" ]]; then
+            for f in "$CLAUDE_DIR"/scripts/dashboard/templates/*.html; do
+                [[ -f "$f" ]] || continue
+                local base=$(basename "$f")
+                files+=("scripts/dashboard/templates/$base")
+            done
+        fi
     fi
 
     # 훅 (gemma-*, codex-*, gemini-* 제외, _disabled/ 도 제외 — 비활성화된 파일)

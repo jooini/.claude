@@ -53,7 +53,16 @@ ollama_available() {
 }
 
 # 직접 실행 시: 결과를 exit code로
-if [ "${ZSH_EVAL_CONTEXT:-toplevel}" = "toplevel" ] || [ "${BASH_SOURCE:-$0}" = "$0" ]; then
+# zsh source: ZSH_EVAL_CONTEXT가 ":file"로 끝남. 직접 실행: "toplevel" 또는 "toplevel:shfunc"
+# bash source: BASH_SOURCE[0] != $0. 직접 실행: 같음
+_sourced=0
+case "${ZSH_EVAL_CONTEXT:-}" in
+    *:file) _sourced=1 ;;
+esac
+[ -n "${BASH_SOURCE:-}" ] && [ "${BASH_SOURCE[0]:-}" != "$0" ] && _sourced=1
+
+if [ "$_sourced" = "0" ]; then
     ollama_available
     exit $?
 fi
+unset _sourced

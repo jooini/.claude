@@ -17,6 +17,9 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _lib_ini_call import call_ollama  # noqa: E402
+
 OLLAMA = os.environ.get("OLLAMA_HOST_LAN", "leonard.local:11434")
 OUT_DIR = Path.home() / ".claude" / "cache" / "health-report"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -328,25 +331,16 @@ def gemma_evaluate(data, date_str):
 - 이모지 금지.
 """
 
-    body = json.dumps({
-        "model": "gemma4:e4b",
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "stream": False,
-        "keep_alive": "30m",
-        "options": {"num_predict": 2000, "temperature": 0.4}
-    }).encode()
-
-    req = urllib.request.Request(
-        f"http://{OLLAMA}/api/chat",
-        data=body,
-        headers={"Content-Type": "application/json"}
-    )
     try:
-        with urllib.request.urlopen(req, timeout=90) as resp:
-            result = json.loads(resp.read())
-        return result.get("message", {}).get("content", "")
+        result = call_ollama(
+            prompt,
+            model="gemma4:e4b",
+            num_predict=2000,
+            temperature=0.4,
+            timeout=90,
+            caller="gemma-health-report",
+        )
+        return result if result else "[Gemma 평가 실패: empty response]"
     except Exception as e:
         return f"[Gemma 평가 실패: {e}]"
 

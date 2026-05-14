@@ -1,9 +1,9 @@
 #!/bin/zsh
-# Stop hook: 세션 종료 시 qwen-cli로 학습 내용 추출
+# Stop hook: 세션 종료 시 ini로 학습 내용 추출
 #
 # 작동:
 #   - 세션 jsonl에서 user/assistant 텍스트 추출 (300건 cap)
-#   - qwen-cli (learning 페르소나)에 전달 → "learnings:" YAML 응답
+#   - ini (learning 페르소나)에 전달 → "learnings:" YAML 응답
 #   - 빈 learnings면 skip
 #   - ~/Workspace/weaversbrain/weaversbrain/Learning/YYYY-MM-DD.md 에 append
 #
@@ -15,7 +15,7 @@
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/qwen-cli"
+QWEN="$HOME/.local/bin/ini"
 [ -x "$QWEN" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
@@ -112,7 +112,7 @@ TRANSCRIPT=$(echo "$TRANSCRIPT" | /usr/bin/tail -c 24000)
 # 프롬프트 구성 — YAML 응답 강제
 PROMPT=$(printf '다음은 방금 끝난 Claude Code 세션 기록이다. 사용자가 새로 알게 된 학습 거리(개념, 패턴, 함정, 디버깅 통찰)를 추출해라.\n\n세션 기록:\n%s\n\n출력 형식 (정확히 YAML, 다른 텍스트 금지):\nlearnings:\n  - topic: <주제 5단어 이내>\n    insight: <핵심 통찰 1~2문장>\n    context: <어떤 상황에서 배웠는지 한 줄>\n  - topic: ...\n\n규칙:\n- 세션 기록 근거만 사용. 추측/일반론 금지.\n- 진짜 새로 알게 된 것만. 단순 작업 진행은 학습 아님.\n- 학습 거리 없으면 정확히 "learnings: []" 만 출력.\n- 최대 5개.\n- 한국어.\n' "$TRANSCRIPT")
 
-# qwen-cli 호출 — learning 페르소나, 8192 컨텍스트, quiet
+# ini 호출 — learning 페르소나, 8192 컨텍스트, quiet
 RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile learning --num-ctx 8192 --quiet 2>/dev/null)
 EXIT=$?
 
@@ -171,7 +171,7 @@ fi
     /bin/echo ""
     /bin/echo "## 세션 $SHORT_SESSION ($TIME_NOW)"
     /bin/echo ""
-    /bin/echo "엔진: qwen-cli (learning)"
+    /bin/echo "엔진: ini (learning)"
     /bin/echo ""
     /bin/echo "\`\`\`yaml"
     /bin/echo "$RESULT"
