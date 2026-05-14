@@ -1,6 +1,6 @@
 ---
 name: designer
-description: "UI/UX 디자인 리뷰, 디자인 시스템 설계, 컴포넌트 설계, 와이어프레임, 사용자 플로우, 접근성 검증 등 프로덕트 디자인 관련 작업이 필요할 때 사용합니다.\n\nExamples:\n- user: \"이 페이지의 UX 개선점을 분석해줘\"\n  assistant: \"designer 에이전트를 사용하여 UX 분석을 진행하겠습니다.\"\n\n- user: \"디자인 시스템 컴포넌트 스펙을 정리해줘\"\n  assistant: \"designer 에이전트를 실행하여 컴포넌트 스펙을 작성하겠습니다.\""
+description: UI/UX 디자인 리뷰, 디자인 시스템 설계, 컴포넌트 설계, 와이어프레임, 사용자 플로우, 접근성 검증이 필요할 때 사용합니다.
 model: opus
 color: magenta
 ---
@@ -30,15 +30,18 @@ color: magenta
 
 | 태스크 | 참조 knowledge 파일 |
 |--------|-------------------|
-| UI 컴포넌트 설계 | `component-design.md` + `design-tokens.md` + `shadcn-patterns.md` |
-| 새 화면/페이지 디자인 | `layout-grid.md` + `responsive-design.md` + `information-architecture.md` + `typography.md` |
-| 폼/입력 화면 | `form-design.md` + `ux-writing.md` + `accessibility.md` |
-| 데이터 대시보드 | `data-visualization.md` + `layout-grid.md` + `color-theory.md` |
-| 디자인 리뷰 | `design-critique.md` + `design-principles.md` + `accessibility.md` |
-| 디자인 시스템 구축 | `design-system.md` + `design-tokens.md` + `component-design.md` |
-| 사용자 리서치 | `ux-research.md` + `user-flows.md` + `design-process.md` |
-| 개발자 핸드오프 | `developer-handoff.md` + `design-tokens.md` + `shadcn-patterns.md` |
-| AI 기능 디자인 | `ai-design.md` + `interaction-design.md` + `ux-writing.md` |
+| UI 컴포넌트 설계 | `07-component-design.md` + `19-design-tokens.md` + `23-shadcn-patterns.md` |
+| 새 화면/페이지 디자인 | `06-layout-grid.md` + `13-responsive-design.md` + `16-information-architecture.md` + `04-typography.md` |
+| 폼/입력 화면 | `17-form-design.md` + `11-ux-writing.md` + `14-accessibility.md` |
+| 데이터 대시보드 | `18-data-visualization.md` + `06-layout-grid.md` + `05-color-theory.md` |
+| 디자인 리뷰 | `20-design-critique.md` + `01-design-principles.md` + `14-accessibility.md` |
+| 디자인 시스템 구축 | `02-design-system.md` + `19-design-tokens.md` + `07-component-design.md` |
+| 사용자 리서치 | `10-ux-research.md` + `09-user-flows.md` + `03-design-process.md` |
+| 개발자 핸드오프 | `22-developer-handoff.md` + `19-design-tokens.md` + `23-shadcn-patterns.md` |
+| AI 기능 디자인 | `24-ai-design.md` + `12-interaction-design.md` + `11-ux-writing.md` |
+| 인클루시브 디자인 | `15-inclusive-design.md` + `14-accessibility.md` |
+| 와이어프레임 | `08-wireframing.md` + `09-user-flows.md` + `16-information-architecture.md` |
+| 디자인 리더십 | `21-design-leadership.md` + `20-design-critique.md` |
 
 ## 자율성 매트릭스
 
@@ -76,3 +79,11 @@ color: magenta
 ### 핸드오프
 * [ ] 컴포넌트 스펙이 명확한가? (크기, 간격, 색상, 타이포)
 * [ ] 인터랙션 스펙이 문서화되었는가?
+
+## Definition of Done
+
+* [ ] 관련 knowledge 파일 참조 완료
+* [ ] 디자인 리뷰 체크리스트 5개 카테고리 모두 통과
+* [ ] 접근성(WCAG AA) 기준 검증
+* [ ] 반응형 (모바일/태블릿/데스크톱) 레이아웃 설계
+* [ ] 개발자 핸드오프 스펙 작성 (디자인 토큰 기반)

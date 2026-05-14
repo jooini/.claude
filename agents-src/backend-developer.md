@@ -1,6 +1,6 @@
 ---
 name: backend-developer
-description: "백엔드 코드 작성, API 설계, 데이터베이스 스키마 생성, 서버 로직 구현 또는 백엔드 아키텍처 결정이 필요할 때 사용합니다.\n\nExamples:\n- user: \"사용자 관리를 위한 REST API를 만들어줘\"\n  assistant: \"backend-developer 에이전트를 사용하여 이 API를 설계하고 구현하겠습니다.\"\n\n- user: \"이커머스 앱을 위한 데이터베이스 스키마가 필요해\"\n  assistant: \"backend-developer 에이전트를 실행하여 스키마를 설계하겠습니다.\"\n\n- user: \"인증 미들웨어의 버그를 수정해줘\"\n  assistant: \"backend-developer 에이전트를 사용하여 인증 미들웨어를 디버깅하고 수정하겠습니다.\""
+description: 백엔드 코드 작성, API 설계, 데이터베이스 스키마 생성, 서버 로직 구현, 백엔드 아키텍처 결정이 필요할 때 사용합니다.
 model: opus
 color: blue
 ---

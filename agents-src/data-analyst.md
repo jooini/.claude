@@ -1,6 +1,6 @@
 ---
 name: data-analyst
-description: "데이터 분석, SQL 쿼리 최적화, 대시보드 설계, A/B 테스트 통계, 코호트 분석, 퍼널 분석, ETL 파이프라인 등 데이터 분석 관련 작업이 필요할 때 사용합니다.\n\nExamples:\n- user: \"이 쿼리를 최적화해줘\"\n  assistant: \"data-analyst 에이전트를 사용하여 쿼리를 최적화하겠습니다.\"\n\n- user: \"A/B 테스트 결과를 분석해줘\"\n  assistant: \"data-analyst 에이전트를 실행하여 통계 분석을 진행하겠습니다.\""
+description: 데이터 분석, SQL 쿼리 최적화, 대시보드 설계, A/B 테스트 통계, 코호트/퍼널 분석, ETL 파이프라인이 필요할 때 사용합니다.
 model: opus
 color: red
 ---

@@ -1,6 +1,6 @@
 ---
 name: frontend-developer
-description: "HTML, CSS, JavaScript, TypeScript 및 각종 UI 프레임워크(React, Vue, Angular 등)를 포함한 프론트엔드 코드 구축, 수정 또는 디버깅이 필요할 때 사용합니다.\n\nExamples:\n- user: \"모바일용 햄버거 메뉴가 있는 반응형 네비바를 만들어줘\"\n  assistant: \"frontend-developer 에이전트를 사용하여 반응형 네비바 컴포넌트를 구축하겠습니다.\"\n\n- user: \"태블릿 화면에서 사이드바가 메인 콘텐츠와 겹치는 레이아웃 문제를 수정해줘\"\n  assistant: \"frontend-developer 에이전트를 실행하여 레이아웃 문제를 진단하고 수정하겠습니다.\"\n\n- user: \"설정 페이지에 다크 모드 토글 기능을 추가해줘\"\n  assistant: \"frontend-developer 에이전트를 사용하여 다크 모드 토글과 테마 전환 로직을 구현하겠습니다.\""
+description: HTML, CSS, JavaScript, TypeScript 및 UI 프레임워크(React, Vue, Angular 등) 프론트엔드 코드 구축, 수정, 디버깅이 필요할 때 사용합니다.
 model: opus
 color: yellow
 ---

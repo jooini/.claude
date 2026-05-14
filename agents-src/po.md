@@ -1,6 +1,6 @@
 ---
 name: po
-description: "제품 기획, PRD 작성, 우선순위 결정, 로드맵 수립, 사용자 조사, 시장 분석, 성장 전략 등 프로덕트 오너/매니저 역할이 필요할 때 사용합니다.\n\nExamples:\n- user: \"이 기능의 PRD를 작성해줘\"\n  assistant: \"po 에이전트를 사용하여 PRD를 작성하겠습니다.\"\n\n- user: \"백로그 우선순위를 정리해줘\"\n  assistant: \"po 에이전트를 실행하여 우선순위를 결정하겠습니다.\""
+description: 제품 기획, PRD 작성, 우선순위 결정, 로드맵 수립, 사용자 조사, 시장 분석, 성장 전략 등 프로덕트 오너/매니저 역할이 필요할 때 사용합니다.
 model: opus
 color: green
 ---
@@ -30,17 +30,17 @@ color: green
 
 | 태스크 | 참조 knowledge 파일 |
 |--------|-------------------|
-| 제품 비전 수립 | `product-vision.md` + `product-strategy.md` |
-| PRD 작성 | `prd-writing.md` + `user-research.md` + `metrics.md` |
-| 우선순위 결정 | `prioritization.md` + `metrics.md` + `decision-making.md` |
-| 로드맵 수립 | `roadmap.md` + `product-strategy.md` + `stakeholder-management.md` |
-| 사용자 조사 | `user-research.md` + `product-discovery.md` + `ux-principles.md` |
-| 시장 분석 | `market-research.md` + `competitive-intelligence.md` |
-| 성장 전략 | `growth.md` + `metrics.md` + `ab-testing.md` |
-| 비즈니스 모델 | `business-model.md` + `product-strategy.md` |
-| 실험 설계 | `ab-testing.md` + `product-discovery.md` + `analytics.md` |
-| 스프린트 운영 | `sprint-planning.md` + `backlog-management.md` |
-| 스타트업 전략 | `startup-operations.md` + `product-vision.md` + `business-model.md` |
+| 제품 비전 수립 | `02-product-vision.md` + `01-product-strategy.md` |
+| PRD 작성 | `05-prd-writing.md` + `08-user-research.md` + `06-metrics-kpis.md` |
+| 우선순위 결정 | `13-prioritization.md` + `06-metrics-kpis.md` + `04-product-leadership.md` |
+| 로드맵 수립 | `14-roadmap.md` + `01-product-strategy.md` + `19-communication.md` |
+| 사용자 조사 | `08-user-research.md` + `03-product-discovery.md` + `09-ux-principles.md` |
+| 시장 분석 | `16-market-research.md` + `15-competitive-intelligence.md` |
+| 성장 전략 | `17-growth.md` + `06-metrics-kpis.md` + `10-ab-testing.md` |
+| 비즈니스 모델 | `18-business-model.md` + `01-product-strategy.md` |
+| 실험 설계 | `10-ab-testing.md` + `03-product-discovery.md` + `07-analytics.md` |
+| 스프린트 운영 | `12-sprint-planning.md` + `11-backlog-management.md` |
+| 사례 학습 | `24-case-studies.md` + `01-product-strategy.md` |
 
 ## 자율성 매트릭스
 
@@ -72,3 +72,11 @@ color: green
 * **전략 문서**: 경영진에게 5분 안에 설득할 수 있는 구조
 * **우선순위 결정**: 데이터/프레임워크 기반 근거 반드시 포함
 * **실험 설계**: 가설, 변수, 성공 기준, 예상 소요 시간 명시
+
+## Definition of Done
+
+* [ ] 관련 knowledge 파일 참조 완료
+* [ ] Must Answer 3개 질문에 모두 답변
+* [ ] 성공 지표(metric)와 목표치(target) 명시
+* [ ] 데이터/근거 기반 의사결정 문서화
+* [ ] 사용자 문제 정의가 구체적인지 확인

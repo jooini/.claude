@@ -1,13 +1,6 @@
 ---
 name: designer
-description: "UI/UX 디자인 리뷰, 디자인 시스템 설계, 컴포넌트 설계, 와이어프레임, 사용자 플로우, 접근성 검증 등 프로덕트 디자인 관련 작업이 필요할 때 사용합니다.
-
-Examples:
-- user: \"이 페이지의 UX 개선점을 분석해줘\"
-  assistant: \"designer 에이전트를 사용하여 UX 분석을 진행하겠습니다.\"
-
-- user: \"디자인 시스템 컴포넌트 스펙을 정리해줘\"
-  assistant: \"designer 에이전트를 실행하여 컴포넌트 스펙을 작성하겠습니다.\""
+description: UI/UX 디자인 리뷰, 디자인 시스템 설계, 컴포넌트 설계, 와이어프레임, 사용자 플로우, 접근성 검증이 필요할 때 사용합니다.
 model: opus
 color: magenta
 ---
@@ -90,8 +83,8 @@ color: magenta
 ## 호출 흐름 — 사용자 인증 (SSO 모드)
 ## 호출 흐름 — admin API (B2C → Hub → Keycloak)
 ## 폴백 (SSO 장애 시)
-## 핵심 결정 (ADR 매핑)
-- **ADR-007**: Keycloak 직접 호출 금지 → identity-hub 경유 (`IdentityHub_lib::getServiceToken()`)
+## 핵심 결정
+- **Keycloak 직접 호출 금지**: 모든 컴포넌트는 identity-hub 경유 (`IdentityHub_lib::getServiceToken()`)
 - **BFF 패턴**: `client_secret`은 Identity Hub만 보유. refresh_token도 Hub에서만 관리.
 - **인증 모드**: `auth_mode=sso|legacy` (config/keycloak.php). LOCAL/DEV/QA/PP/LIVE 모두 `sso` (2026-04-17 기준).
 - **계정 중복 허용**: 전화번호/이메일 중복 허용 (레거시 유지)
@@ -140,7 +133,6 @@ color: magenta
 ## 함정
 - ⚠️ `prod` ClickHouse DB만 prefix 없음 — 환경 분기 코드에서 자주 실수
 - ⚠️ 도메인 헷갈림: `weaversbrain.com` (회사) ≠ `maxaiapp.com` (B2C 서비스)
-- ⚠️ STT 자동 받아쓰기는 사람 이름 정확도 낮음 → "현주"/"홍주" → 항상 **"현준"** 으로 정정
 
 **03-internal-libraries**
 
@@ -156,7 +148,7 @@ color: magenta
 - **포함**: `Authorization: Bearer`, `X-Service-Caller: b2c`, SSL verify off (사내 cert)
 ## 사용 규칙
 - ✅ admin API 호출 시 위 두 함수 함께 사용
-- ❌ Keycloak 직접 호출 금지 (ADR-007)
+- ❌ Keycloak 직접 호출 금지 — identity-hub 경유만
 - ❌ token 직접 캐싱 금지 — `getServiceToken()` 내부에서 처리
 ## 함정
 - service-token TTL은 5분, 캐시는 4분 — 타임아웃 회피
@@ -168,17 +160,13 @@ color: magenta
 ## 핵심 인물
 | 이름 | 역할 | 담당 영역 | 비고 |
 | 주인식 | 서버/백엔드 리드 | 테스트 API, 대시보드, ClickHouse | 사용자 본인 |
-| 현준 | 클라이언트 개발자 | iOS/Android 녹음, 셀바스 SDK | 홍주/현주 아님 — STT 오타 주의 |
-| 영찬 | iOS 개발자 | 음성 인식 테스트 앱 | 초기 작업자 |
 ## 결정권자 / 에스컬레이션
 - **백엔드 결정**: 주인식 (서버/백엔드 리드)
-- **클라이언트(iOS/Android) 결정**: 현준
-- **iOS 결정**: 영찬 (테스트 앱) / 현준 (운영)
+- **클라이언트(iOS/Android) 결정**: ❓ 미확인 — 첫 발생 시 채워넣기
 - **인프라 결정**: ❓ 미확인 — 첫 발생 시 채워넣기
 - **Product 결정**: ❓ 미확인 — 첫 발생 시 채워넣기
 ## 표기 규칙
 - 회의록/PR 멘션은 풀네임 한글 (이니셜 X)
-- STT 자동 받아쓰기 결과 정정 필수: "홍주" / "현주" → **"현준"** 으로 (클로바노트가 자주 틀림)
 - 영문 표기 시 한글 음역 사용 (예: 주인식 = `is.joo` — 회사 메일 prefix)
 ## 회사 메일
 - 도메인: `@speakingmaxapp.com`
@@ -189,30 +177,11 @@ color: magenta
 # Architecture Decision Records (ADR)
 ## ADR 인덱스
 | 번호 | 제목 | 상태 | 날짜 |
-| ADR-007 | B2C → Keycloak 직접 호출 금지, Identity Hub 경유 | ✅ Accepted | (2026-04 이전) |
 | ADR-008 | Identity Hub 장애 시 identity-nginx 레거시 폴백 | ✅ Accepted | (2026-04-17 이전) |
-| ❓ ADR-001~006 | 미문서화 (있으면 추출 필요) | - | - |
-## ADR-007: Keycloak 직접 호출 금지, Identity Hub 경유
-### Context
-- B2C 백엔드는 PHP CodeIgniter 레거시이고 NestJS로 마이그레이션 중
-- 두 시스템이 동시에 Keycloak에 직접 접근하면 토큰 발급 충돌, client_secret 분산 보관
-- 보안/일관성 표준화 필요
-### Decision
-- **Keycloak 직접 호출 금지**. 모든 컴포넌트는 Identity Hub 경유.
-- B2C 백엔드는 `IdentityHub_lib::getServiceToken()` + `setAdminCurlOptions($token)` 패턴 사용
-- service-token = client_credentials grant로 Identity Hub가 발급, Bearer 헤더로 admin API 호출
-### Consequences
-- `client_secret`은 Identity Hub 한 곳만 보유
-- service-token 캐싱(4분)으로 Keycloak 부하 감소
-- 인증 로직 변경 시 한 곳만 수정
-- Identity Hub 다운 시 모든 인증 영향 → ADR-008 폴백 필요
-- 신규 컴포넌트 추가 시 Identity Hub 설정 필요 (배포 의존성)
-### 검증
-- nginx access log에서 `host=keycloak.*` 외부 트래픽 0건이어야 함
-- service-token 발급률 알람: 분당 100건 초과 시 Slack ❓ 알람 임계치 미확인
+| ❓ ADR-001~007 | 미문서화 (있으면 추출 필요) | - | - |
 ## ADR-008: SSO 장애 시 레거시 인증 폴백
 ### Context
-- ADR-007에 따라 Identity Hub가 단일 인증 게이트웨이
+- Identity Hub가 단일 인증 게이트웨이
 - Hub 장애 시 사용자 로그인 전면 차단 위험
 ### Decision
 - Identity Nginx에서 Identity Hub 502/503/504 감지 시 레거시 인증 경로로 폴백
@@ -255,14 +224,13 @@ color: magenta
 ## 승인 권한 (추정 — ❓ 확인 필요)
 | 액션 | 승인자 (추정) |
 | 백엔드 결정 | 주인식 ✅ |
-| 클라이언트 결정 | 현준 ✅ |
+| 클라이언트 결정 | ❓ 미확인 |
 | 운영 DB 스키마 변경 | 주인식 (추정) |
 | 운영 환경변수 변경 | 주인식 (추정) |
 | 인프라 결정 | ❓ 미확인 |
 | Product 결정 | ❓ 미확인 |
-| 모바일 강제 업데이트 | 주인식 + 현준 (추정) |
+| 모바일 강제 업데이트 | ❓ 미확인 |
 ## 함정 (검증된 것)
-- ⚠️ **셀바스 SDK 업데이트는 반드시 현준과 사전 협의** (음성 인식 호환성 영향)
 - ⚠️ STT 외계어 incident (2026-04-14) 같은 환경별 분기 로직 변경은 모든 환경 동시 점검
 ## 미확인 — 처음 발생 시 이 파일 업데이트
 - [ ] 모바일 릴리스 컷 정확한 주기/요일
@@ -297,7 +265,6 @@ color: magenta
 | `speech_events` | STT 처리 이벤트 로그 | 180일 |
 | `speech_api_requests` | API 호출 로그 | 90일 |
 ## 함정
-- "현주" / "홍주" 라고 STT가 받아쓰지만 실제는 **"현준"** (사람 이름)
 - "외계어"는 일반 표현 아니라 우리 팀 jargon — 외부 미팅에선 "garbled text" 사용
 
 **09-security-policy**
@@ -306,11 +273,11 @@ color: magenta
 ## 검증된 정책 (메모리/workflows 기반)
 ### 인증 (SSO)
 - ✅ **계정 중복 허용**: 전화번호/이메일 중복 허용 (레거시 유지)
-- ✅ **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만 (ADR-007)
+- ✅ **refresh_token 보유 위치**: Identity Hub만. B2C 백엔드는 access_token만
 - ✅ **PHP 세션/쿠키에 refresh_token 저장 금지**
 - ✅ **토큰 갱신**: `POST {hub}/api/v1/auth/refresh` body `{access_token}` 경유
 - ✅ **`getUserByUsername`** 호출 시 `exact=True` 필수
-- ✅ **Keycloak 직접 호출 금지** — identity-hub 경유만 (ADR-007)
+- ✅ **Keycloak 직접 호출 금지** — identity-hub 경유만
 - ✅ **인증 모드**: `auth_mode=sso|legacy` (config/keycloak.php). 2026-04-17 기준 LOCAL/DEV/QA/PP/LIVE 모두 `sso`
 ### 키 / 토큰 관리
 - ✅ **`client_secret`**: Identity Hub만 보유
@@ -339,7 +306,7 @@ color: magenta
 ## 함정 (검증)
 - ⚠️ admin API 호출 시 service-token 4:30 시점 fail 위험 (TTL 5분 / 캐시 4분 갭)
 - ⚠️ 사내 cert이라 `verify_peer=false` — 운영에서 실수로 켜면 다운
-- ⚠️ Keycloak 직접 호출은 ADR-007 위반 (절대 금지)
+- ⚠️ Keycloak 직접 호출 금지 (identity-hub 경유만)
 ## 사용 시 주의
 
 **10-external-deps**
@@ -347,11 +314,11 @@ color: magenta
 # 외부 의존성
 ## 음성 인식 (검증)
 | SDK/API | 용도 | 검증된 사실 |
-| 셀바스 SDK (iOS/Android) | 클라이언트 음성 인식 | ✅ 클라이언트(현준) 담당. 업데이트는 현준과 사전 협의 필수 |
-| 클로바노트 STT | 회의록 자동 받아쓰기 | ✅ 사내용. 사람 이름 받아쓰기 약함 (현주/홍주 → 현준 정정 필수) |
+| 셀바스 SDK (iOS/Android) | 클라이언트 음성 인식 | ✅ 클라이언트 팀 담당 |
+| 클로바노트 STT | 회의록 자동 받아쓰기 | ✅ 사내용 |
 ## 인증 (검증)
 - ✅ **Keycloak 24.x** (사용자 본인 메모리)
-- ✅ **identity-hub 경유만** (ADR-007) — 직접 호출 금지
+- ✅ **identity-hub 경유만** — Keycloak 직접 호출 금지
 ## 클라우드 (메모리/incident 기반 검증)
 | 서비스 | 사용처 | 출처 |
 | AWS Lambda | 국가별 URL 분기 (`B2C_LAUNCH_URLS`) | ✅ 2026-04-14 STT 외계어 incident 원인 |
@@ -365,7 +332,6 @@ color: magenta
 ## 함정 / 알려진 이슈 (검증)
 - ⚠️ **AWS Lambda `B2C_LAUNCH_URLS.DEFAULT`** — 2026-04-14 STT 외계어 incident 원인. 환경 분기 default 안전한 쪽으로 설정 필수.
 - ⚠️ **클로바노트는 사람 이름 부정확** — STT 결과 정정 필수
-- ⚠️ **셀바스 SDK 업데이트** — 반드시 현준과 사전 협의 (음성 인식 호환성 영향)
 ## 사용 시 주의
 
 ### Role-specific
@@ -2305,15 +2271,18 @@ Primitive에 **의미/용도**를 부여. 테마 전환의 핵심.
 
 | 태스크 | 참조 knowledge 파일 |
 |--------|-------------------|
-| UI 컴포넌트 설계 | `component-design.md` + `design-tokens.md` + `shadcn-patterns.md` |
-| 새 화면/페이지 디자인 | `layout-grid.md` + `responsive-design.md` + `information-architecture.md` + `typography.md` |
-| 폼/입력 화면 | `form-design.md` + `ux-writing.md` + `accessibility.md` |
-| 데이터 대시보드 | `data-visualization.md` + `layout-grid.md` + `color-theory.md` |
-| 디자인 리뷰 | `design-critique.md` + `design-principles.md` + `accessibility.md` |
-| 디자인 시스템 구축 | `design-system.md` + `design-tokens.md` + `component-design.md` |
-| 사용자 리서치 | `ux-research.md` + `user-flows.md` + `design-process.md` |
-| 개발자 핸드오프 | `developer-handoff.md` + `design-tokens.md` + `shadcn-patterns.md` |
-| AI 기능 디자인 | `ai-design.md` + `interaction-design.md` + `ux-writing.md` |
+| UI 컴포넌트 설계 | `07-component-design.md` + `19-design-tokens.md` + `23-shadcn-patterns.md` |
+| 새 화면/페이지 디자인 | `06-layout-grid.md` + `13-responsive-design.md` + `16-information-architecture.md` + `04-typography.md` |
+| 폼/입력 화면 | `17-form-design.md` + `11-ux-writing.md` + `14-accessibility.md` |
+| 데이터 대시보드 | `18-data-visualization.md` + `06-layout-grid.md` + `05-color-theory.md` |
+| 디자인 리뷰 | `20-design-critique.md` + `01-design-principles.md` + `14-accessibility.md` |
+| 디자인 시스템 구축 | `02-design-system.md` + `19-design-tokens.md` + `07-component-design.md` |
+| 사용자 리서치 | `10-ux-research.md` + `09-user-flows.md` + `03-design-process.md` |
+| 개발자 핸드오프 | `22-developer-handoff.md` + `19-design-tokens.md` + `23-shadcn-patterns.md` |
+| AI 기능 디자인 | `24-ai-design.md` + `12-interaction-design.md` + `11-ux-writing.md` |
+| 인클루시브 디자인 | `15-inclusive-design.md` + `14-accessibility.md` |
+| 와이어프레임 | `08-wireframing.md` + `09-user-flows.md` + `16-information-architecture.md` |
+| 디자인 리더십 | `21-design-leadership.md` + `20-design-critique.md` |
 
 ## 자율성 매트릭스
 | 행동 | 레벨 | 규칙 |
@@ -2349,3 +2318,10 @@ Primitive에 **의미/용도**를 부여. 테마 전환의 핵심.
 ### 핸드오프
 * [ ] 컴포넌트 스펙이 명확한가? (크기, 간격, 색상, 타이포)
 * [ ] 인터랙션 스펙이 문서화되었는가?
+
+## Definition of Done
+* [ ] 관련 knowledge 파일 참조 완료
+* [ ] 디자인 리뷰 체크리스트 5개 카테고리 모두 통과
+* [ ] 접근성(WCAG AA) 기준 검증
+* [ ] 반응형 (모바일/태블릿/데스크톱) 레이아웃 설계
+* [ ] 개발자 핸드오프 스펙 작성 (디자인 토큰 기반)

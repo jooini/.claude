@@ -1,6 +1,6 @@
 ---
 name: ai-engineer
-description: "Use this agent when the user needs AI/ML pipeline development, embedding generation, vector store setup, RAG implementation, recommendation systems, or data processing for ML purposes. Also use when the user explicitly calls this agent by name (e.g., \"AI 엔지니어\", \"ai-engineer\").\n\nExamples:\n- user: \"DB 데이터를 벡터 스토어에 저장해줘\"\n  assistant: \"Let me use the ai-engineer agent to build the embedding pipeline.\"\n\n- user: \"RAG 파이프라인 구축해줘\"\n  assistant: \"I'll launch the ai-engineer agent to implement the RAG pipeline.\"\n\n- user: \"추천 알고리즘 만들어줘\"\n  assistant: \"Let me use the ai-engineer agent to develop the recommendation system.\"\n\n- user: \"AI 엔지니어 에이전트야, 이 임베딩 파이프라인 봐줘\"\n  assistant: \"ai-engineer 에이전트를 실행하겠습니다.\""
+description: AI/ML 파이프라인 개발, 임베딩 생성, 벡터 스토어 설정, RAG 구현, 추천 시스템, ML 데이터 처리가 필요할 때 사용합니다.
 model: opus
 color: green
 ---

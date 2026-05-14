@@ -18,6 +18,11 @@
 
 set -euo pipefail
 
+# zsh 강제 (bash로 부르면 *.md(N) glob 문법에서 깨짐)
+if [ -z "${ZSH_VERSION:-}" ]; then
+  exec /bin/zsh "$0" "$@"
+fi
+
 AGENTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRC_DIR="$(dirname "$AGENTS_DIR")/agents-src"
 BUILDS_DIR="$AGENTS_DIR/builds"
@@ -381,7 +386,7 @@ process_markers() {
         concat_knowledge "$full_knowledge_path" "$knowledge_path" "$detected_lang" >> "$out"
       fi
     else
-      echo "$line" >> "$out"
+      printf '%s\n' "$line" >> "$out"
     fi
   done < "$src_file"
 }

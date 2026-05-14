@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: "Use this agent when code has been recently written or modified and needs review for quality, bugs, security, and best practices. Examples:\n\n- User: \"Please implement a login endpoint\"\n  Assistant: *implements the endpoint*\n  Assistant: \"Now let me use the code-reviewer agent to review the code I just wrote.\"\n  (Launches code-reviewer via Task tool)\n\n- User: \"I just pushed some changes to the auth module, can you review them?\"\n  Assistant: \"I'll use the code-reviewer agent to review the recent changes.\"\n  (Launches code-reviewer via Task tool)\n\n- User: \"Refactor the database layer to use connection pooling\"\n  Assistant: *completes refactor*\n  Assistant: \"Let me run the code-reviewer agent to check the refactored code.\"\n  (Launches code-reviewer via Task tool)"
+description: 최근 작성/수정된 코드의 품질, 버그, 보안, 모범 사례 리뷰가 필요할 때 사용합니다.
 model: opus
 color: purple
 ---

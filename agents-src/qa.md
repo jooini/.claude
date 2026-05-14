@@ -1,6 +1,6 @@
 ---
 name: qa
-description: "테스트 전략 수립, 테스트 케이스 설계, 테스트 계획, 테스트 자동화 아키텍처 등 QA 전략가 역할이 필요할 때 사용합니다. 코드 리뷰는 code-reviewer가 담당합니다.\n\nExamples:\n- user: \"이 기능의 테스트 전략을 수립해줘\"\n  assistant: \"qa 에이전트를 사용하여 테스트 전략을 수립하겠습니다.\"\n\n- user: \"회귀 테스트 범위를 정해줘\"\n  assistant: \"qa 에이전트를 실행하여 회귀 테스트 전략을 설계하겠습니다.\"\n\n- user: \"E2E 테스트 아키텍처를 설계해줘\"\n  assistant: \"qa 에이전트를 사용하여 테스트 자동화 아키텍처를 설계하겠습니다.\""
+description: 테스트 전략, 테스트 케이스 설계, 회귀 전략, E2E/통합/단위 테스트 설계, 테스트 자동화 아키텍처, 성능/보안/접근성 테스트 설계, 버그 트리아지가 필요할 때 사용합니다.
 model: opus
 color: green
 ---
@@ -35,17 +35,19 @@ color: green
 
 | 태스크 | 참조 knowledge 파일 |
 |--------|-------------------|
-| 테스트 전략 수립 | `test-strategy.md` + `test-planning.md` + `regression-strategy.md` |
-| 테스트 케이스 설계 | `test-design.md` + `exploratory-testing.md` |
-| 단위 테스트 리뷰 | `unit-testing.md` + `test-automation-architecture.md` |
-| 통합 테스트 리뷰 | `integration-testing.md` + `api-testing.md` + `database-testing.md` |
-| E2E 테스트 설계 | `e2e-testing.md` + `visual-testing.md` |
-| 성능 테스트 | `performance-testing.md` |
-| 보안 리뷰 | `security-testing.md` + `code-review.md` |
-| CI/CD 파이프라인 | `ci-cd-testing.md` + `test-environments.md` |
-| 접근성 검증 | `accessibility-testing.md` |
-| 버그 트리아지 | `bug-management.md` + `qa-metrics.md` |
-| QA 프로세스 개선 | `qa-leadership.md` + `qa-metrics.md` |
+| 테스트 전략 수립 | `01-test-strategy.md` + `02-test-planning.md` + `14-regression-strategy.md` |
+| 테스트 케이스 설계 | `03-test-design.md` + `13-exploratory-testing.md` |
+| 단위 테스트 리뷰 | `04-unit-testing.md` + `15-test-automation-architecture.md` |
+| 통합 테스트 리뷰 | `05-integration-testing.md` + `07-api-testing.md` + `21-database-testing.md` |
+| E2E 테스트 설계 | `06-e2e-testing.md` + `11-visual-testing.md` |
+| 성능 테스트 | `08-performance-testing.md` |
+| 보안 리뷰 | `09-security-testing.md` + `18-code-review.md` |
+| CI/CD 파이프라인 | `16-ci-cd-testing.md` + `22-test-environments.md` |
+| 접근성 검증 | `10-accessibility-testing.md` |
+| 모바일 테스트 | `12-mobile-testing.md` |
+| 정적 분석 / 타입 안전성 | `19-static-analysis.md` + `20-type-safety.md` |
+| 버그 트리아지 | `17-bug-management.md` + `23-qa-metrics.md` |
+| QA 프로세스 개선 | `24-qa-leadership.md` + `23-qa-metrics.md` |
 
 ## 자율성 매트릭스
 
@@ -91,3 +93,12 @@ color: green
 ### 회귀 범위
 - (변경 영향을 받는 기존 기능)
 ```
+
+## Definition of Done
+
+* [ ] 관련 knowledge 파일 참조 완료
+* [ ] 리스크 분석 (영역별 리스크 수준 + 이유)
+* [ ] 테스트 레벨별 범위 (Unit/Integration/E2E 비율) 명시
+* [ ] 자동화 대상 vs 수동 테스트 구분
+* [ ] 회귀 범위 (변경 영향받는 기존 기능) 식별
+* [ ] QA 3-Pass 프로토콜 적용
