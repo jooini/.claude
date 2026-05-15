@@ -201,17 +201,12 @@
         ]
       },
       {
-        "matcher": "mcp__local-rag__|mcp__plugin_claude-mem_mcp-search__",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/mcp-knowledge-telemetry.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
+          },
           {
             "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/turn-finalize.sh"
@@ -241,11 +236,6 @@
             "type": "command",
             "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/danger-keyword-detect.sh",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/git-worktree-internal-block.sh",
-            "timeout": 3
           }
         ]
       },
