@@ -1,0 +1,44 @@
+name: hook regression tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install zsh + jq + python3
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zsh jq python3
+
+      - name: Verify environment
+        run: |
+          zsh --version
+          jq --version
+          python3 --version
+          bash --version | head -1
+
+      - name: Set HOME to repo root for hook discovery
+        run: |
+          mkdir -p $HOME/.claude
+          rsync -a --exclude='.git' ./ $HOME/.claude/
+          ls $HOME/.claude/hooks/ | head -5
+
+      - name: Run hook regression tests
+        run: |
+          bash $HOME/.claude/tests/hooks/runner.sh --verbose
+
+      - name: Show outcome logs (debug)
+        if: failure()
+        run: |
+          find $HOME/.claude/cache -name "*.jsonl" -exec cat {} \; 2>/dev/null | head -50
