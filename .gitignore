@@ -66,3 +66,7 @@ mcp.json
 
 # 자동 인덱싱 상태
 skills/index-rag/.index-state.json
+
+# 사내 정보 (private repo 라도 분리)
+identity-hub/
+debugging-guides/

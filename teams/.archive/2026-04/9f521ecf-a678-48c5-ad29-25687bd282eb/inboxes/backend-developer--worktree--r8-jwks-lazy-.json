@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "{\"type\":\"task_assignment\",\"taskId\":\"4\",\"subject\":\"R8: JWKSCache lazy init 명확화\",\"description\":\"utils/jwt.py의 _JWKSCacheProxy lazy 초기화 가독성 개선(동작 동일). TTL·cache hit miss 경로 불변. 검증: ruff + pytest.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-04-23T10:18:28.751Z\"}",
-    "timestamp": "2026-04-23T10:18:28.751Z",
-    "read": false
-  }
-]

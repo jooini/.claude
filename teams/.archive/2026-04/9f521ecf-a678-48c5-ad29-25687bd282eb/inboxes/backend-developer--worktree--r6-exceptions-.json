@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "{\"type\":\"task_assignment\",\"taskId\":\"1\",\"subject\":\"R6: 예외 생성 헬퍼화\",\"description\":\"BadRequestError/UnauthorizedError 중복 생성 패턴을 app/core/exceptions.py 헬퍼로 통일. 메시지·타입·상태코드 동일. 검증: ruff + pytest.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-04-23T10:18:28.750Z\"}",
-    "timestamp": "2026-04-23T10:18:28.750Z",
-    "read": false
-  }
-]

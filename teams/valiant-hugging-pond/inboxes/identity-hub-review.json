@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "당신은 SSO 코드 리뷰어입니다. Identity Hub 프로젝트를 상세 리뷰해주세요.\n\n프로젝트 경로: /Users/leonard/Workspace/identity-hub\n\n## 리뷰 절차\n1. 프로젝트 구조 파악 (ls, glob으로 파일 탐색)\n2. 핵심 코드 읽기 및 분석:\n   - app/api/v1/endpoints/ 디렉토리의 모든 엔드포인트\n   - app/services/ 디렉토리의 모든 서비스\n   - app/core/ (config.py, security.py, audit.py)\n   - app/utils/ (jwt.py, redirect.py)\n   - tests/ 디렉토리\n3. 보안, 성능, 코드 품질 관점에서 분석\n\n## 결과물 형식 (반드시 이 형식으로 출력)\n```\n# Identity Hub 코드 리뷰\n\n## 1. 프로젝트 구조\n(디렉토리 트리, 모듈별 역할, 총 코드 라인 수)\n\n## 2. 아키텍처 분석\n- 서비스 레이어 패턴\n- 의존성 흐름\n- DB/Redis/Keycloak 연동 방식\n\n## 3. 핵심 코드 리뷰\n### 3.1 OAuth 플로우 (oauth.py)\n- 콜백 처리 방식 (파일:라인 참조)\n- redirect_uri 검증\n\n### 3.2 토큰 관리 (token.py)\n- refresh 로직, validate, JWKS\n\n### 3.3 세션 관리 (session.py, auth_service.py)\n- Redis 세션 CRUD, 로그아웃, cleanup\n\n### 3.4 Keycloak 연동 (keycloak_service.py)\n- async 래핑 (_run 메서드)\n- exact matching\n- Admin client 캐시\n\n### 3.5 멀티테넌트 클라이언트 (client_config_service.py)\n- DB 기반 client_secret 관리\n\n## 4. 보안 리뷰\n- ✅ 잘된 점\n- ⚠️ 주의 필요 사항\n- 🔴 즉시 개선 필요 사항\n\n## 5. 성능 리뷰\n- async 처리 현황\n- 캐시 전략\n- 잠재적 병목\n\n## 6. 테스트 커버리지\n- 테스트 파일 목록, 테스트 수\n\n## 7. 개선 제안\n- [High] ...\n- [Medium] ...\n- [Low] ...\n```\n\n중요: 코드를 직접 Read tool로 읽고, 구체적인 파일:라인 번호를 포함해주세요. 추측하지 말고 실제 코드 기반으로 리뷰하세요.",
-    "timestamp": "2026-02-10T01:00:43.345Z",
-    "read": true
-  }
-]

@@ -1,9 +1,0 @@
-[
-  {
-    "from": "dev-templates",
-    "text": "{\"type\":\"task_assignment\",\"taskId\":\"4\",\"subject\":\"nginx/vector/init-db 템플릿 생성\",\"description\":\"templates/nginx/nginx.conf (공통), default.conf.http.template, default.conf.ssl.template, templates/vector.toml.template, templates/init-db.sql.template 생성. envsubst 변수 사용.\",\"assignedBy\":\"dev-templates\",\"timestamp\":\"2026-03-12T13:53:24.296Z\"}",
-    "timestamp": "2026-03-12T13:53:24.296Z",
-    "color": "yellow",
-    "read": true
-  }
-]

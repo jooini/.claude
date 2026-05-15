@@ -1,9 +1,0 @@
-[
-  {
-    "from": "phase1-worker",
-    "text": "{\"type\":\"task_assignment\",\"taskId\":\"1\",\"subject\":\"Phase 1: Code review fixes (hook, JSDoc, clients, users)\",\"description\":\"Create useDebouncedValue hook, add JSDoc to keycloak-client.ts, fix clients/page.tsx (secret masking + debounce), fix users/[userId]/page.tsx (error handling + IDP delete confirmation)\",\"assignedBy\":\"phase1-worker\",\"timestamp\":\"2026-02-20T12:48:28.031Z\"}",
-    "timestamp": "2026-02-20T12:48:28.031Z",
-    "color": "blue",
-    "read": false
-  }
-]

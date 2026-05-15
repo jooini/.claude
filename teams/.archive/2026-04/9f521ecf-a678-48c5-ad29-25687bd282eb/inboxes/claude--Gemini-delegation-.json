@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "{\"type\":\"task_assignment\",\"taskId\":\"11\",\"subject\":\"D1: docs 구조 스캔 + 업데이트 대상 식별\",\"description\":\"Gemini로 docs/ 전체 스캔. 이번 리팩토링(mixin 분리, users 패키지, token dispatcher, exception 헬퍼, 상수 추출, oauth_utils 신규)과 충돌/불일치하는 문서 식별.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-04-23T12:13:51.500Z\"}",
-    "timestamp": "2026-04-23T12:13:51.500Z",
-    "read": false
-  }
-]

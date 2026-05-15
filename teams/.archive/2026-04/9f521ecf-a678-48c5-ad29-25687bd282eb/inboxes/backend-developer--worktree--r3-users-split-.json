@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "{\"type\":\"task_assignment\",\"taskId\":\"8\",\"subject\":\"R3: users.py 하위 라우터 분리\",\"description\":\"app/api/v1/endpoints/users.py 435줄 → profile/roles/sessions/federated 하위 모듈로 분리. 라우팅 경로·응답 스키마·auth dep 불변.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-04-23T10:35:41.001Z\"}",
-    "timestamp": "2026-04-23T10:35:41.001Z",
-    "read": false
-  }
-]

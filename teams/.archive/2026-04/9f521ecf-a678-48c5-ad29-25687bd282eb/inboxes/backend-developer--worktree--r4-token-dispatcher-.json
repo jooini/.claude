@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "{\"type\":\"task_assignment\",\"taskId\":\"5\",\"subject\":\"R4: token.py grant_type 디스패처 정리\",\"description\":\"app/api/v1/endpoints/token.py grant_type 분기(auth_code/password/refresh_token/client_credentials)를 strategy 함수로 분리. 응답 포맷·에러 응답 불변.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-04-23T10:35:41.001Z\"}",
-    "timestamp": "2026-04-23T10:35:41.001Z",
-    "read": false
-  }
-]

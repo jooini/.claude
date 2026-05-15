@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "{\"type\":\"task_assignment\",\"taskId\":\"7\",\"subject\":\"R1: auth_service.py 도메인 분리 (846줄)\",\"description\":\"AuthService 846줄을 refresh/logout/validate/verify/session-cleanup 도메인별 파일로 분리. 퍼사드로 AuthService 유지. DI 팩토리·public 메서드 시그니처·로깅 불변.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-04-23T10:52:02.317Z\"}",
-    "timestamp": "2026-04-23T10:52:02.317Z",
-    "read": false
-  }
-]

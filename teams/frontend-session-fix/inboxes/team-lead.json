@@ -1,9 +1,0 @@
-[
-  {
-    "from": "researcher",
-    "text": "{\"type\":\"idle_notification\",\"from\":\"researcher\",\"timestamp\":\"2026-03-16T12:31:34.131Z\",\"idleReason\":\"available\",\"summary\":\"[to developer] 프론트엔드 세션/인증 코드 전체 분석 결과 전달\"}",
-    "timestamp": "2026-03-16T12:31:34.132Z",
-    "color": "blue",
-    "read": true
-  }
-]

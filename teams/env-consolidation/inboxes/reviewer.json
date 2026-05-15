@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "{\"type\":\"shutdown_request\",\"requestId\":\"shutdown-1773918238910@reviewer\",\"from\":\"team-lead\",\"reason\":\"리뷰 확인 완료. 종료해줘.\",\"timestamp\":\"2026-03-19T11:03:58.910Z\"}",
-    "timestamp": "2026-03-19T11:03:58.910Z",
-    "read": true
-  }
-]

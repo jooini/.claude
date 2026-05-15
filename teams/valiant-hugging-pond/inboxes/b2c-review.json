@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "maxai-b2c-backend 프로젝트의 SSO 관련 코드 리뷰를 수행해주세요. 코드를 직접 읽고 분석해야 합니다.\n\n프로젝트 경로: /Users/leonard/Workspace/maxai-b2c-backend\n\n## 반드시 읽어야 할 PHP 파일\n- application/hooks/Auth_middleware.php\n- application/libraries/KeycloakJwt_lib.php\n- application/libraries/KeycloakAdmin_lib.php\n- application/controllers/api/Member.php (특히 actSocialMemberWrite, actSocialMemberLink, actPostLogin, createMemberExtToken 함수)\n- application/config/keycloak.php\n\n## 반드시 찾아서 읽어야 할 Vue 파일 (maxAI/src/ 아래)\nMemberLogin.vue, MemberLoginOnBoarding.vue, SocialAuthCallback.vue, AuthCallback.vue, SocialMobileAuth.vue\n\n## 결과물 형식\n# B2C Backend SSO 코드 리뷰\n\n## 1. SSO 파일 맵\n## 2. PHP Backend 리뷰\n### JWT 인증 미들웨어 (Auth_middleware.php)\n### JWKS 관리 (KeycloakJwt_lib.php)\n### Keycloak Admin (KeycloakAdmin_lib.php)\n### 회원 관리 (Member.php)\n## 3. Frontend 리뷰\n### 로그인 (MemberLogin.vue)\n### 소셜 콜백 (SocialAuthCallback.vue)\n### 인증 콜백 (AuthCallback.vue)\n## 4. SSO Dual Resilience (장애 폴백)\n## 5. 보안 리뷰\n## 6. 레거시 호환성\n## 7. 개선 제안 ([High/Medium/Low])\n\n파일:라인 참조를 반드시 포함해주세요.",
-    "timestamp": "2026-02-10T01:02:39.639Z",
-    "read": true
-  }
-]

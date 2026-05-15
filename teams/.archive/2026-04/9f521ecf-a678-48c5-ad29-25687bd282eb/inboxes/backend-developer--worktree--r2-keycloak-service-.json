@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "{\"type\":\"task_assignment\",\"taskId\":\"6\",\"subject\":\"R2: KeycloakService 합성 클래스 정리\",\"description\":\"app/services/keycloak_service.py + app/services/keycloak/*.py 합성 구조 정리. public import 경로 불변, @patch 경로 호환 유지. 동작 동일.\",\"assignedBy\":\"team-lead\",\"timestamp\":\"2026-04-23T10:35:41.001Z\"}",
-    "timestamp": "2026-04-23T10:35:41.001Z",
-    "read": false
-  }
-]

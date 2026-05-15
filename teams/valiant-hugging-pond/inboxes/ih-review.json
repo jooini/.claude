@@ -1,8 +1,0 @@
-[
-  {
-    "from": "team-lead",
-    "text": "Identity Hub 프로젝트 코드 리뷰를 수행해주세요. 코드를 직접 읽고 분석해야 합니다.\n\n프로젝트 경로: /Users/leonard/Workspace/identity-hub\n\n## 반드시 읽어야 할 파일\n- app/api/v1/endpoints/oauth.py, token.py, session.py, users.py, admin.py, audit.py, clients.py, client_config.py\n- app/services/keycloak_service.py, session_service.py, oauth_service.py, auth_service.py, client_config_service.py\n- app/core/config.py, security.py, audit.py\n- app/utils/jwt.py, redirect.py\n- tests/ 디렉토리 구조와 대표 테스트 파일\n\n## 결과물 형식\n아래 형식의 markdown을 출력해주세요:\n\n# Identity Hub 코드 리뷰\n\n## 1. 프로젝트 구조\n(파일 트리, 모듈 역할)\n\n## 2. 아키텍처\n- FastAPI + Keycloak + Redis + PostgreSQL 연동 구조\n- 서비스 레이어 패턴 분석\n\n## 3. 핵심 코드 리뷰\n### OAuth 플로우 (oauth.py)\n### 토큰 관리 (token.py)  \n### 세션 관리 (session.py, auth_service.py)\n### Keycloak 연동 (keycloak_service.py)\n### 멀티테넌트 클라이언트 (client_config_service.py)\n\n## 4. 보안 리뷰\n(redirect_uri 검증, API 인증, XSS 방지 등)\n\n## 5. 성능 리뷰\n(async 처리, 캐시 전략)\n\n## 6. 테스트\n(커버리지, 품질)\n\n## 7. 개선 제안\n([High/Medium/Low] 우선순위별)\n\n파일:라인 참조를 반드시 포함해주세요.",
-    "timestamp": "2026-02-10T01:02:29.988Z",
-    "read": true
-  }
-]
