@@ -191,24 +191,6 @@ audit_project() {
         issues+=(".claude/hooks/ 누락 또는 비어있음")
     fi
 
-    # graphify 지식 그래프 존재 여부
-    max_score=$((max_score + 1))
-    if [[ -f "$dir/graphify-out/graph.json" ]]; then
-        score=$((score + 1))
-    else
-        issues+=("graphify-out/ 미생성 — graphify build 필요")
-    fi
-
-    # graphify가 gitignore에 등록되어 있는지
-    if [[ -d "$dir/.git" && -f "$dir/graphify-out/graph.json" ]]; then
-        max_score=$((max_score + 1))
-        if [[ -f "$dir/.gitignore" ]] && grep -qF "graphify-out/" "$dir/.gitignore" 2>/dev/null; then
-            score=$((score + 1))
-        else
-            issues+=(".gitignore: graphify-out/ 미등록")
-        fi
-    fi
-
     # .gitignore에 Claude 항목 존재 여부
     if [[ -d "$dir/.git" ]]; then
         max_score=$((max_score + 1))
@@ -1734,12 +1716,6 @@ ${DEPS_SECTION}## 아키텍처 규칙
 2. \`Grep\` (정확한 패턴)
 3. \`Glob\` (파일명/경로)
 4. \`Read\` (위 결과에서 확인된 파일)
-
-### Graphify 지식 그래프
-
-\`graphify-out/graph.json\` 존재 시:
-- 아키텍처/구조/의존성 질문 → \`graphify-out/GRAPH_REPORT.md\` 참조
-- 영향 범위 → \`graphify query "질문" --graph graphify-out/graph.json\`
 CLAUDE_EOF
 }
 
@@ -2263,9 +2239,6 @@ generate_settings_json() {
     ALLOW_RULES="${ALLOW_RULES},\n      \"mcp__ssh__runRemoteCommand\""
     ALLOW_RULES="${ALLOW_RULES},\n      \"mcp__ssh__checkConnectivity\""
     ALLOW_RULES="${ALLOW_RULES},\n      \"mcp__ssh__getHostInfo\""
-    # graphify
-    ALLOW_RULES="${ALLOW_RULES},\n      \"Bash(graphify:*)\""
-    ALLOW_RULES="${ALLOW_RULES},\n      \"Bash(python3 -c *graphify*:*)\""
     # git 읽기 명령
     ALLOW_RULES="${ALLOW_RULES},\n      \"Bash(git log:*)\""
     ALLOW_RULES="${ALLOW_RULES},\n      \"Bash(git diff:*)\""
@@ -2365,7 +2338,6 @@ ensure_gitignore() {
         ".claude/todos.json"
         ".claude/projects/"
         ".claude/memory/"
-        "graphify-out/"
     )
 
     if [[ ! -f "$gitignore" ]]; then
@@ -2739,20 +2711,6 @@ create_new_project() {
     else
         analyze_static "$dir"
         apply_ai_analysis "$dir"
-    fi
-
-    # graphify 지식 그래프 빌드
-    if command -v graphify &>/dev/null || [[ -x "$HOME/.local/pipx/venvs/graphifyy/bin/graphify" ]]; then
-        section "Graphify 지식 그래프 빌드"
-        local graphify_cmd="graphify"
-        command -v graphify &>/dev/null || graphify_cmd="$HOME/.local/pipx/venvs/graphifyy/bin/graphify"
-        if (cd "$dir" && "$graphify_cmd" build 2>/dev/null); then
-            ok "graphify-out/ 생성 완료"
-        else
-            warn "graphify 빌드 실패 → 수동 실행 필요: cd $dir && graphify build"
-        fi
-    else
-        skip "graphify 미설치 → 지식 그래프 생략"
     fi
 
     # RAG 인덱싱 안내
