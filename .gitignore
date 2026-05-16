@@ -38,6 +38,7 @@ agents/.last-build
 # 백업 파일 (수동 관리)
 *.bak
 *.bak-*
+*.bak.*
 *.backup-*
 workflows/*.bak-*
 
