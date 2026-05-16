@@ -26,14 +26,14 @@ BOLD='\033[1m'
 DIM='\033[2m'
 NC='\033[0m'
 
-info()  { echo "${CYAN}▸${NC} $1" }
-ok()    { echo "${GREEN}✓${NC} $1" }
-warn()  { echo "${YELLOW}!${NC} $1" }
-err()   { echo "${RED}✗${NC} $1" >&2 }
-skip()  { echo "${DIM}─${NC} $1" }
-ask()   { echo -n "${BOLD}? ${NC}$1: " }
-header() { echo "\n${BOLD}═══ $1 ═══${NC}\n" }
-section() { echo "\n${BLUE}── $1 ──${NC}" }
+info()  { echo "${CYAN}▸${NC} $1"; }
+ok()    { echo "${GREEN}✓${NC} $1"; }
+warn()  { echo "${YELLOW}!${NC} $1"; }
+err()   { echo "${RED}✗${NC} $1" >&2; }
+skip()  { echo "${DIM}─${NC} $1"; }
+ask()   { echo -n "${BOLD}? ${NC}$1: "; }
+header() { echo "\n${BOLD}═══ $1 ═══${NC}\n"; }
+section() { echo "\n${BLUE}── $1 ──${NC}"; }
 
 # 자동 확인: AUTO_CONFIRM=true면 default_yes 기준 자동 응답
 # confirm_yes "메시지" → 기본 Y (Y/n)
@@ -1298,7 +1298,7 @@ analyze_static() {
     fi
 
     # 헬퍼: 섹션 출력
-    local _emit_section() {
+    _emit_section() {
         local title="$1" content="$2" empty_msg="$3"
         echo "### ${title}"
         echo ""
@@ -2714,6 +2714,17 @@ if [[ "${1:-}" == "--rebuild" ]]; then
             fi
         done
         ok "백업: $BACKUP_DIR"
+
+        # Deprecated 프로젝트-전용 에이전트 정리 (글로벌로 이관됨)
+        # - docs.md → 글로벌 codebase-documenter 로 위임 (2026-05-16)
+        DEPRECATED_AGENTS=("docs.md")
+        for agent in "${DEPRECATED_AGENTS[@]}"; do
+            if [[ -f "$PROJECT_DIR/.claude/agents/$agent" ]]; then
+                mkdir -p "$BACKUP_DIR/agents"
+                mv "$PROJECT_DIR/.claude/agents/$agent" "$BACKUP_DIR/agents/$agent"
+                ok "Deprecated 에이전트 정리: agents/$agent → 백업"
+            fi
+        done
     fi
 
     # 전체 재생성
@@ -2747,7 +2758,6 @@ if [[ "${1:-}" == "--rebuild" ]]; then
     ensure_gitignore "$PROJECT_DIR"
 
     # AI 분석으로 빈 섹션 채우기
-    local has_todo
     has_todo=$(grep -c "<!-- TODO" "$PROJECT_DIR/.claude/CLAUDE.md" 2>/dev/null) || has_todo=0
     if [[ $has_todo -gt 0 ]]; then
         section "빈 섹션 → AI 분석"
