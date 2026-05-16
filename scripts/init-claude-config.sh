@@ -1735,6 +1735,7 @@ generate_dev_md() {
 | 기획/스펙 | PRD, 스펙, 요구사항, 로드맵, 우선순위 | po → prompt-engineer |
 | 프롬프트 설계 | 프롬프트, 시스템 지시, agent.md, CLAUDE.md | prompt-engineer → code-reviewer |
 | QA 설계 | 테스트 케이스, 회귀, E2E, 테스트 전략 | qa → code-tester |
+| 코드베이스 분석/문서화 | 문서화, 온보딩, docs/, 인수인계, 코드베이스 파악, 현행화 | codebase-documenter |
 | 버그/디버깅 | fix, bug, 에러, 오류, 안 됨 | debug-master → ${DEV_AGENT_TYPE} → code-reviewer → code-tester |
 | 보안/인증 | 보안, JWT, 인증, OAuth, 취약점 | ${DEV_AGENT_TYPE} → code-reviewer + codex:adversarial-review |
 | 리팩토링 | 리팩토링, 정리, 개선 | ${DEV_AGENT_TYPE} → code-reviewer |
@@ -1938,6 +1939,8 @@ ${CROSS_REF}
 | \`@dev backlog 전체\` | backlog.md 미완료 항목 순차 처리 |
 | \`@dev active\` | active/ 디렉토리의 미완료 작업 파일 순차 처리 |
 | \`@dev active {파일명}\` | 특정 active 파일만 처리 |
+| \`@dev document\` | \`codebase-documenter\` 호출 → 코드베이스 스캔/분석 → \`docs/\` 생성·갱신 (README, architecture, modules, conventions). 신규 온보딩·인수인계·현행화용 |
+| \`@dev document {경로|모듈}\` | 특정 디렉토리/모듈만 범위 한정해서 문서화 |
 | \`@dev {직접 지시}\` | 즉시 태스크 라우팅 → 실행 |
 
 ### backlog.md 파싱 규칙
