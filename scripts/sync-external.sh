@@ -859,6 +859,118 @@ file_drift_status() {
     fi
 }
 
+# MCP sync: ~/.claude.json::mcpServers 를 SSOT로 읽어 Codex/Gemini에 단방향 등록.
+# 제외 대상: codex-cli(자기참조), claude.ai 내장(Anthropic 인증 종속), Claude plugin
+# (마켓플레이스 자동 등록은 각 도구가 별도 관리). 이미 있으면 skip (idempotent).
+sync_mcp_servers() {
+    local claude_json="${HOME}/.claude.json"
+    local server_name
+    local server_json
+    local cmd
+    local args_json
+    local env_json
+    local server_type
+    local url
+    local existing_codex
+    local existing_gemini
+
+    if [[ ! -f "$claude_json" ]]; then
+        warn "MCP SSOT 없음: $claude_json — sync 건너뜀"
+        return 0
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        warn "jq 필요 — MCP sync 건너뜀"
+        return 0
+    fi
+
+    existing_codex="$(codex mcp list 2>/dev/null | awk 'NR>1 && /^[a-z]/{print $1}' | tr '\n' ' ')"
+    # gemini mcp list 는 stderr 로 출력. 멀티바이트 ✓/✗ 우회: 콜론 앞 토큰 추출
+    existing_gemini="$(gemini mcp list 2>&1 | LC_ALL=C grep -E '^[^[:space:]]+ [A-Za-z0-9_-]+:' | awk '{sub(/:$/,"",$2); print $2}' | tr '\n' ' ')"
+
+    while IFS= read -r server_name; do
+        [[ -n "$server_name" ]] || continue
+
+        # 제외 규칙
+        case "$server_name" in
+            codex-cli|gitlab)
+                # codex-cli: Codex에 등록하면 자기참조. Gemini에서도 의미 없음
+                # gitlab: 인증 안 된 상태(! Needs auth) — 인증 설정은 사용자 수동
+                log "MCP '$server_name' 제외 (자기참조 또는 인증 필요)"
+                continue
+                ;;
+        esac
+
+        server_json="$(jq -r --arg n "$server_name" '.mcpServers[$n]' "$claude_json")"
+        server_type="$(echo "$server_json" | jq -r '.type // "stdio"')"
+        cmd="$(echo "$server_json" | jq -r '.command // ""')"
+        url="$(echo "$server_json" | jq -r '.url // ""')"
+
+        # --- Codex 등록 ---
+        if [[ " $existing_codex " == *" $server_name "* ]]; then
+            log "Codex MCP '$server_name' 이미 등록됨 — skip"
+        else
+            if [[ "$DRY_RUN" == "true" ]]; then
+                echo "[dry-run] codex mcp add $server_name ..."
+            else
+                local codex_env_args=()
+                while IFS=$'\t' read -r k v; do
+                    [[ -n "$k" ]] || continue
+                    codex_env_args+=("--env" "$k=$v")
+                done < <(echo "$server_json" | jq -r '.env // {} | to_entries[] | "\(.key)\t\(.value)"')
+
+                if [[ -n "$url" && "$url" != "null" ]]; then
+                    codex mcp add "$server_name" --url "$url" >/dev/null 2>&1 \
+                        && log "Codex MCP '$server_name' 등록 (HTTP)" \
+                        || warn "Codex MCP '$server_name' 등록 실패"
+                elif [[ -n "$cmd" && "$cmd" != "null" ]]; then
+                    local args_array=()
+                    while IFS= read -r a; do
+                        [[ -n "$a" ]] || continue
+                        args_array+=("$a")
+                    done < <(echo "$server_json" | jq -r '.args // [] | .[]')
+
+                    codex mcp add "$server_name" "${codex_env_args[@]}" -- "$cmd" "${args_array[@]}" >/dev/null 2>&1 \
+                        && log "Codex MCP '$server_name' 등록 (stdio)" \
+                        || warn "Codex MCP '$server_name' 등록 실패"
+                fi
+            fi
+        fi
+
+        # --- Gemini 등록 ---
+        if [[ " $existing_gemini " == *" $server_name "* ]]; then
+            log "Gemini MCP '$server_name' 이미 등록됨 — skip"
+        else
+            if [[ "$DRY_RUN" == "true" ]]; then
+                echo "[dry-run] gemini mcp add $server_name ..."
+            else
+                local gemini_env_args=()
+                while IFS=$'\t' read -r k v; do
+                    [[ -n "$k" ]] || continue
+                    gemini_env_args+=("-e" "$k=$v")
+                done < <(echo "$server_json" | jq -r '.env // {} | to_entries[] | "\(.key)\t\(.value)"')
+
+                if [[ -n "$url" && "$url" != "null" ]]; then
+                    gemini mcp add -s user -t http "$server_name" "$url" >/dev/null 2>&1 \
+                        && log "Gemini MCP '$server_name' 등록 (HTTP)" \
+                        || warn "Gemini MCP '$server_name' 등록 실패"
+                elif [[ -n "$cmd" && "$cmd" != "null" ]]; then
+                    local gargs=()
+                    while IFS= read -r a; do
+                        [[ -n "$a" ]] || continue
+                        gargs+=("$a")
+                    done < <(echo "$server_json" | jq -r '.args // [] | .[]')
+
+                    gemini mcp add -s user -t stdio "${gemini_env_args[@]}" "$server_name" "$cmd" "${gargs[@]}" >/dev/null 2>&1 \
+                        && log "Gemini MCP '$server_name' 등록 (stdio)" \
+                        || warn "Gemini MCP '$server_name' 등록 실패"
+                fi
+            fi
+        fi
+
+    done < <(jq -r '.mcpServers // {} | keys[]' "$claude_json")
+}
+
 print_status() {
     local generated_codex_file="$TEMP_DIR/status-codex-AGENTS.md"
     local generated_gemini_file="$TEMP_DIR/status-gemini-GEMINI.md"
@@ -1034,29 +1146,32 @@ main() {
         exit 0
     fi
 
-    log "1/7 Codex 글로벌 AGENTS.md 동기화"
+    log "1/8 Codex 글로벌 AGENTS.md 동기화"
     sync_global_agents "codex"
 
-    log "2/7 Gemini 글로벌 GEMINI.md 동기화"
+    log "2/8 Gemini 글로벌 GEMINI.md 동기화"
     sync_global_agents "gemini"
 
-    log "3/7 프로젝트 AGENTS.md 동기화"
+    log "3/8 프로젝트 AGENTS.md 동기화"
     sync_workspace_agents
 
-    log "4/7 스킬 심링크 동기화 (.agents/skills 멀티툴 표준)"
+    log "4/8 스킬 심링크 동기화 (.agents/skills 멀티툴 표준)"
     sync_skills
 
-    log "5/7 Workflows 심링크 동기화"
+    log "5/8 Workflows 심링크 동기화"
     sync_workflows "codex"
     sync_workflows "gemini"
 
-    log "6/7 Agents 디렉토리 심링크 동기화"
+    log "6/8 Agents 디렉토리 심링크 동기화"
     sync_agents_dir "codex"
     sync_agents_dir "gemini"
 
-    log "7/7 Hooks 동기화"
+    log "7/8 Hooks 동기화"
     sync_hooks "codex"
     sync_hooks "gemini"
+
+    log "8/8 MCP 서버 등록 동기화 (Claude → Codex/Gemini 단방향)"
+    sync_mcp_servers
 
     print_summary
 }
