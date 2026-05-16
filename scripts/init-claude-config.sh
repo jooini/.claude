@@ -1747,26 +1747,23 @@ generate_dev_md() {
     local dir="$1"
     local name=$(basename "$dir")
 
-    # 태스크 라우팅 테이블
+    # 태스크 라우팅 테이블 — 작업 키워드별 글로벌 에이전트 매칭
+    # DEV_AGENT_TYPE은 키워드 매칭 실패 시 fallback (primary stack agent)
     local ROUTING_TABLE
-    if [[ "$DEV_AGENT_TYPE" == "frontend-developer" ]]; then
-        ROUTING_TABLE="| 버그 수정 | fix, bug, 에러 | systematic-debugging → frontend-developer → code-reviewer → code-tester |
-| 신규 기능 | 추가, 구현, 만들어 | Plan → frontend-developer → code-reviewer → code-tester |
-| 리팩토링 | 리팩토링, 정리, 개선 | frontend-developer → code-reviewer |
-| 스타일/UI | 디자인, UI, CSS | designer → frontend-developer → code-reviewer |
-| API 연동 | API, 연동, fetch | Plan → frontend-developer → code-reviewer → code-tester |"
-    elif [[ "$DEV_AGENT_TYPE" == "ops-lead" ]]; then
-        ROUTING_TABLE="| 인프라 변경 | docker, compose, 설정 | Plan → ops-lead → code-reviewer |
-| 장애 대응 | 에러, 장애, down | systematic-debugging → ops-lead |
-| 배포 설정 | 배포, deploy | Plan → ops-lead → code-reviewer |"
-    else
-        ROUTING_TABLE="| 버그 수정 | fix, bug, 에러, 오류 | systematic-debugging → ${DEV_AGENT_TYPE} → code-reviewer → code-tester |
-| 신규 기능 | 추가, 구현, 만들어 | Plan → ${DEV_AGENT_TYPE} → code-reviewer → code-tester |
+    ROUTING_TABLE="| 백엔드 API | api, 엔드포인트, 서버, 라우터, 스키마 | backend-developer → code-reviewer → code-tester |
+| 프론트엔드 UI | UI, 화면, 컴포넌트, 페이지, React, Vue | frontend-developer → code-reviewer → code-tester |
+| 디자인/UX | 디자인, 스타일, CSS, UX, 와이어프레임 | designer → frontend-developer → code-reviewer |
+| 데이터/쿼리 | 쿼리, 대시보드, SQL, ClickHouse, 분석, 코호트 | data-analyst |
+| 인프라/배포 | docker, compose, deploy, terraform, CI, k8s | ops-lead → code-reviewer |
+| AI/ML | 임베딩, RAG, 추천, 벡터, ML 파이프라인 | ai-engineer → code-reviewer |
+| 기획/스펙 | PRD, 스펙, 요구사항, 로드맵, 우선순위 | po → prompt-engineer |
+| 프롬프트 설계 | 프롬프트, 시스템 지시, agent.md, CLAUDE.md | prompt-engineer → code-reviewer |
+| QA 설계 | 테스트 케이스, 회귀, E2E, 테스트 전략 | qa → code-tester |
+| 버그/디버깅 | fix, bug, 에러, 오류, 안 됨 | debug-master → ${DEV_AGENT_TYPE} → code-reviewer → code-tester |
+| 보안/인증 | 보안, JWT, 인증, OAuth, 취약점 | ${DEV_AGENT_TYPE} → code-reviewer + codex:adversarial-review |
 | 리팩토링 | 리팩토링, 정리, 개선 | ${DEV_AGENT_TYPE} → code-reviewer |
 | 설계 검토 | 설계, 아키텍처 | Plan → qa |
-| 보안/인증 | 보안, JWT, 인증 | ${DEV_AGENT_TYPE} → code-reviewer + codex:adversarial-review |
-| API 변경 | 엔드포인트, API, 스키마 | Plan → ${DEV_AGENT_TYPE} → code-reviewer → cross-check |"
-    fi
+| 기타 신규 기능 (fallback) | 추가, 구현, 만들어 | Plan → ${DEV_AGENT_TYPE} → code-reviewer → code-tester |"
 
     local TEST_LINE=""
     [[ -n "$TEST_CMD" ]] && TEST_LINE="- 테스트: \`${TEST_CMD}\`"
@@ -1813,11 +1810,14 @@ generate_dev_md() {
     fi
 
     WORKFLOW="**Phase 0 — 분석 (순차)**
-1. docs/ 로드 → 태스크 분석 → 규모 판단 (S/M/L) → 라우팅 결정
-2. M/L → 스펙 작성 (WHAT/WHY/수용기준) → Plan Mode (SDD)
+1. docs/ 로드 → 태스크 분석 → 규모 판단 (S/M/L)
+2. **라우팅 결정**: 위 \`태스크 라우팅\` 표에서 작업 키워드 매칭 → 글로벌 에이전트 체인 확정. 매칭 실패 시 fallback은 \`${DEV_AGENT_TYPE}\`
+3. M/L → 스펙 작성 (WHAT/WHY/수용기준) → Plan Mode (SDD)
 
-**Phase 1 — 구현 (순차)**
-3. 구현 (직접 또는 ${DEV_AGENT_TYPE} 호출)
+**Phase 1 — 구현 (순차, 위임 우선)**
+4. 선정된 글로벌 에이전트(들)에게 Agent 도구로 위임. 호출 시 \`컨텍스트 패싱\` 섹션의 항목을 프롬프트에 모두 포함
+   - 병렬 가능한 에이전트(예: backend-developer + designer)는 단일 메시지로 동시 호출
+   - trivial 변경(1~2파일, <10줄)만 직접 구현 허용
 
 **Phase 2 — 검증 (병렬, 모두 background)**
 구현 완료 즉시 동시 디스패치:
@@ -1833,10 +1833,22 @@ ${PHASE2_TABLE}
     cat > "$dir/.claude/agents/dev.md" << DEV_EOF
 ---
 name: ${name}-dev
-description: ${name} 전담 개발 에이전트. ${STACK_DETAIL}.
+description: ${name} 프로젝트 도메인 전문가 + 글로벌 에이전트 코디네이터. ${STACK_DETAIL}. 직접 구현보다 라우팅·컨텍스트 패싱·결과 통합이 주 역할.
 ---
 
-# ${name} 전담 에이전트
+# ${name} 도메인 전문가 (글로벌 에이전트 코디네이터)
+
+## 역할 정의
+
+이 에이전트는 **프로젝트 도메인 전문가**이자 **글로벌 에이전트 코디네이터**다.
+
+| 책임 | 설명 |
+|------|------|
+| 도메인 지식 | \`docs/\` 와 코드베이스에서 ${name} 프로젝트 컨텍스트를 보유 |
+| 라우팅 결정 | 작업 키워드를 분석하여 가장 적합한 **글로벌 에이전트**(\`~/.claude/agents/*.md\`) 선정 |
+| 컨텍스트 패싱 | 글로벌 에이전트 spawn 시 프로젝트 스택/문서/diff/결정사항을 프롬프트에 주입 |
+| 결과 통합 | 글로벌 에이전트 결과를 받아 프로젝트 관점에서 검토·조정·다음 단계 결정 |
+| 직접 구현 | trivial 변경(1~2파일, 10줄 미만, low-risk)에 한해 허용. 그 외는 위임 우선 |
 
 ## 세션 시작 프로토콜
 
@@ -1911,14 +1923,29 @@ ${ROUTING_TABLE}
 - 리뷰 지적 3회 반복 → codex:rescue foreground
 - 보안/DB 스키마 변경 → codex:adversarial-review 격상
 
-### 컨텍스트 패싱
+### 컨텍스트 패싱 (글로벌 에이전트 호출 시 필수)
 
-글로벌 에이전트 호출 시 프롬프트에 포함:
-- 프로젝트: ${STACK_DETAIL}
-- 변경 파일 목록 + diff 요약
-- \`docs/modules/\` 관련 모듈 문서 핵심 내용
-- \`docs/decisions.md\` 관련 기술 결정
+글로벌 에이전트(\`~/.claude/agents/*\`)는 **이 프로젝트를 모른다**. spawn 프롬프트에 다음을 반드시 포함:
+
+1. **프로젝트 컨텍스트**: \`${name}\` — ${STACK_DETAIL}. ${PROJECT_ROLE}
+2. **태스크**: 사용자 원본 요청 + 의도 요약
+3. **관련 문서**: \`docs/modules/\` 에서 변경 영역 모듈 문서 핵심 발췌
+4. **기술 결정**: \`docs/decisions.md\` 에서 관련 결정사항
+5. **현재 상태**: 변경 파일 목록 + \`git diff\` 요약
+6. **프로젝트 컨벤션**: \`.claude/CLAUDE.md\` 의 코딩 규칙
 ${TEST_LINE}
+
+호출 예 (Agent 도구):
+\`\`\`
+subagent_type: backend-developer
+prompt: |
+  프로젝트: ${name} (${STACK_DETAIL})
+  태스크: <원본 요청>
+  관련 모듈 문서: <발췌>
+  관련 결정: <발췌>
+  변경 영역: <파일 경로 + diff>
+  컨벤션: <CLAUDE.md 발췌>
+\`\`\`
 
 ### 워크플로우
 
