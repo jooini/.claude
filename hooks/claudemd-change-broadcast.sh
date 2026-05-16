@@ -83,4 +83,10 @@ mkdir -p "$LOG_DIR"
 TS=$(date '+%Y-%m-%d %H:%M:%S')
 echo "${TS} | ${PATTERN} | ${SCOPE} | ${FILE_PATH}" >> "$LOG_FILE"
 
+# 전역 변경 시 Codex/Gemini로 자동 sync (백그라운드, 비차단)
+if [ "$SCOPE" = "전역" ]; then
+  nohup "$HOME/.claude/scripts/sync-external.sh" --quiet >/dev/null 2>&1 &
+  echo "  ↻ Codex/Gemini 동기화 백그라운드 실행"
+fi
+
 exit 0
