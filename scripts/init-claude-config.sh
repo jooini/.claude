@@ -62,7 +62,6 @@ REQUIRED_FILES=(
     ".claude/CLAUDE.md"
     ".claude/agents/dev.md"
     ".claude/agents/team.md"
-    ".claude/agents/docs.md"
     ".claude/settings.local.json"
     "docs/backlog.md"
     "docs/README.md"
@@ -1770,20 +1769,20 @@ generate_dev_md() {
 |---|-------|------|------|
 | 4a | code-reviewer | background | 코드 리뷰 |
 | 4b | codex:review | background | Codex 병렬 리뷰 |
-| 4c | \`@docs\` (\`.claude/agents/docs.md\`) | background | 변경 모듈의 docs/ 업데이트 |"
+| 4c | codebase-documenter | background | mode=incremental: 변경 파일/diff 전달 → 영향 받은 기존 문서만 갱신 (신규 생성 없음) |"
     elif [[ -n "$TEST_CMD" ]]; then
         PHASE2_TABLE="| # | Agent | mode | 역할 |
 |---|-------|------|------|
 | 4a | code-reviewer | background | 코드 리뷰 |
 | 4b | codex:review | background | Codex 병렬 리뷰 |
 | 4c | code-tester | background | \`${TEST_CMD}\` 실행 |
-| 4d | \`@docs\` (\`.claude/agents/docs.md\`) | background | 변경 모듈의 docs/ 업데이트 |"
+| 4d | codebase-documenter | background | mode=incremental: 변경 파일/diff 전달 → 영향 받은 기존 문서만 갱신 (신규 생성 없음) |"
     else
         PHASE2_TABLE="| # | Agent | mode | 역할 |
 |---|-------|------|------|
 | 4a | code-reviewer | background | 코드 리뷰 |
 | 4b | codex:review | background | Codex 병렬 리뷰 |
-| 4c | \`@docs\` (\`.claude/agents/docs.md\`) | background | 변경 모듈의 docs/ 업데이트 |"
+| 4c | codebase-documenter | background | mode=incremental: 변경 파일/diff 전달 → 영향 받은 기존 문서만 갱신 (신규 생성 없음) |"
     fi
 
     WORKFLOW="**Phase 0 — 분석 (순차)**
@@ -2007,58 +2006,6 @@ ${TEAM_TABLE}
 - 각 teammate는 자기 프로젝트의 dev.md 라우팅을 따름
 - 결과를 수집하여 통합 리뷰
 TEAM_EOF
-}
-
-generate_docs_md() {
-    local dir="$1"
-    local name=$(basename "$dir")
-
-    cat > "$dir/.claude/agents/docs.md" << DOCS_EOF
----
-name: ${name}-docs
-description: ${name} 문서 자동 업데이트 에이전트. 코드 변경 후 백그라운드에서 호출하여 docs/ 동기화.
----
-
-# 문서 업데이트 에이전트
-
-## 역할
-
-코드 변경사항을 감지하고 관련 문서를 자동 업데이트한다. **백그라운드 실행 전용.**
-
-## 트리거
-
-dev.md 워크플로우 Phase 2에서 \`run_in_background: true\`로 호출됨.
-
-## 입력
-
-호출 시 프롬프트에 다음 포함 필수:
-- 변경된 파일 목록
-- 변경 요약 (무엇을, 왜)
-- 관련 모듈명
-
-## 실행 절차
-
-### 1. 영향 범위 파악
-
-변경 파일 → docs/ 매핑:
-- \`endpoints/\` 변경 → \`docs/feature/*/02-api.md\` 업데이트
-- \`services/\` 변경 → \`docs/modules/\` 해당 파일 업데이트
-- \`core/\` 변경 → \`docs/feature/core/\` 업데이트
-- \`db/\` 변경 → \`docs/architecture.md\` DB 모델 섹션 업데이트
-- \`schemas/\` 변경 → 해당 API 문서의 요청/응답 스키마 업데이트
-
-### 2. 업데이트 규칙
-
-- 기존 문서 구조/포맷 유지 (새 섹션 추가 금지)
-- 코드에서 확인된 사실만 기록 (추측 금지)
-- CHANGELOG에 날짜 + 변경 내용 한 줄 추가
-- 변경 없는 문서는 건드리지 않음
-- 문서 생성은 하지 않음 (기존 문서 업데이트만)
-
-### 3. 출력
-
-완료 시 업데이트된 문서 목록 + 변경 없는 문서 목록 반환.
-DOCS_EOF
 }
 
 generate_docs_structure() {
@@ -2499,12 +2446,6 @@ update_existing_project() {
                     ok "생성: $f"
                     created=$((created + 1))
                     ;;
-                ".claude/agents/docs.md")
-                    mkdir -p "$dir/.claude/agents"
-                    generate_docs_md "$dir"
-                    ok "생성: $f"
-                    created=$((created + 1))
-                    ;;
                 ".claude/settings.local.json")
                     mkdir -p "$dir/.claude"
                     generate_settings_json "$dir"
@@ -2688,9 +2629,6 @@ create_new_project() {
     generate_team_md "$dir"
     ok "생성: .claude/agents/team.md"
 
-    generate_docs_md "$dir"
-    ok "생성: .claude/agents/docs.md"
-
     generate_settings_json "$dir"
     ok "생성: .claude/settings.local.json"
 
@@ -2769,7 +2707,7 @@ if [[ "${1:-}" == "--rebuild" ]]; then
         mkdir -p "$BACKUP_DIR"
 
         # 재생성 대상만 백업 (settings.local.json은 유지)
-        for f in CLAUDE.md agents/dev.md agents/team.md agents/docs.md; do
+        for f in CLAUDE.md agents/dev.md agents/team.md; do
             if [[ -f "$PROJECT_DIR/.claude/$f" ]]; then
                 mkdir -p "$(dirname "$BACKUP_DIR/$f")"
                 cp "$PROJECT_DIR/.claude/$f" "$BACKUP_DIR/$f"
@@ -2792,10 +2730,6 @@ if [[ "${1:-}" == "--rebuild" ]]; then
     section "team.md 재생성"
     generate_team_md "$PROJECT_DIR"
     ok "재생성: .claude/agents/team.md"
-
-    section "docs.md 재생성"
-    generate_docs_md "$PROJECT_DIR"
-    ok "재생성: .claude/agents/docs.md"
 
     # settings.local.json은 재생성 (권한 규칙 최신화)
     section "settings.local.json 재생성"
