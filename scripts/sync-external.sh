@@ -8,6 +8,7 @@ QUIET=false
 CLAUDE_DIR="${HOME}/.claude"
 CODEX_DIR="${HOME}/.codex"
 GEMINI_DIR="${HOME}/.gemini"
+AGENTS_DIR="${HOME}/.agents"
 WORKSPACE_DIR="${HOME}/Workspace"
 
 CLAUDE_GLOBAL_FILE="${CLAUDE_DIR}/CLAUDE.md"
@@ -19,15 +20,16 @@ SYNC_SCRIPT_FILE="${CLAUDE_DIR}/scripts/sync-external.sh"
 
 CODEX_AGENTS_FILE="${CODEX_DIR}/AGENTS.md"
 CODEX_HOOKS_FILE="${CODEX_DIR}/hooks.json"
-CODEX_SKILLS_DIR="${CODEX_DIR}/skills"
 CODEX_WORKFLOWS_DIR="${CODEX_DIR}/workflows"
 CODEX_AGENTS_DIR="${CODEX_DIR}/agents"
 
 GEMINI_AGENTS_FILE="${GEMINI_DIR}/GEMINI.md"
 GEMINI_HOOKS_FILE="${GEMINI_DIR}/hooks.json"
-GEMINI_SKILLS_DIR="${GEMINI_DIR}/skills"
 GEMINI_WORKFLOWS_DIR="${GEMINI_DIR}/workflows"
 GEMINI_AGENTS_DIR="${GEMINI_DIR}/agents"
+
+# Agent Skills 멀티툴 표준 (Gemini CLI 공식: .agents/skills interop alias)
+AGENTS_SKILLS_DIR="${AGENTS_DIR}/skills"
 
 TEMP_DIR=""
 
@@ -36,12 +38,9 @@ GLOBAL_GEMINI_CHANGED=0
 PROJECTS_SCANNED=0
 PROJECTS_CREATED=0
 PROJECTS_SKIPPED=0
-CODEX_SKILLS_TOTAL=0
-CODEX_SKILLS_LINKED=0
-CODEX_SKILLS_AVAILABLE=0
-GEMINI_SKILLS_TOTAL=0
-GEMINI_SKILLS_LINKED=0
-GEMINI_SKILLS_AVAILABLE=0
+AGENTS_SKILLS_TOTAL=0
+AGENTS_SKILLS_LINKED=0
+AGENTS_SKILLS_AVAILABLE=0
 CODEX_WORKFLOWS_TOTAL=0
 CODEX_WORKFLOWS_LINKED=0
 CODEX_WORKFLOWS_AVAILABLE=0
@@ -69,7 +68,7 @@ usage() {
   - ~/.claude/CLAUDE.md -> ~/.codex/AGENTS.md
   - ~/.claude/CLAUDE.md -> ~/.gemini/GEMINI.md
   - ~/Workspace/*/CLAUDE.md 또는 ~/Workspace/*/.claude/CLAUDE.md -> 각 프로젝트 AGENTS.md
-  - ~/.claude/skills/* -> ~/.codex/skills/*, ~/.gemini/skills/* 심링크
+  - ~/.claude/skills/* -> ~/.agents/skills/* 심링크 (멀티툴 interop 표준, Codex/Gemini 공통 인식)
   - ~/.claude/workflows/* -> ~/.codex/workflows/*, ~/.gemini/workflows/* 심링크
   - ~/.claude/agents/* -> ~/.codex/agents/*, ~/.gemini/agents/* 심링크
   - ~/.claude/settings.json hooks -> ~/.codex/hooks.json, ~/.gemini/hooks.json
@@ -158,14 +157,13 @@ list_markdown_sections() {
 section_excluded_for_target() {
     local target="$1"
     local section_title="$2"
-    local first_word
 
     [[ "$target" == "gemini" ]] || return 1
 
-    first_word="${section_title%% *}"
-
-    case "$first_word" in
-        트리거|파이프라인|작업|백로그|코드/문서|에이전트|워크플로우)
+    # 정확 매칭(prefix) — Claude 전용 라우팅/워크플로우 규칙은 Gemini에서 제외.
+    # `워크플로우 자동화`처럼 Gemini도 알아야 할 hook 동작 섹션은 제외하지 않는다.
+    case "$section_title" in
+        트리거*|파이프라인*|"작업 타입"*|백로그*|"코드/문서"*|"에이전트 한글"*|"워크플로우 문서"*)
             return 0
             ;;
         *)
@@ -733,24 +731,9 @@ sync_symlink_dir() {
 }
 
 sync_skills() {
-    local target="$1"
-
-    case "$target" in
-        codex)
-            sync_symlink_dir "$CLAUDE_SKILLS_DIR" "$CODEX_SKILLS_DIR" "true" \
-                CODEX_SKILLS_TOTAL CODEX_SKILLS_LINKED CODEX_SKILLS_AVAILABLE
-            log "Codex 스킬 링크: 신규 ${CODEX_SKILLS_LINKED}개 / 사용 가능 ${CODEX_SKILLS_AVAILABLE}/${CODEX_SKILLS_TOTAL}"
-            ;;
-        gemini)
-            sync_symlink_dir "$CLAUDE_SKILLS_DIR" "$GEMINI_SKILLS_DIR" "true" \
-                GEMINI_SKILLS_TOTAL GEMINI_SKILLS_LINKED GEMINI_SKILLS_AVAILABLE
-            log "Gemini 스킬 링크: 신규 ${GEMINI_SKILLS_LINKED}개 / 사용 가능 ${GEMINI_SKILLS_AVAILABLE}/${GEMINI_SKILLS_TOTAL}"
-            ;;
-        *)
-            warn "알 수 없는 스킬 대상: $target"
-            return 1
-            ;;
-    esac
+    sync_symlink_dir "$CLAUDE_SKILLS_DIR" "$AGENTS_SKILLS_DIR" "true" \
+        AGENTS_SKILLS_TOTAL AGENTS_SKILLS_LINKED AGENTS_SKILLS_AVAILABLE
+    log "Agent 스킬 링크 (.agents/skills 멀티툴 표준): 신규 ${AGENTS_SKILLS_LINKED}개 / 사용 가능 ${AGENTS_SKILLS_AVAILABLE}/${AGENTS_SKILLS_TOTAL}"
 }
 
 sync_workflows() {
@@ -911,15 +894,10 @@ print_status() {
     echo "Gemini hooks:        $gemini_hooks_status"
     echo ""
 
-    count_line="$(count_available_links "$CLAUDE_SKILLS_DIR" "$CODEX_SKILLS_DIR" "true")"
+    count_line="$(count_available_links "$CLAUDE_SKILLS_DIR" "$AGENTS_SKILLS_DIR" "true")"
     available="${count_line%%$'\t'*}"
     total="${count_line##*$'\t'}"
-    echo "Codex 스킬:          $available/$total 사용 가능"
-
-    count_line="$(count_available_links "$CLAUDE_SKILLS_DIR" "$GEMINI_SKILLS_DIR" "true")"
-    available="${count_line%%$'\t'*}"
-    total="${count_line##*$'\t'}"
-    echo "Gemini 스킬:         $available/$total 사용 가능"
+    echo "Agent 스킬 (.agents): $available/$total 사용 가능"
 
     count_line="$(count_available_links "$CLAUDE_WORKFLOWS_DIR" "$CODEX_WORKFLOWS_DIR" "false")"
     available="${count_line%%$'\t'*}"
@@ -1031,8 +1009,7 @@ print_summary() {
     echo "Codex 글로벌 AGENTS: $([[ "$GLOBAL_CODEX_CHANGED" -eq 1 ]] && echo "갱신" || echo "최신")"
     echo "Gemini 글로벌 GEMINI: $([[ "$GLOBAL_GEMINI_CHANGED" -eq 1 ]] && echo "갱신" || echo "최신")"
     echo "프로젝트 AGENTS: ${PROJECTS_CREATED}개 생성 / ${PROJECTS_SKIPPED}개 기존 / ${PROJECTS_SCANNED}개 확인"
-    echo "Codex 스킬: ${CODEX_SKILLS_AVAILABLE}/${CODEX_SKILLS_TOTAL} 사용 가능 (신규 링크 ${CODEX_SKILLS_LINKED}개)"
-    echo "Gemini 스킬: ${GEMINI_SKILLS_AVAILABLE}/${GEMINI_SKILLS_TOTAL} 사용 가능 (신규 링크 ${GEMINI_SKILLS_LINKED}개)"
+    echo "Agent 스킬 (.agents/skills): ${AGENTS_SKILLS_AVAILABLE}/${AGENTS_SKILLS_TOTAL} 사용 가능 (신규 링크 ${AGENTS_SKILLS_LINKED}개)"
     echo "Codex workflows: ${CODEX_WORKFLOWS_AVAILABLE}/${CODEX_WORKFLOWS_TOTAL} 사용 가능 (신규 링크 ${CODEX_WORKFLOWS_LINKED}개)"
     echo "Gemini workflows: ${GEMINI_WORKFLOWS_AVAILABLE}/${GEMINI_WORKFLOWS_TOTAL} 사용 가능 (신규 링크 ${GEMINI_WORKFLOWS_LINKED}개)"
     echo "Codex agents: ${CODEX_AGENTS_AVAILABLE}/${CODEX_AGENTS_TOTAL} 사용 가능 (신규 링크 ${CODEX_AGENTS_LINKED}개)"
@@ -1066,9 +1043,8 @@ main() {
     log "3/7 프로젝트 AGENTS.md 동기화"
     sync_workspace_agents
 
-    log "4/7 스킬 심링크 동기화"
-    sync_skills "codex"
-    sync_skills "gemini"
+    log "4/7 스킬 심링크 동기화 (.agents/skills 멀티툴 표준)"
+    sync_skills
 
     log "5/7 Workflows 심링크 동기화"
     sync_workflows "codex"
