@@ -519,6 +519,40 @@ for mod in "${ALL_MODULES[@]}"; do
 done
 
 # ─────────────────────────────────────────────
+# 5.5 MCP 서버 등록 (~/.claude.json 으로 mirror)
+# ─────────────────────────────────────────────
+# settings.json 의 mcpServers 정의는 Claude Code CLI 런타임이 인식하지 않음.
+# 활성 모듈의 MCP 정의를 settings.json 에서 읽어 `claude mcp add-json`으로
+# ~/.claude.json (user scope) 에 옮겨 박는다. 다른 머신에서 git pull 후
+# setup.sh 만 돌리면 동일하게 동작시키기 위함.
+echo ""
+log "MCP 서버 등록 중 (~/.claude.json mirror)..."
+
+if command -v claude &>/dev/null && command -v jq &>/dev/null; then
+    for mod in "${ALL_MODULES[@]}"; do
+        [[ "${SELECTED[$mod]}" != "true" ]] && continue
+        mcp_name="${MODULE_MCP[$mod]}"
+        [[ -z "$mcp_name" ]] && continue
+
+        mcp_json=$(jq -c --arg n "$mcp_name" '.mcpServers[$n] // empty' "$SETTINGS_FILE")
+        if [[ -z "$mcp_json" ]]; then
+            warn "  $mcp_name: settings.json 에 정의 없음 — 건너뜀"
+            continue
+        fi
+
+        # 기존 등록 제거 후 재등록 (idempotent)
+        claude mcp remove "$mcp_name" --scope user &>/dev/null || true
+        if claude mcp add-json --scope user "$mcp_name" "$mcp_json" &>/dev/null; then
+            info "  $mcp_name → ~/.claude.json 등록 완료"
+        else
+            warn "  $mcp_name 등록 실패 — 수동 확인 필요"
+        fi
+    done
+else
+    warn "claude CLI 또는 jq 미설치 — MCP mirror 건너뜀"
+fi
+
+# ─────────────────────────────────────────────
 # 6. 실행 권한 설정
 # ─────────────────────────────────────────────
 echo ""
