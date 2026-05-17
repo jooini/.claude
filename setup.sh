@@ -586,7 +586,23 @@ mkdir -p "$CLAUDE_DIR/cache"
 mkdir -p "$CLAUDE_DIR/paste-cache"
 
 # ─────────────────────────────────────────────
-# 9. 의존성 확인
+# 9. 외부 도구 동기화 (Codex/Gemini → Antigravity 포함)
+# ─────────────────────────────────────────────
+# sync-external.sh 가 ~/.codex/AGENTS.md, ~/.gemini/GEMINI.md, hooks.json,
+# workflows/agents 심링크, MCP 서버 등록까지 단방향으로 처리한다.
+# Antigravity는 ~/.gemini/ 를 그대로 읽으므로 Gemini sync에 자동 포함.
+if [[ "${SELECTED[gemini]}" == "true" ]] || [[ "${SELECTED[codex]}" == "true" ]]; then
+    echo ""
+    log "외부 도구 동기화 실행 (sync-external.sh)..."
+    if [ -x "$CLAUDE_DIR/scripts/sync-external.sh" ]; then
+        "$CLAUDE_DIR/scripts/sync-external.sh" || warn "sync-external.sh 일부 실패 — 수동 재실행 권장"
+    else
+        warn "scripts/sync-external.sh 없음 또는 실행 권한 없음"
+    fi
+fi
+
+# ─────────────────────────────────────────────
+# 10. 의존성 확인
 # ─────────────────────────────────────────────
 echo ""
 echo "${BOLD}── 의존성 확인 ──${NC}"
@@ -611,7 +627,7 @@ check_dep "npx"    "npm install -g npx"
 [[ "${SELECTED[codex]}" == "true" ]] && check_dep "codex"  "npm install -g @openai/codex"
 
 # ─────────────────────────────────────────────
-# 10. 플랫폼별 안내
+# 11. 플랫폼별 안내
 # ─────────────────────────────────────────────
 echo ""
 if [[ "$(uname)" == "Darwin" ]]; then
