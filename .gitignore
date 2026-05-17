@@ -71,3 +71,6 @@ skills/index-rag/.index-state.json
 # 사내 정보 (private repo 라도 분리)
 identity-hub/
 debugging-guides/
+
+# 붙여넣은 이미지 임시 캐시 (Claude Code 런타임)
+image-cache/
