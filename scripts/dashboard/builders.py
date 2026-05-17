@@ -119,6 +119,35 @@ def build_chains(max_turns=30):
             "agents": [],
         }
 
+    # 진행 중 turn (turns.jsonl 미반영) — tool-trace 에만 보이는 turn_id 를 anonymous live turn 으로 등록
+    # 다음 발화가 들어오면 PostToolUse hook 이 turns.jsonl 에 채워주지만, 그 전까지도 그래프에 보이도록
+    for r in tool_rows:
+        tid = r.get("turn_id")
+        if not tid or tid in turns_by_id:
+            continue
+        turns_by_id[tid] = {
+            "turn_id": tid,
+            "session": r.get("session", ""),
+            "ts_utc": r.get("ts_utc", ""),
+            "prompt_preview": "(진행 중…)",
+            "reads": [],
+            "tools": [],
+            "agents": [],
+        }
+    for r in agent_rows:
+        tid = r.get("turn_id")
+        if not tid or tid in turns_by_id:
+            continue
+        turns_by_id[tid] = {
+            "turn_id": tid,
+            "session": r.get("session", ""),
+            "ts_utc": r.get("ts_utc", ""),
+            "prompt_preview": "(진행 중…)",
+            "reads": [],
+            "tools": [],
+            "agents": [],
+        }
+
     for r in md_rows:
         tid = r.get("turn_id")
         if not tid or tid not in turns_by_id:
