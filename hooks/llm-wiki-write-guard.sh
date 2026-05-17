@@ -43,6 +43,7 @@ case "$REL" in
   LLM-Wiki/raw/*)             outcome_log "llm-wiki-write-guard" "pass" "" "raw-allowed"; exit 0 ;;
   LLM-Wiki/CLAUDE.md)         outcome_log "llm-wiki-write-guard" "pass" "" "schema-allowed"; exit 0 ;;
   LLM-Wiki/README.md)         outcome_log "llm-wiki-write-guard" "pass" "" "readme-allowed"; exit 0 ;;
+  Sessions/*)                 outcome_log "llm-wiki-write-guard" "pass" "" "sessions-allowed"; exit 0 ;;
 esac
 
 # Vault 안의 LLM-Wiki 밖 경로 = 차단
