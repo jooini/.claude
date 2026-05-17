@@ -388,7 +388,8 @@ class StreamServer(http.server.SimpleHTTPRequestHandler):
                 today = datetime.now().strftime("%Y-%m-%d")
                 return [
                     LIVE_DIR / f"{today}.jsonl",                # md reads
-                    LIVE_DIR / f"agent-trace-{today}.jsonl",    # tool calls
+                    LIVE_DIR / f"tool-trace-{today}.jsonl",     # 일반 도구 호출 (Bash/Read/Edit 등)
+                    LIVE_DIR / f"agent-trace-{today}.jsonl",    # subagent 호출
                     LIVE_DIR / "turns.jsonl",                   # 발화 마커
                 ]
 
