@@ -187,6 +187,11 @@
 						"type":    "command",
 						"command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/learning-note-auto-ingest.sh",
 						"timeout": 5
+					},
+					{
+						"type":    "command",
+						"command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/vault-new-file-suggest.sh",
+						"timeout": 5
 					}
 				]
 			},
@@ -406,6 +411,11 @@
 						"type":    "command",
 						"command": "/Users/leonard/.claude/hooks/daily-learning-capture.sh",
 						"timeout": 15
+					},
+					{
+						"type":    "command",
+						"command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/llm-wiki-session-lint.sh",
+						"timeout": 10
 					},
 					{
 						"type":    "command",

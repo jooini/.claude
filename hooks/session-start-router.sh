@@ -52,6 +52,9 @@ out=$(run_hook gemma-morning-brief.sh); [ -n "$out" ] && P2_OUT+="$out"$'\n'
 out=$(run_hook qwen-weekly-retro.sh); [ -n "$out" ] && P2_OUT+="$out"$'\n'
 out=$(run_hook qwen-alias-suggest.sh); [ -n "$out" ] && P2_OUT+="$out"$'\n'
 
+# === LLM-Wiki manifest drift (있을 때만 출력, P1 동급 정보성) ===
+out=$(run_hook vault-manifest-drift-detect.sh); [ -n "$out" ] && P1_OUT+="$out"$'\n'
+
 # === 출력 정책 ===
 TS=$(date '+%Y-%m-%d %H:%M:%S')
 
