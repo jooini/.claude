@@ -312,10 +312,6 @@
 				"hooks": [
 					{
 						"type":    "command",
-						"command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/llm-wiki-write-guard.sh"
-					},
-					{
-						"type":    "command",
 						"command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh"
 					},
 					{
