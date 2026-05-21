@@ -40,69 +40,51 @@
 | 백로그 등록 / 트랙 | `workflows/backlog-policy.md` |
 | 코드 검색 / RAG / Grep | `workflows/search-priority.md` |
 
-## 에이전트 한글 호출
+## 에이전트 라우팅 결정표 (단일표 — 위에서 아래로 첫 매칭 적용)
 
-사용자가 호출명으로 시작하면 해당 에이전트 실행. 복수 호출명 → 병렬 실행.
+> **충돌 시 우선순위**: P0(프로젝트) > P1(역할 호출) > P2(파이프라인) > P3(단축 호출) > P4(타입 키워드) > P5(1차 분류 휴리스틱) > P6(컨텍스트 유지)
+> **실측 근거 (2026-05-21 정정)**: `~/.claude/cache/md-live/suggestion-outcomes.jsonl` 16건 분석 — suggest hook의 frontend 추천 15건 중 **채택 0건(0%)**, 81%가 ignored. **현재 호출 에이전트가 옳고 hook 추천이 틀림**. P5는 추측 휴리스틱이 아니라 **명시 신호 기반**(UI 키워드 등장 시만 frontend) + **불명확 시 현재 호출 유지**로 운영. 기존 routing-memo의 "21/24 frontend" 통계는 hook 추천 흔적이지 사용자 채택률이 아님.
 
-| 호출명 | 에이전트 |
-|--------|---------|
-| 백엔드 | backend-developer |
-| 프론트 | frontend-developer |
-| AI엔지니어 | ai-engineer |
-| 테스터 | code-tester |
-| 리뷰어 | code-reviewer |
-| 큐에이 | qa |
-| 디자이너 | designer |
-| 피오 | po |
-| 데이터 | data-analyst |
-| 옵스 | ops-lead |
-| 프롬프트 | prompt-engineer |
+| P | 입력 신호 | 결정 | 비고 |
+|---|----------|------|------|
+| **P0** | `@dev` 호출 | 프로젝트 `.claude/agents/dev.md` 라우팅. 글로벌 파이프라인 **비적용** | 이중 실행 방지 |
+| **P0** | `@dev` + 프로젝트 `dev.md` 없음 | `dev-lead`로 폴백 | dev-lead는 @dev의 폴백, 대체 아님 |
+| **P0** | `@team` 호출 | 크로스 프로젝트 팀 라우팅 | 영향 범위 기준 병렬 |
+| **P1** | 한글 호출명 (복수 → 병렬) | `백엔드→backend-developer` / `프론트→frontend-developer` / `AI엔지니어→ai-engineer` / `리뷰어→code-reviewer` / `디자이너→designer` / `피오→po` / `데이터→data-analyst` / `옵스→ops-lead` / `프롬프트→prompt-engineer` | 명시 호출 최우선 |
+| **P1** | `큐에이` | `qa` — **테스트 설계/케이스/시나리오 전담** | 명령 실행 안 함 |
+| **P1** | `테스터` | `code-tester` — **lint/build/test 실행 전담** | 설계 안 함 |
+| **P2** | `@dev` 없이 파이프라인 키워드 (`backend`/`frontend`/`fullstack`/`파이프라인`) | `workflows/pipeline.md` 적용 | 직접 작업 모드 |
+| **P2** | `@dev` 없이 **코드 파일 수정 발생** (키워드 없어도) | Gemini 스캔 → developer → 병렬(reviewer + codex:review) → code-tester | 기본 파이프라인 |
+| **P2** | 설정/프롬프트/문서만 수정 | 파이프라인 생략 | 코드 변경 0건일 때만 |
+| **P3** | 단축 호출 충돌 시 우선순위 | `단독으로` > `코드만/구현만` > `TDD로` > `리뷰 없이` > `테스트 없이` > `스펙 없이` | 상위가 하위 덮어씀 |
+| **P3** | `단독으로` | 지정 에이전트만 | 파이프라인 단계 축소 |
+| **P3** | `코드만`/`구현만` | developer만 | 리뷰/테스트 생략 |
+| **P3** | `TDD로` | qa 설계 → 사용자 확인 → developer Green → code-tester 실행 | qa/code-tester 분리 강제 |
+| **P3** | `리뷰 없이` | 리뷰 단계 생략 | 구현/테스트 유지 |
+| **P3** | `테스트 없이` | 테스트 단계 생략 | 구현/리뷰 유지 |
+| **P3** | `스펙 없이` | SDD 스펙 생략 | 나머지 유지 |
+| **P4** | `"기능 추가"`, `"feature"` | TYPE A: feature — TDD + 3중 리뷰 | `standard-routines.md` |
+| **P4** | `"버그"`, `"fix"`, `"안 돼"` | TYPE B: bugfix — `/debug` → 회귀 | |
+| **P4** | `"리팩터"`, `"정리"` (3파일+) | TYPE C: refactor — Gemini Phase 0 + worktree | |
+| **P4** | `"UI"`, `"디자인"`, `"스타일"` | TYPE D: design — designer + Playwright | |
+| **P4** | `"쿼리"`, `"대시보드"`, `"ClickHouse"` | TYPE E: data — data-analyst 필수 | |
+| **P4** | `"배포"`, `"Docker"`, `"Terraform"`, `"SPI"` | TYPE F: ops — 🔴 사람 승인 + 단계별 검증 | |
+| **P4** | `"문서"`, `"PRD"`, `"스펙"` | TYPE G: docs — po/prompt-engineer + Obsidian | |
+| **P5** | UI 신호 감지 (`component`, `page`, `style`, `css`, `tsx`, `jsx`, `Tailwind`, `shadcn`, `버튼`, `화면`, `레이아웃`) | 1차 라우팅을 **frontend-developer 우선** | 재지정 21건 완화 |
+| **P5** | 백엔드 신호 명시 (`API`, `endpoint`, `DB`, `migration`, `auth`, `JWT`, `FastAPI`, `Spring`) | backend-developer | UI 신호 없을 때만 |
+| **P5** | 풀스택 혼합 신호 | **2트랙 병렬**: frontend-developer(UI) + backend-developer(API), 통합은 dev-lead | 재지정/왕복 감소 |
+| **P5** | 신호 불명확 | **현재 호출/직전 에이전트 유지** (frontend 추천 채택률 0/15 = 0%, 사용자는 추천 무시 81%) | 추측 라우팅 금지 |
+| **P6** | 운영성 명령 (`재시작`, `재설치`, `서비스`, `로그 봐`, `상태 확인`, `restart`, `재배포`) | 현재 작업 컨텍스트 유지 (직전 에이전트 재사용) — 없으면 ops-lead | 세션 35cdacf2 실측: "서비스 재시작해줘" 등이 ops로 빗나갔다가 frontend로 재지정 3회. **운영 명령은 메인 작업 흐름 끊지 말 것** |
+| **P6** | 세션 내 직전 에이전트 동일 도메인 (UI/API/ops) 3턴 이상 지속 시 | **sticky routing** — 동일 에이전트 재사용. 짧은 운영 명령에 재분류 금지 | 같은 세션 1차 분류 반복 빗나감 방지 |
+| **P6** | `codex:codex-rescue` 종료 후 다음 발화 | rescue 직전 작업 컨텍스트 유지 (frontend/backend 분류 그대로) | rescue 후 frontend로 빗나간 2회 패턴 차단 |
 
-### 프로젝트 에이전트
-
-- `@dev` — 프로젝트 전담 리드. 프로젝트별 `.claude/agents/dev.md` 자체 라우팅. 글로벌 파이프라인 비적용 (이중 실행 방지)
-- `@team` — 크로스 프로젝트 팀 구성
-
-### @dev 태스크 관리
+### @dev 태스크 관리 (P0 보조)
 
 - `@dev backlog` — backlog.md 최상위 1개 → active/ 생성 → 실행
 - `@dev backlog 전체` — backlog 순차 처리
 - `@dev active` — active/ 미완료 순차 처리
 - `@dev active {파일명}` — 특정 active 파일만
 - `@dev {직접 지시}` — 즉시 라우팅
-
-## 트리거 규칙
-
-- **`@dev` 호출 시** → 프로젝트 dev.md 자체 라우팅. 글로벌 파이프라인 비적용
-- **`@dev` 없이 직접 작업 시**:
-  - 파이프라인 키워드 지정 → `workflows/pipeline.md` 참조
-  - 키워드 없어도 **코드 파일 수정 발생** → Gemini 스캔 → developer → 병렬(reviewer + codex:review) → tester
-- **설정/프롬프트/문서만 수정** → 파이프라인 불필요
-
-## 파이프라인 단축 호출
-
-| 키워드 | 동작 |
-|--------|------|
-| "코드만", "구현만" | developer 만, 리뷰/테스트 생략 |
-| "리뷰 없이" | 리뷰 단계 생략 |
-| "테스트 없이" | 테스트 단계 생략 |
-| "단독으로" | 해당 에이전트만 |
-| "TDD로" | qa 테스트 설계 → 사용자 확인 → developer Green |
-| "스펙 없이" | SDD 스펙 작성 생략 |
-
-## 작업 타입 자동 라우팅
-
-키워드 감지 시 `workflows/standard-routines.md` 의 TYPE 루틴 적용:
-
-| 키워드 | TYPE | 핵심 |
-|--------|------|------|
-| "기능 추가", "feature" | A: feature | TDD + 3중 리뷰 |
-| "버그", "fix", "안 돼" | B: bugfix | /debug → 회귀 |
-| "리팩터", "정리" (3파일+) | C: refactor | Gemini Phase 0 + worktree |
-| "UI", "디자인", "스타일" | D: design | designer + Playwright |
-| "쿼리", "대시보드", "ClickHouse" | E: data | data-analyst 필수 |
-| "배포", "Docker", "Terraform", "SPI" | F: ops | 🔴 사람 승인 + 단계별 검증 |
-| "문서", "PRD", "스펙" | G: docs | po/prompt-engineer + Obsidian |
 
 ## 도구 역할 분담
 

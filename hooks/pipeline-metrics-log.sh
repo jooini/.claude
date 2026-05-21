@@ -25,8 +25,23 @@ except Exception as e:
     print(json.dumps({'ts': '$(date +%Y-%m-%dT%H:%M:%S)', 'error': str(e)}))
 " >> "$DEBUG_FILE" 2>/dev/null
 
-AGENT_TYPE=$(echo "$INPUT" | sed -n 's/.*"subagent_type"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-[ -z "$AGENT_TYPE" ] && AGENT_TYPE="general-purpose"
+AGENT_TYPE=$(echo "$INPUT" | /usr/bin/python3 -c "
+import sys, json
+try:
+    d = json.loads(sys.stdin.read())
+    # 1순위: tool_input.subagent_type (Task 도구 표준)
+    t = d.get('tool_input', {}).get('subagent_type')
+    if not t:
+        # 2순위: top-level subagent_type
+        t = d.get('subagent_type')
+    if not t:
+        # 3순위: tool_response 메타
+        t = d.get('tool_response', {}).get('subagent_type') if isinstance(d.get('tool_response'), dict) else None
+    print(t or 'unknown')
+except Exception:
+    print('parse-error')
+" 2>/dev/null)
+[ -z "$AGENT_TYPE" ] && AGENT_TYPE="unknown"
 
 # duration_ms 페이로드 어디에 있을지 모르므로 여러 위치 시도
 DURATION_MS=$(echo "$INPUT" | sed -n 's/.*"duration_ms"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' | head -1)

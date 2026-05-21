@@ -56,12 +56,57 @@ def load_outcome_stats():
 
 # 사용자 발화에서 키워드 추출 (한국어 + 영어, 2~30자)
 KEYWORD_RE = re.compile(r"[가-힣a-zA-Z][가-힣a-zA-Z0-9]{1,29}")
+
+# 한국어 조사 분리 — "에이전트가" → "에이전트", "코드는" → "코드"
+# 의미 있는 단어와 결합된 조사를 떼어내 stopword 매칭 정확도 향상
+KOREAN_PARTICLE_RE = re.compile(
+    r'^(.+?)(는|은|이|가|을|를|의|와|랑|도|만|들|로|으로|에서|에게|에서는|에게도|에서도|보다|마저|조차|에|와는)$'
+)
+
 STOPWORDS = {
+    # 기존 (2026-05-09)
     "있어", "없어", "해줘", "하자", "이거", "저거", "지금", "그냥", "다시",
     "진행", "작업", "다", "좀", "잘", "그런데", "왜", "뭐", "지", "이", "그",
     "the", "and", "for", "with", "this", "that", "you", "are", "is",
     "프로젝트", "사용자", "에이전트",
+    # 추가 (2026-05-21 — 실측 17건 노이즈 룰 정리)
+    # 한국어 인칭/지시
+    "니가", "내가", "네가", "저는", "제가", "우리", "나는", "너도",
+    "이건", "저건", "이게", "저게", "그거", "그건", "그게",
+    # 한국어 시간/빈도 부사
+    "아까", "나중", "진작", "벌써", "아직", "이미", "바로", "곧", "한번", "두번",
+    # 한국어 일상 명사/동사
+    "사용", "성공", "실패", "확인", "문제", "결과", "상태", "관리",
+    "가능", "불가", "해결", "처리", "시작", "종료", "완료", "시도",
+    "환경", "기능", "데이터", "파일", "폴더", "코드", "서비스", "시스템",
+    # 한국어 형용사/부사
+    "좋은", "나쁜", "같은", "다른", "새로운", "오래된", "많은", "적은",
+    "잘못", "제대로", "겨우", "거의", "약간", "먼저", "특히",
+    # 한국어 응답/감탄
+    "아니", "맞아", "오케이", "ㅇㅋ",
+    # 한국어 접속/조사 변형
+    "그리고", "그래서", "하지만", "그러나", "그러면", "아니면",
+    # 영어 stopwords 확장
+    "of", "in", "on", "at", "to", "a", "an", "be", "by", "or", "but",
+    "not", "if", "so", "do", "how", "why", "what", "when", "where",
+    "all", "any", "some", "will", "can", "could", "would", "should",
+    "just", "now", "then", "here", "there", "as", "we", "i", "me",
+    "my", "your", "his", "her", "it", "its", "their", "them",
 }
+
+
+def normalize_keyword(kw: str) -> str:
+    """한국어 조사 분리 — 본체만 추출.
+    예: '에이전트가' → '에이전트', '코드는' → '코드'
+    """
+    kw = kw.lower()
+    m = KOREAN_PARTICLE_RE.match(kw)
+    if m:
+        stem = m.group(1)
+        # 본체가 2자 미만이면 분리 안 함 (예: "가가" → "가")
+        if len(stem) >= 2:
+            return stem
+    return kw
 
 
 def main():
@@ -82,8 +127,13 @@ def main():
         agent_total[r["agent_type"]] += 1
         trig = (r.get("user_trigger") or "").lower()
         if not trig: continue
-        kws = set(KEYWORD_RE.findall(trig))
-        kws = {k for k in kws if k.lower() not in STOPWORDS and len(k) >= 2}
+        raw_kws = set(KEYWORD_RE.findall(trig))
+        # 조사 분리 후 stopword 필터 (정확도 향상)
+        kws = {normalize_keyword(k) for k in raw_kws}
+        kws = {k for k in kws if k not in STOPWORDS and len(k) >= 2}
+        # hex 해시(5자 이상 hex만)는 노이즈 — 단, 6자리 컬러코드(#xxxxxx)는 의미 있어 따로 보존 안 함 (lift 알아서 처리)
+        # 7자 이상 순수 hex는 커밋 해시일 가능성 높음 → 제외
+        kws = {k for k in kws if not (len(k) >= 7 and all(c in '0123456789abcdef' for c in k))}
         for k in kws:
             keyword_to_agents[k][r["agent_type"]] += 1
     total_good = sum(agent_total.values())
