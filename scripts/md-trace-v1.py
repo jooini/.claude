@@ -82,14 +82,11 @@ def is_in_scope(rel: str, scope: str) -> bool:
 
 
 def iter_user_turns(jsonl_path: Path):
-    """jsonl 파일 한 개에서 (user_prompt, [md_path, ...]) 리스트를 yield."""
+    """jsonl 파일 한 개에서 (user_prompt, ts, [md_path, ...], prompt_id) 리스트를 yield."""
     current_prompt = None
     current_ts = None
+    current_pid = None
     current_reads: list[str] = []
-
-    def flush():
-        if current_prompt is not None:
-            yield (current_prompt, current_ts, list(current_reads))
 
     with jsonl_path.open("r", encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -122,9 +119,10 @@ def iter_user_turns(jsonl_path: Path):
                 if not cleaned:
                     continue
                 if current_prompt is not None:
-                    yield (current_prompt, current_ts, list(current_reads))
+                    yield (current_prompt, current_ts, list(current_reads), current_pid)
                 current_prompt = cleaned
                 current_ts = rec.get("timestamp", "")
+                current_pid = rec.get("promptId") or rec.get("uuid") or ""
                 current_reads = []
             elif rtype == "assistant" and current_prompt is not None:
                 msg = rec.get("message") or {}
@@ -140,24 +138,110 @@ def iter_user_turns(jsonl_path: Path):
                             if isinstance(fp, str) and fp.endswith(".md"):
                                 current_reads.append(fp)
         if current_prompt is not None:
-            yield (current_prompt, current_ts, list(current_reads))
+            yield (current_prompt, current_ts, list(current_reads), current_pid)
+
+
+def collect_subagent_index() -> dict:
+    """subagent jsonl을 promptId → [{agent, files}] 인덱스로 구축.
+
+    각 subagent 디렉토리: ~/.claude/projects/<proj>/<session>/subagents/agent-<id>.jsonl
+    - .meta.json에서 agentType/description 추출
+    - jsonl의 promptId가 부모 turn_id와 동일 → 조인 키
+    - tool_use(Read/Grep/Glob) 의 file_path 수집
+    """
+    index: dict[str, list[dict]] = defaultdict(list)
+    for agent_jsonl in PROJECTS_DIR.glob("**/subagents/agent-*.jsonl"):
+        if agent_jsonl.suffix != ".jsonl":
+            continue
+        meta_path = agent_jsonl.with_suffix(".meta.json")
+        agent_type = "unknown"
+        description = ""
+        if meta_path.exists():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                agent_type = meta.get("agentType") or "unknown"
+                description = meta.get("description") or ""
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        prompt_id = ""
+        files: list[str] = []
+        try:
+            with agent_jsonl.open("r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if not prompt_id:
+                        pid = rec.get("promptId")
+                        if pid:
+                            prompt_id = pid
+                    msg = rec.get("message") or {}
+                    content = msg.get("content")
+                    if isinstance(content, list):
+                        for c in content:
+                            if (
+                                isinstance(c, dict)
+                                and c.get("type") == "tool_use"
+                                and c.get("name") in ("Read", "Grep", "Glob")
+                            ):
+                                fp = (c.get("input") or {}).get("file_path") or (
+                                    c.get("input") or {}
+                                ).get("path")
+                                if isinstance(fp, str):
+                                    files.append(fp)
+        except OSError:
+            continue
+
+        if not prompt_id:
+            continue
+        index[prompt_id].append(
+            {
+                "agent": agent_type,
+                "description": description,
+                "files": files,
+                "agent_id": agent_jsonl.stem.replace("agent-", "")[:8],
+            }
+        )
+    return index
 
 
 def collect(days: int, scope: str):
     cutoff = time.time() - days * 86400
     files = []
     for p in PROJECTS_DIR.rglob("*.jsonl"):
+        # subagent jsonl 은 별도 인덱스로 처리
+        if "subagents" in p.parts:
+            continue
         try:
             if p.stat().st_mtime >= cutoff:
                 files.append(p)
         except OSError:
             continue
 
+    subagent_index = collect_subagent_index()
+
     turns = []
     for p in sorted(files, key=lambda x: x.stat().st_mtime):
-        for prompt, ts, reads in iter_user_turns(p):
+        for prompt, ts, reads, pid in iter_user_turns(p):
             md_reads = [relpath_md(r) for r in reads]
             md_reads = [m for m in md_reads if is_in_scope(m, scope)]
+            agents = []
+            for a in subagent_index.get(pid, []):
+                agent_files = [relpath_md(f) for f in a["files"]]
+                agent_files = [f for f in agent_files if is_in_scope(f, scope)]
+                agents.append(
+                    {
+                        "agent": a["agent"],
+                        "description": a["description"],
+                        "files": agent_files,
+                        "agent_id": a["agent_id"],
+                    }
+                )
             turns.append(
                 {
                     "prompt": prompt,
@@ -165,20 +249,27 @@ def collect(days: int, scope: str):
                     "ts": ts,
                     "session": p.stem,
                     "project": p.parent.name,
+                    "prompt_id": pid,
                     "reads": md_reads,
+                    "agents": agents,
                 }
             )
     return files, turns
 
 
 def build_sankey(turns, top_prompts: int):
-    pair_counts: Counter = Counter()
+    """4컬럼 Sankey: prompt → md(부모 Read) + prompt → agent → file(에이전트 Read).
+
+    md 와 file 은 같은 카테고리 색으로 표시. agent 노드는 보라 계열.
+    """
+    pair_counts: Counter = Counter()  # (prompt_key, md)
     md_total: Counter = Counter()
     prompt_total: Counter = Counter()
     prompt_meta: dict[str, dict] = {}
 
+    # 부모 Read 집계
     for i, t in enumerate(turns):
-        if not t["reads"]:
+        if not t["reads"] and not t.get("agents"):
             continue
         prompt_key = f"{t['ts']}__{i}"
         prompt_meta[prompt_key] = t
@@ -186,26 +277,61 @@ def build_sankey(turns, top_prompts: int):
             pair_counts[(prompt_key, md)] += 1
             md_total[md] += 1
             prompt_total[prompt_key] += 1
+        for a in t.get("agents", []):
+            prompt_total[prompt_key] += 1 + len(a["files"])
 
     kept_prompts = {k for k, _ in prompt_total.most_common(top_prompts)}
 
-    aggregated: Counter = Counter()
+    # prompt → md 집계
+    agg_prompt_md: Counter = Counter()
     for (pk, md), cnt in pair_counts.items():
         node_label = (
             f"[{prompt_meta[pk]['ts'][5:16]}] {prompt_meta[pk]['label']}"
             if pk in kept_prompts
             else "기타 요청 (합산)"
         )
-        aggregated[(node_label, md, pk if pk in kept_prompts else "__other__")] += cnt
+        agg_prompt_md[(node_label, md, pk if pk in kept_prompts else "__other__")] += cnt
 
+    # prompt → agent, agent → file 집계
+    # agent 노드 key: (agent_type, agent_id_short)  — 같은 종류여도 인스턴스 구분
+    agent_total: Counter = Counter()
+    agent_files_total: Counter = Counter()
+    agg_prompt_agent: Counter = Counter()  # (prompt_label, agent_label, pk)
+    agg_agent_file: Counter = Counter()  # (agent_label, file)
+    agent_meta: dict[str, dict] = {}
+
+    for pk, t in prompt_meta.items():
+        prompt_label = (
+            f"[{t['ts'][5:16]}] {t['label']}"
+            if pk in kept_prompts
+            else "기타 요청 (합산)"
+        )
+        pk_eff = pk if pk in kept_prompts else "__other__"
+        for a in t.get("agents", []):
+            agent_label = f"🤖 {a['agent']}"
+            if a["description"]:
+                agent_meta[agent_label] = {
+                    "description": a["description"],
+                    "agent_id": a["agent_id"],
+                }
+            agg_prompt_agent[(prompt_label, agent_label, pk_eff)] += 1
+            agent_total[agent_label] += 1
+            for f in a["files"]:
+                agg_agent_file[(agent_label, f)] += 1
+                agent_files_total[f] += 1
+
+    # 노드 순서: prompt → md → agent → file
     prompt_nodes: list[str] = []
     prompt_index: dict[str, int] = {}
     md_nodes: list[str] = []
     md_index: dict[str, int] = {}
-    sources, targets, values, hovers = [], [], [], []
+    agent_nodes: list[str] = []
+    agent_index: dict[str, int] = {}
+    file_nodes: list[str] = []
+    file_index: dict[str, int] = {}
 
-    for (pnode, md, pk), cnt in sorted(
-        aggregated.items(), key=lambda x: (-x[1], x[0][0])
+    for (pnode, md, _pk), _cnt in sorted(
+        agg_prompt_md.items(), key=lambda x: (-x[1], x[0][0])
     ):
         if pnode not in prompt_index:
             prompt_index[pnode] = len(prompt_nodes)
@@ -213,6 +339,26 @@ def build_sankey(turns, top_prompts: int):
         if md not in md_index:
             md_index[md] = len(md_nodes)
             md_nodes.append(md)
+
+    for (pnode, anode, _pk), _cnt in sorted(
+        agg_prompt_agent.items(), key=lambda x: (-x[1], x[0][1])
+    ):
+        if pnode not in prompt_index:
+            prompt_index[pnode] = len(prompt_nodes)
+            prompt_nodes.append(pnode)
+        if anode not in agent_index:
+            agent_index[anode] = len(agent_nodes)
+            agent_nodes.append(anode)
+
+    for (anode, f), _cnt in sorted(
+        agg_agent_file.items(), key=lambda x: (-x[1], x[0][1])
+    ):
+        if anode not in agent_index:
+            agent_index[anode] = len(agent_nodes)
+            agent_nodes.append(anode)
+        if f not in file_index:
+            file_index[f] = len(file_nodes)
+            file_nodes.append(f)
 
     cat_colors = {
         "workflows": "#F58518",
@@ -224,11 +370,24 @@ def build_sankey(turns, top_prompts: int):
         "project": "#72B7B2",
         "other": "#BAB0AC",
     }
+    AGENT_COLOR = "#9467BD"
+    PROMPT_COLOR = "#4C78A8"
+
     n_prompt = len(prompt_nodes)
-    node_labels = prompt_nodes + md_nodes
-    node_colors = ["#4C78A8"] * n_prompt + [
-        cat_colors.get(categorize(m), "#BAB0AC") for m in md_nodes
-    ]
+    n_md = len(md_nodes)
+    n_agent = len(agent_nodes)
+    base_md = n_prompt
+    base_agent = n_prompt + n_md
+    base_file = n_prompt + n_md + n_agent
+
+    node_labels = prompt_nodes + md_nodes + agent_nodes + file_nodes
+    node_colors = (
+        [PROMPT_COLOR] * n_prompt
+        + [cat_colors.get(categorize(m), "#BAB0AC") for m in md_nodes]
+        + [AGENT_COLOR] * n_agent
+        + [cat_colors.get(categorize(f), "#BAB0AC") for f in file_nodes]
+    )
+
     node_hover = []
     for pn in prompt_nodes:
         if pn == "기타 요청 (합산)":
@@ -238,25 +397,74 @@ def build_sankey(turns, top_prompts: int):
             node_hover.append(f"{ts_label}<br>{html.escape(pn.split('] ',1)[-1])}")
     for md in md_nodes:
         node_hover.append(
-            f"{html.escape(md)}<br>분류: {categorize(md)}<br>총 {md_total[md]}회 참조"
+            f"{html.escape(md)}<br>분류: {categorize(md)}<br>총 {md_total[md]}회 부모 Read"
+        )
+    for an in agent_nodes:
+        meta = agent_meta.get(an, {})
+        desc = html.escape(meta.get("description", "") or "")
+        agent_read_total = sum(
+            cnt for (a, _f), cnt in agg_agent_file.items() if a == an
+        )
+        node_hover.append(
+            f"<b>{html.escape(an)}</b><br>"
+            f"디스패치 {agent_total[an]}회 · 에이전트 Read {agent_read_total}건<br>"
+            f"{desc}"
+        )
+    for f in file_nodes:
+        node_hover.append(
+            f"{html.escape(f)}<br>분류: {categorize(f)}<br>"
+            f"에이전트 Read 총 {agent_files_total[f]}회"
         )
 
-    for (pnode, md, pk), cnt in aggregated.items():
-        s = prompt_index[pnode]
-        t = n_prompt + md_index[md]
-        sources.append(s)
-        targets.append(t)
+    sources, targets, values, hovers = [], [], [], []
+
+    # prompt → md
+    for (pnode, md, pk), cnt in agg_prompt_md.items():
+        sources.append(prompt_index[pnode])
+        targets.append(base_md + md_index[md])
         values.append(cnt)
         if pk == "__other__":
-            hover = f"기타 요청 → {html.escape(md)}<br>{cnt}회"
+            hovers.append(f"기타 요청 → {html.escape(md)}<br>{cnt}회 (부모 Read)")
         else:
             full = prompt_meta[pk]["prompt"][:200].replace("\n", " ")
-            hover = (
+            hovers.append(
                 f"<b>요청</b>: {html.escape(full)}<br>"
-                f"<b>md</b>: {html.escape(md)}<br>"
+                f"<b>md (부모 Read)</b>: {html.escape(md)}<br>"
                 f"<b>세션</b>: {prompt_meta[pk]['session'][:8]}"
             )
-        hovers.append(hover)
+
+    # prompt → agent
+    for (pnode, anode, pk), cnt in agg_prompt_agent.items():
+        sources.append(prompt_index[pnode])
+        targets.append(base_agent + agent_index[anode])
+        values.append(cnt)
+        if pk == "__other__":
+            hovers.append(
+                f"기타 요청 → {html.escape(anode)}<br>{cnt}회 디스패치"
+            )
+        else:
+            full = prompt_meta[pk]["prompt"][:200].replace("\n", " ")
+            hovers.append(
+                f"<b>요청</b>: {html.escape(full)}<br>"
+                f"<b>디스패치</b>: {html.escape(anode)}"
+            )
+
+    # agent → file
+    for (anode, f), cnt in agg_agent_file.items():
+        sources.append(base_agent + agent_index[anode])
+        targets.append(base_file + file_index[f])
+        values.append(cnt)
+        hovers.append(
+            f"<b>{html.escape(anode)}</b>가 Read<br>"
+            f"<b>file</b>: {html.escape(f)}<br>{cnt}회"
+        )
+
+    # agent 만 디스패치되고 자체 Read 가 0인 경우 강조용 정보
+    agents_no_read = [
+        an
+        for an in agent_nodes
+        if not any(a == an for (a, _f) in agg_agent_file)
+    ]
 
     return {
         "labels": node_labels,
@@ -268,7 +476,10 @@ def build_sankey(turns, top_prompts: int):
         "link_hover": hovers,
         "md_total": md_total,
         "n_prompts": n_prompt,
-        "n_md": len(md_nodes),
+        "n_md": n_md,
+        "n_agents": n_agent,
+        "n_files": len(file_nodes),
+        "agents_no_read": agents_no_read,
     }
 
 
@@ -322,11 +533,27 @@ def render_html(
         f'<span style="display:inline-block;width:10px;height:10px;background:{c};border-radius:2px;margin:0 4px 0 12px;vertical-align:middle"></span>{k}'
         for k, c in cat_colors.items()
     )
+    agents_no_read = payload.get("agents_no_read") or []
+    no_read_html = ""
+    if agents_no_read:
+        chips = " ".join(
+            f'<span style="display:inline-block;padding:2px 8px;margin:2px;background:#fee;color:#a33;'
+            f'border:1px solid #f5b5b5;border-radius:10px;font-size:11px">{html.escape(a)}</span>'
+            for a in agents_no_read[:20]
+        )
+        no_read_html = (
+            f'<div style="margin-top:6px;font-size:12px;color:#a33">'
+            f'⚠ 디스패치됐지만 자체 Read 0건 (knowledge 미열람): {chips}</div>'
+        )
+
     summary_html = (
         f"<b>{summary['days']}일</b> · scope=<b>{summary['scope']}</b> · "
         f"세션 {summary['sessions']}개 · 요청 {summary['prompts']}건 · "
-        f"md {payload['n_md']}개 · 참조 {sum(payload['values'])}건"
+        f"md {payload['n_md']}개 · 에이전트 {payload.get('n_agents', 0)}개 · "
+        f"에이전트 Read 파일 {payload.get('n_files', 0)}개 · "
+        f"엣지 {sum(payload['values'])}건"
         f'<div style="margin-top:6px;font-size:11px;color:#666">{legend_items}</div>'
+        f"{no_read_html}"
     )
 
     initial_grid = (
@@ -493,13 +720,14 @@ def main():
         sys.exit(1)
 
     files, turns = collect(args.days, args.scope)
-    turns_with_reads = [t for t in turns if t["reads"]]
-    if not turns_with_reads:
+    turns_with_signal = [t for t in turns if t["reads"] or t.get("agents")]
+    if not turns_with_signal:
         print(
-            f"최근 {args.days}일 내 (scope={args.scope}) .md Read 가 포함된 요청이 없음.",
+            f"최근 {args.days}일 내 (scope={args.scope}) .md Read 또는 agent 디스패치가 포함된 요청이 없음.",
             file=sys.stderr,
         )
         sys.exit(0)
+    turns_with_reads = turns_with_signal
 
     payload = build_sankey(turns_with_reads, top_prompts=args.top)
     summary = {
@@ -522,11 +750,17 @@ def main():
     print(f"리포트 생성: {out_path}")
     print(
         f"  세션 {summary['sessions']} / 요청 {summary['prompts']} / "
-        f"md {payload['n_md']} / 참조 {sum(payload['values'])}건"
+        f"md {payload['n_md']} / 에이전트 {payload.get('n_agents',0)} / "
+        f"에이전트 Read 파일 {payload.get('n_files',0)} / 엣지 {sum(payload['values'])}건"
     )
-    print("  TOP 5 md:")
+    print("  TOP 5 md (부모 Read):")
     for md, cnt in payload["md_total"].most_common(5):
         print(f"    {cnt:4d}  {md}")
+    no_read = payload.get("agents_no_read") or []
+    if no_read:
+        print(f"  ⚠ knowledge 미열람 에이전트 {len(no_read)}건:")
+        for an in no_read[:10]:
+            print(f"    - {an}")
 
     if args.open:
         webbrowser.open(f"file://{out_path}")
