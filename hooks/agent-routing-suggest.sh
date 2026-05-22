@@ -158,19 +158,8 @@ EOF
     exit 0
 fi
 
-cat <<EOF
-⚠️ Agent 라우팅 제안
-
-현재 호출: $AGENT
-권장: $SUGG_AGENT (과거 데이터 lift=${SUGG_LIFT}x, evidence=${SUGG_EVID}건)
-매칭 키워드: $SUGG_KWS
-
-이유: 사용자 발화/작업 키워드가 과거에 '$SUGG_AGENT' agent 와 강하게 매칭됐던 패턴입니다.
-판단:
-- 지금 작업이 정말 '$AGENT' 영역이면 무시하고 진행
-- '$SUGG_AGENT' 영역이면 이번 호출 취소하고 그쪽 agent 로 재호출
-
-(이 경고는 자동 학습된 규칙. ~/.claude/cache/md-live/agent-routing-rules.json 에서 수정/비활성 가능)
-EOF
+# 약한 경고는 silence (2026-05-22): 채택률 7.3% (41건 중 3건). 노이즈만 발생.
+# 강한 차단(line 134-145)과 general-purpose 강한 경고(line 148-159)는 유지.
+# 추천 기록은 여전히 cache/md-live/.suggestions/ 에 남으므로 추후 통계 분석 가능.
 
 exit 0
