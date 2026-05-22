@@ -5,7 +5,15 @@
 
 : "${HOME:?}"
 
-command -v gemini >/dev/null 2>&1 || exit 0
+# CLI 선택: $GEMINI_CLI 우선, 없으면 agy(2026-06-18 이후 기본) → gemini 폴백
+GEM_CLI="${GEMINI_CLI:-}"
+if [ -z "$GEM_CLI" ]; then
+    if command -v agy >/dev/null 2>&1; then GEM_CLI=agy
+    elif command -v gemini >/dev/null 2>&1; then GEM_CLI=gemini
+    else exit 0
+    fi
+fi
+command -v "$GEM_CLI" >/dev/null 2>&1 || exit 0
 
 INPUT=$(cat)
 
@@ -80,7 +88,7 @@ if [ ! -f "$ENFORCER_FLAG" ]; then
 
     (
         cd "$PROJECT_ROOT"
-        gemini -p "이 프로젝트의 구조, 주요 파일, 기술 스택, 아키텍처를 요약. 핵심 엔트리포인트와 의존성 관계 중심. 한국어." \
+        "$GEM_CLI" -p "이 프로젝트의 구조, 주요 파일, 기술 스택, 아키텍처를 요약. 핵심 엔트리포인트와 의존성 관계 중심. 한국어." \
             > "$SCAN_CACHE" 2>/dev/null
     ) &
 fi

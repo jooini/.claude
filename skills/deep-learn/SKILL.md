@@ -48,7 +48,7 @@ METRICS="$HOME/.claude/cache/metrics"
 
 #### Gemini (1M 컨텍스트)
 ```bash
-gemini -p "다음 개념을 심층 분석해줘:
+"${GEMINI_CLI:-agy}" -p "다음 개념을 심층 분석해줘:
 주제: [주제]
 
 다음 형식으로 답변:

@@ -5,7 +5,14 @@
 
 : "${HOME:?}"
 
-command -v gemini >/dev/null 2>&1 || exit 0
+GEM_CLI="${GEMINI_CLI:-}"
+if [ -z "$GEM_CLI" ]; then
+    if command -v agy >/dev/null 2>&1; then GEM_CLI=agy
+    elif command -v gemini >/dev/null 2>&1; then GEM_CLI=gemini
+    else exit 0
+    fi
+fi
+command -v "$GEM_CLI" >/dev/null 2>&1 || exit 0
 
 INPUT=$(cat)
 
@@ -83,7 +90,7 @@ DIFF_TRUNCATED=$(echo "$DIFF" | head -2000)
 diff:
 $DIFF_TRUNCATED"
 
-    echo "$PROMPT" | gemini -p "$(cat)" > "$OUTPUT_FILE" 2>/dev/null
+    echo "$PROMPT" | "$GEM_CLI" -p "$(cat)" > "$OUTPUT_FILE" 2>/dev/null
     echo "$DIFF_HASH" > "$HASH_FILE"
 ) &
 

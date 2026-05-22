@@ -41,7 +41,7 @@ find . -name "*Test.php" | head -5 | xargs head -30
 $ARGUMENTS에서 테스트 대상을 파악하고, 기존 테스트 패턴 + 대상 코드를 Gemini에 넘겨 테스트 생성.
 
 ```bash
-gemini -p "다음 기능에 대한 테스트 코드를 작성해줘:
+"${GEMINI_CLI:-agy}" -p "다음 기능에 대한 테스트 코드를 작성해줘:
 [기능 설명]
 
 기존 테스트 패턴:

@@ -38,7 +38,7 @@ find . -type f \( -name '*.py' -o -name '*.ts' -o -name '*.kt' -o -name '*.php' 
 ### 3단계: Gemini 실행
 
 ```bash
-gemini -p "[조사 주제]
+"${GEMINI_CLI:-agy}" -p "[조사 주제]
 
 프로젝트 컨텍스트:
 [코드베이스 구조/관련 파일]

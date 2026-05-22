@@ -287,7 +287,37 @@ def collect_gemini():
     if wrapper_count > 0:
         sources.append(f'wrapper ({wrapper_count} calls — telemetry와 중복 가능)')
 
-    note = ' / '.join(sources) if sources else 'telemetry/wrapper 미작동'
+    # 3) agy CLI (Antigravity, 2026-06-18 이후 기본) — stream-json 미지원으로 토큰 0
+    agy_path = os.path.expanduser("~/.claude/cache/agy-calls.jsonl")
+    agy_count = 0
+    agy_duration = 0
+    if os.path.exists(agy_path):
+        try:
+            with open(agy_path) as f:
+                for line in f:
+                    try:
+                        d = json.loads(line)
+                    except Exception:
+                        continue
+                    ts = d.get('timestamp', '')
+                    if not ts or len(ts) < 10:
+                        continue
+                    day = ts[:10]
+                    dur = int(d.get('duration_ms', 0) or 0)
+                    caller = d.get('caller', 'unknown')
+                    daily[day]['calls'] += 1
+                    daily[day]['duration_ms'] += dur
+                    by_model['agy(antigravity)']['calls'] += 1
+                    by_caller[caller]['calls'] += 1
+                    total_calls += 1
+                    agy_count += 1
+                    agy_duration += dur
+        except Exception:
+            pass
+    if agy_count > 0:
+        sources.append(f'agy ({agy_count} calls, {agy_duration/1000:.1f}s — 토큰 메타 없음)')
+
+    note = ' / '.join(sources) if sources else 'telemetry/wrapper/agy 미작동'
 
     return {
         'total': {'calls': total_calls, 'tokens': total_tokens, 'cost': total_cost},
@@ -457,6 +487,7 @@ def print_human(data, days):
     print("   Codex:       ~/.codex/state_5.sqlite        (threads.tokens_used)")
     print("   Gemini:      ~/.claude/cache/gemini-telemetry.jsonl  (gemini_cli.api_response, telemetry)")
     print("                + ~/.claude/cache/gemini-calls.jsonl    (gemini-wrapped.sh, caller 식별용)")
+    print("                + ~/.claude/cache/agy-calls.jsonl       (Antigravity CLI, 2026-06-18부터 기본)")
     print("   Ollama:      ~/.claude/cache/gemma-calls.jsonl       (부분 기록)")
     print("❌ GPT 직접:    별도 인증 안 됨 — Codex가 곧 GPT 사용량")
 

@@ -106,9 +106,9 @@ if [ -z "$OLLAMA_TAGS" ]; then
     ERRORS+=("Ollama (leonard.local:11434): 응답 없음 — Gemma cron + ask-gemma 작동 안 함")
 fi
 
-# 4. Gemini CLI
-if ! command -v gemini >/dev/null 2>&1; then
-    ERRORS+=("Gemini CLI: 명령어 없음 — Phase 0 스캔/3중 리뷰 작동 안 함")
+# 4. Gemini/Antigravity CLI (2026-06-18부터 agy가 기본)
+if ! command -v agy >/dev/null 2>&1 && ! command -v gemini >/dev/null 2>&1; then
+    ERRORS+=("agy/gemini CLI: 둘 다 없음 — Phase 0 스캔/3중 리뷰 작동 안 함")
 fi
 
 # 5. Codex CLI
@@ -138,7 +138,8 @@ fi
     echo "해결 방법:"
     echo "  - claude-mem: \`cd ~/.claude/plugins/marketplaces/thedotmack/plugin && node scripts/worker-service.cjs start\`"
     echo "  - Ollama: 윈도우 노트북에서 \`ollama serve\` 또는 트레이 실행"
-    echo "  - Gemini/Codex: \`npm install -g @google/gemini-cli\` 또는 codex 재설치"
+    echo "  - agy(Antigravity): https://antigravity.google/download — 2026-06-18부터 gemini CLI deprecated"
+    echo "  - Codex: \`npm install -g @openai/codex\`"
     echo ""
     echo "30분간 캐시됨. 재확인하려면 \`rm $CACHE\`"
 } | tee "$CACHE"

@@ -1,12 +1,14 @@
 ---
 name: ask-gemini
-description: 파이프라인 밖에서 Gemini CLI에 임시 질문을 보내고 결과를 한국어로 요약한다. 코드 구조 질문, 문서 요약, UI 분석, 대규모 컨텍스트 탐색 등에 사용.
-allowed-tools: Bash(gemini *), Read, Glob, Grep
+description: 파이프라인 밖에서 Gemini/Antigravity CLI에 임시 질문을 보내고 결과를 한국어로 요약한다. 코드 구조 질문, 문서 요약, UI 분석, 대규모 컨텍스트 탐색 등에 사용.
+allowed-tools: Bash(gemini *), Bash(agy *), Read, Glob, Grep
 ---
 
 # Ask Gemini
 
-파이프라인을 돌리기엔 과한 간단한 질문을 Gemini CLI에 던지고, 결과를 정리한다.
+파이프라인을 돌리기엔 과한 간단한 질문을 Gemini/Antigravity CLI에 던지고, 결과를 정리한다.
+
+> **2026-06-18 전환**: 무료/Pro/Ultra 사용자 대상 `gemini` CLI 요청 처리 종료 → Antigravity CLI(`agy`)로 자동 전환. `$GEMINI_CLI=agy` (settings.json env)로 일원화. 호출 코드에서는 `${GEMINI_CLI:-agy}` 또는 wrapper(`gemini-wrapped.sh`)를 사용.
 
 ## 사용 시점
 
@@ -23,27 +25,30 @@ allowed-tools: Bash(gemini *), Read, Glob, Grep
 사용자 요청을 Gemini에 최적화된 한 줄 질문으로 정리한다.
 컨텍스트가 필요하면 관련 파일을 stdin으로 파이프한다.
 
-### 2단계: Gemini CLI 실행
+### 2단계: CLI 실행
 
-**우선 telemetry 활성 상태 확인** (이미 활성화됨 — `~/.gemini/settings.json`에 telemetry 섹션):
-- 모든 `gemini -p` 호출이 자동으로 `~/.claude/cache/gemini-telemetry.jsonl`에 토큰 메타 기록됨
-- `/usage` 스킬로 누적량 조회 가능
+**기본 CLI는 `agy`** (Antigravity, 2026-06-18부터 무료/Pro/Ultra `gemini` deprecation).
+환경변수 `$GEMINI_CLI`로 결정 (settings.json env에 "agy" 지정됨). 기존 `gemini` 호출도 유지.
 
 ```bash
-# 표준 호출 — telemetry가 자동으로 토큰 추적
-gemini -p "$QUESTION"
+# 권장: wrapper로 caller 식별 + 호출 로깅 (agy/gemini 자동 분기)
+GEMINI_CALLER="ask-gemini" ~/.claude/scripts/gemini-wrapped.sh -p "$QUESTION"
+
+# 직접 호출 (환경변수 fallback)
+"${GEMINI_CLI:-agy}" -p "$QUESTION"
 
 # 파일 컨텍스트 포함
-gemini -p "$QUESTION" < <(cat [관련 파일들])
+"${GEMINI_CLI:-agy}" -p "$QUESTION" < <(cat [관련 파일들])
 
 # 대규모 스캔
-gemini -p "$QUESTION" < <(find [대상경로] -type f \( -name '*.py' -o -name '*.ts' -o -name '*.kt' \) | head -200 | xargs cat)
-
-# (선택) wrapper로 직접 stats 추출 — caller 식별 필요할 때
-GEMINI_CALLER="ask-gemini" ~/.claude/scripts/gemini-wrapped.sh -p "$QUESTION"
+"${GEMINI_CLI:-agy}" -p "$QUESTION" < <(find [대상경로] -type f \( -name '*.py' -o -name '*.ts' -o -name '*.kt' \) | head -200 | xargs cat)
 ```
 
-> 호출 후 `/usage`로 토큰 사용량 확인 가능.
+로깅 위치:
+- `agy` → `~/.claude/cache/agy-calls.jsonl` (duration/exit_code, **토큰 메타 없음 — stream-json 미지원**)
+- `gemini` → `~/.claude/cache/gemini-telemetry.jsonl` + `gemini-calls.jsonl` (토큰 stats 포함)
+
+`/usage` 스킬로 누적량 조회 가능 (양쪽 합산).
 
 ### 3단계: 결과 정리
 

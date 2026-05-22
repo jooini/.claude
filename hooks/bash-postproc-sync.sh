@@ -9,6 +9,13 @@
 
 : "${HOME:?}"
 
+GEM_CLI="${GEMINI_CLI:-}"
+if [ -z "$GEM_CLI" ]; then
+    if command -v agy >/dev/null 2>&1; then GEM_CLI=agy
+    elif command -v gemini >/dev/null 2>&1; then GEM_CLI=gemini
+    fi
+fi
+
 INPUT=$(cat)
 
 # ---------- 공통 파싱 (jq 우선, sed fallback) ----------
@@ -135,10 +142,10 @@ if echo "$COMMAND" | grep -qE '(^cd |[;&|]\s*cd )' && [ -n "$CWD" ]; then
                     fi
                 fi
 
-                if [ "$USE_CACHE" -eq 0 ]; then
+                if [ "$USE_CACHE" -eq 0 ] && [ -n "$GEM_CLI" ]; then
                     (
                         cd "$CWD"
-                        gemini -p "이 프로젝트의 구조, 주요 파일, 기술 스택, 아키텍처를 요약해줘. 핵심 엔트리포인트와 의존성 관계 중심으로. 한글로 답변." \
+                        "$GEM_CLI" -p "이 프로젝트의 구조, 주요 파일, 기술 스택, 아키텍처를 요약해줘. 핵심 엔트리포인트와 의존성 관계 중심으로. 한글로 답변." \
                             > "$OUTPUT_FILE" 2>/dev/null
                     ) &
                     echo "[Gemini 스캔 시작] ${PROJECT_NAME} — 백그라운드 실행 중 → 결과: cat ${OUTPUT_FILE}"
@@ -149,7 +156,7 @@ if echo "$COMMAND" | grep -qE '(^cd |[;&|]\s*cd )' && [ -n "$CWD" ]; then
 fi
 
 # ========== 4) gemini-test-failure-analyze ==========
-if command -v gemini >/dev/null 2>&1; then
+if [ -n "$GEM_CLI" ]; then
     TEST_RE='(pytest|jest|vitest|npm test|npm run test|gradle test|mvn test|go test|cargo test|phpunit|rspec)'
     if printf '%s' "$INPUT" | grep -qE "$TEST_RE"; then
 
@@ -222,7 +229,7 @@ ${RECENT_LOG}
 
 장식/인사 금지."
 
-                        echo "$PROMPT" | gemini -p "$(cat)" > "$TF_OUTPUT" 2>/dev/null
+                        echo "$PROMPT" | "$GEM_CLI" -p "$(cat)" > "$TF_OUTPUT" 2>/dev/null
                     ) &
                 fi
             fi

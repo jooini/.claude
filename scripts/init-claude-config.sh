@@ -995,15 +995,23 @@ generate_dir_tree() {
 # ═══════════════════════════════════════════
 HAS_GEMINI=false
 HAS_CODEX=false
+GEM_CLI=""
 
 check_ai_tools() {
-    command -v gemini &>/dev/null && HAS_GEMINI=true
+    # 2026-06-18 이후 agy(Antigravity) 우선, gemini 폴백
+    if [[ -n "${GEMINI_CLI:-}" ]] && command -v "${GEMINI_CLI}" &>/dev/null; then
+        GEM_CLI="${GEMINI_CLI}"; HAS_GEMINI=true
+    elif command -v agy &>/dev/null; then
+        GEM_CLI="agy"; HAS_GEMINI=true
+    elif command -v gemini &>/dev/null; then
+        GEM_CLI="gemini"; HAS_GEMINI=true
+    fi
     command -v codex &>/dev/null && HAS_CODEX=true
 
     if $HAS_GEMINI; then
-        ok "Gemini CLI 감지"
+        ok "$GEM_CLI CLI 감지"
     else
-        skip "Gemini CLI 미설치 → 정적 분석만 수행"
+        skip "agy/gemini CLI 미설치 → 정적 분석만 수행"
     fi
     if $HAS_CODEX; then
         ok "Codex CLI 감지"
@@ -1081,12 +1089,20 @@ src/
 예: '- fastapi >= 0.115.0'
 핵심 의존성만 15개 이내."
 
-    # Gemini 실행 (프로젝트 디렉토리에서, 비대화형)
+    # Gemini/Antigravity 실행 (프로젝트 디렉토리에서, 비대화형)
+    # agy는 -m 플래그 미지원이라 gemini일 때만 모델 지정
     local gemini_output
-    gemini_output=$(cd "$dir" && gemini -p "$prompt" -m gemini-2.5-pro 2>/dev/null) || {
-        warn "Gemini 분석 실패 → 정적 분석 폴백"
-        return 1
-    }
+    if [[ "$GEM_CLI" == "gemini" ]]; then
+        gemini_output=$(cd "$dir" && "$GEM_CLI" -p "$prompt" -m gemini-2.5-pro 2>/dev/null) || {
+            warn "$GEM_CLI 분석 실패 → 정적 분석 폴백"
+            return 1
+        }
+    else
+        gemini_output=$(cd "$dir" && "$GEM_CLI" -p "$prompt" 2>/dev/null) || {
+            warn "$GEM_CLI 분석 실패 → 정적 분석 폴백"
+            return 1
+        }
+    fi
 
     if [[ -z "$gemini_output" || ${#gemini_output} -lt 100 ]]; then
         warn "Gemini 출력 부족 → 정적 분석 폴백"

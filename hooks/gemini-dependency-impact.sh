@@ -5,7 +5,14 @@
 
 : "${HOME:?}"
 
-command -v gemini >/dev/null 2>&1 || exit 0
+GEM_CLI="${GEMINI_CLI:-}"
+if [ -z "$GEM_CLI" ]; then
+    if command -v agy >/dev/null 2>&1; then GEM_CLI=agy
+    elif command -v gemini >/dev/null 2>&1; then GEM_CLI=gemini
+    else exit 0
+    fi
+fi
+command -v "$GEM_CLI" >/dev/null 2>&1 || exit 0
 
 INPUT=$(cat)
 
@@ -70,7 +77,9 @@ DIFF_TRUNCATED=$(echo "$DIFF" | head -200)
 
 PROMPT=$(printf '의존성 파일 변경 영향 분석. 프로젝트 루트: %s\n\ndiff:\n%s\n\n다음 형식으로 한국어 5-7줄:\n**변경**: 추가/제거/업그레이드 패키지 (한 줄)\n**호환성 위험**: major version 점프, breaking change, deprecated API\n**보안**: 알려진 CVE 또는 신뢰성 이슈\n**코드베이스 영향**: 이 패키지를 import/사용하는 추정 파일 수 또는 모듈\n**권장 조치**: 추가 검증/테스트 필요한 부분 (없으면 "없음")\n\n장식/인사 금지. 모르면 "확인 필요" 표기.\n' "$PROJECT_NAME" "$DIFF_TRUNCATED")
 
-RESULT=$(echo "$PROMPT" | gemini -p "$(cat)" 2>/dev/null | tail -50)
+# agy는 $(cat)이 stdin 선소비 → EOF만 받는 이중 stdin 패턴 사용 금지.
+# 프롬프트를 단일 -p 인자로 직접 전달.
+RESULT=$("$GEM_CLI" -p "$PROMPT" 2>/dev/null | tail -50)
 
 [ -z "$RESULT" ] && exit 0
 

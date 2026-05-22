@@ -437,7 +437,9 @@ color: purple
 
    **실행 방법**:
    ```bash
-   git diff HEAD | head -500 | gemini -p "다음 코드 변경사항을 리뷰해줘. 큰 문제점 위주로:
+   # 2026-06-18 이후 무료/Pro는 gemini→agy 전환. ${GEMINI_CLI:-agy}로 호출.
+   "${GEMINI_CLI:-agy}" -p "$(git diff HEAD | head -500)
+다음 코드 변경사항을 리뷰해줘. 큰 문제점 위주로:
    1. 로직 오류 / 엣지 케이스 누락
    2. 성능 이슈
    3. 보안 취약점

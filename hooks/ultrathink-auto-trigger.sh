@@ -59,8 +59,8 @@ GEMINI_OK=0
 CODEX_OK=0
 GEMMA_OK=0
 
-# Gemini
-if command -v gemini >/dev/null 2>&1; then
+# Gemini/Antigravity CLI (agy 우선)
+if command -v agy >/dev/null 2>&1 || command -v gemini >/dev/null 2>&1; then
     GEMINI_OK=1
 fi
 
@@ -91,8 +91,8 @@ cat <<EOF
 EOF
 
 if [ "$GEMINI_OK" -eq 1 ]; then
-    echo "   ✅ **Gemini 호출 필수**: 1M 토큰 스캔 — 광범위 영향 분석"
-    echo "      Skill(ask-gemini) 또는 \`gemini -p\` 명령"
+    echo "   ✅ **Gemini/Antigravity 호출 필수**: 1M 토큰 스캔 — 광범위 영향 분석"
+    echo "      Skill(ask-gemini) 또는 \`\${GEMINI_CLI:-agy} -p\` (2026-06-18부터 gemini→agy)"
 fi
 
 if [ "$CODEX_OK" -eq 1 ]; then

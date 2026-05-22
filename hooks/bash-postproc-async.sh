@@ -101,9 +101,14 @@ if [ "$TOOL" = "Bash" ] && [ -n "$COMMAND" ]; then
     USAGE_TOOL=""
     USAGE_ACTION=""
 
-    if echo "$COMMAND" | grep -qE '(^gemini |/gemini )'; then
-        USAGE_TOOL="gemini"
-        if echo "$COMMAND" | grep -q '\-p'; then
+    if echo "$COMMAND" | grep -qE '(^(gemini|agy) |/(gemini|agy) )'; then
+        # 2026-06-18 이후 agy(Antigravity)가 gemini 후속 — 별도 도구로 카운트
+        if echo "$COMMAND" | grep -qE '(^agy |/agy )'; then
+            USAGE_TOOL="agy"
+        else
+            USAGE_TOOL="gemini"
+        fi
+        if echo "$COMMAND" | grep -qE '\-p|--print|--prompt'; then
             USAGE_ACTION=$(echo "$COMMAND" | sed -n 's/.*-p[[:space:]]*"\?\([^"]*\).*/\1/p' | head -c 50)
         else
             USAGE_ACTION="interactive"

@@ -237,7 +237,7 @@
 ### 절차
 
 ```
-1. 의사결정 전 Deep Research (gemini -p ...) 실행
+1. 의사결정 전 Deep Research (`${GEMINI_CLI:-agy} -p ...`) 실행
 2. 결과를 ~/Workspace/weaversbrain/weaversbrain/Plans/YYYY-MM-DD-{주제}.md 저장
 3. Codex/Gemma 세컨드 오피니언으로 결과 검증
 4. 검증된 권고안 기반으로 구현

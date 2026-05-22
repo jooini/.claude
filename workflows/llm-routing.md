@@ -19,7 +19,12 @@
 
 ---
 
-## Gemini CLI (1M 토큰 컨텍스트) — Phase 0 필수
+## Gemini / Antigravity CLI (1M 토큰 컨텍스트) — Phase 0 필수
+
+> **2026-06-18 전환**: 무료/Pro/Ultra 사용자 대상 `gemini` CLI 요청 처리 종료 → **Antigravity CLI (`agy`)** 가 새 기본값.
+> `settings.json` env에 `GEMINI_CLI=agy` 지정. 모든 호출 지점은 `${GEMINI_CLI:-agy}` 또는 wrapper(`~/.claude/scripts/gemini-wrapped.sh`)를 통해 자동 전환됨.
+> 엔터프라이즈 API 키 사용자는 기존 `gemini`를 `GEMINI_CLI=gemini`로 계속 사용 가능.
+> **호환성 차이**: `agy`는 `--output-format stream-json` 미지원 → 토큰 메타 로깅 불가. wrapper가 duration/exit_code만 기록.
 
 **역할**: 광범위 스캔·영향 분석
 

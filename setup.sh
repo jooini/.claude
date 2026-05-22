@@ -152,10 +152,10 @@ else
     echo ""
 
     for mod in "${ALL_MODULES[@]}"; do
-        # 이미 설치된 CLI가 있으면 기본값 Y
+        # 이미 설치된 CLI가 있으면 기본값 Y (agy는 gemini의 후속 — 둘 중 하나라도 있으면 활성)
         default="n"
         case "$mod" in
-            gemini)  command -v gemini &>/dev/null && default="y" ;;
+            gemini)  { command -v agy &>/dev/null || command -v gemini &>/dev/null; } && default="y" ;;
             codex)   command -v codex &>/dev/null && default="y" ;;
             *)       default="n" ;;
         esac
@@ -623,7 +623,14 @@ check_dep "node"   "https://nodejs.org/ (MCP 서버용)"
 check_dep "npx"    "npm install -g npx"
 
 # 선택된 모듈의 의존성만 확인
-[[ "${SELECTED[gemini]}" == "true" ]] && check_dep "gemini" "npm install -g @google/gemini-cli"
+if [[ "${SELECTED[gemini]}" == "true" ]]; then
+    # 2026-06-18 이후 agy(Antigravity)가 무료/Pro/Ultra의 새 기본
+    if command -v agy &>/dev/null; then
+        check_dep "agy" "https://antigravity.google/download (Antigravity CLI)"
+    else
+        check_dep "gemini" "https://antigravity.google/download (2026-06-18부터 agy로 전환 필요)"
+    fi
+fi
 [[ "${SELECTED[codex]}" == "true" ]] && check_dep "codex"  "npm install -g @openai/codex"
 
 # ─────────────────────────────────────────────

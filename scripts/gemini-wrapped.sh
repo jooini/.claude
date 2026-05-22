@@ -1,31 +1,76 @@
 #!/bin/zsh
-# gemini-wrapped — Gemini CLI 호출을 감싸 stats(토큰) 정보를 jsonl에 기록
+# gemini-wrapped — Gemini/Antigravity(agy) CLI 호출 래퍼 + 사용량 로깅
+#
+# 2026-06-18 부로 무료/Pro/Ultra 사용자 대상 gemini CLI 요청 처리 종료 →
+# Antigravity CLI(`agy`)로 전환. 본 래퍼는 GEMINI_CLI 환경변수로 CLI 선택.
+#
+# 환경변수:
+#   GEMINI_CLI   "agy"(기본 권장) | "gemini" | 직접 경로. 미지정 시 agy 우선 탐지.
+#   GEMINI_CALLER 호출자 식별자 (없으면 부모 프로세스명)
 #
 # 사용:
 #   ~/.claude/scripts/gemini-wrapped.sh -p "질문"
 #   echo "컨텍스트" | ~/.claude/scripts/gemini-wrapped.sh -p "요약"
 #
-# 동작:
-#   1. gemini --output-format stream-json [원래 인자] 실행
-#   2. stdin/stdout 모두 통과
-#   3. 마지막 result 라인의 stats를 ~/.claude/cache/gemini-calls.jsonl에 append
-#   4. 사용자에게는 평소처럼 텍스트만 보여줌 (assistant content만 추출)
-#
-# 호출자 식별: 환경변수 GEMINI_CALLER 있으면 사용, 없으면 부모 프로세스명
+# 로깅:
+#   gemini  → ~/.claude/cache/gemini-calls.jsonl (stream-json stats 포함)
+#   agy     → ~/.claude/cache/agy-calls.jsonl    (duration/exit_code만, stats 미지원)
 
 : "${HOME:?}"
 
-LOG_FILE="$HOME/.claude/cache/gemini-calls.jsonl"
+# --- CLI 결정 ----------------------------------------------------------------
+if [ -n "$GEMINI_CLI" ]; then
+    CLI="$GEMINI_CLI"
+elif command -v agy >/dev/null 2>&1; then
+    CLI="agy"
+elif command -v gemini >/dev/null 2>&1; then
+    CLI="gemini"
+else
+    echo "gemini-wrapped: agy/gemini CLI 미설치" >&2
+    exit 127
+fi
+
+# CLI 이름만 추출 (경로일 경우 basename)
+CLI_NAME=$(basename "$CLI")
+
+LOG_FILE="$HOME/.claude/cache/${CLI_NAME}-calls.jsonl"
 mkdir -p "$(dirname "$LOG_FILE")"
 
 CALLER="${GEMINI_CALLER:-$(ps -o comm= -p $PPID 2>/dev/null | tail -1 || echo 'unknown')}"
 TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+START_MS=$(/usr/bin/python3 -c "import time;print(int(time.time()*1000))")
 
-# 임시 파일 — stream-json 출력 캡처
+# --- agy 분기: stream-json 미지원 ---------------------------------------------
+if [ "$CLI_NAME" = "agy" ]; then
+    RAW=$(mktemp)
+    trap 'rm -f "$RAW"' EXIT
+    "$CLI" "$@" > "$RAW" 2>&1
+    EXIT_CODE=$?
+    END_MS=$(/usr/bin/python3 -c "import time;print(int(time.time()*1000))")
+    cat "$RAW"
+    DURATION=$((END_MS - START_MS))
+    OUT_BYTES=$(/usr/bin/wc -c < "$RAW" | tr -d ' ')
+    /usr/bin/python3 - <<PYEOF
+import json
+record = {
+    'timestamp': "$TS",
+    'caller': "$CALLER",
+    'cli': "agy",
+    'status': 'ok' if $EXIT_CODE == 0 else 'error',
+    'exit_code': $EXIT_CODE,
+    'duration_ms': $DURATION,
+    'output_bytes': $OUT_BYTES,
+}
+with open("$LOG_FILE", 'a') as f:
+    f.write(json.dumps(record, ensure_ascii=False) + '\n')
+PYEOF
+    exit $EXIT_CODE
+fi
+
+# --- gemini 분기: stream-json stats 추출 --------------------------------------
 RAW=$(mktemp)
 trap 'rm -f "$RAW"' EXIT
 
-# stream-json 옵션이 사용자 인자에 이미 있으면 그대로, 없으면 추가
 HAS_FORMAT=0
 for arg in "$@"; do
     if [[ "$arg" == "--output-format" || "$arg" == "-o" ]]; then
@@ -34,19 +79,14 @@ for arg in "$@"; do
 done
 
 if [ $HAS_FORMAT -eq 1 ]; then
-    # 사용자가 직접 format 지정 — 그대로 통과 (로깅 못함)
-    exec gemini "$@"
+    exec "$CLI" "$@"
 fi
 
-# stream-json으로 실행
-gemini --output-format stream-json "$@" > "$RAW" 2>&1
+"$CLI" --output-format stream-json "$@" > "$RAW" 2>&1
 EXIT_CODE=$?
 
-# 결과 파싱
-/usr/bin/python3 << PYEOF
-import json, os, sys
-from datetime import datetime
-
+/usr/bin/python3 <<PYEOF
+import json, sys
 raw_path = "$RAW"
 log_path = "$LOG_FILE"
 caller = "$CALLER"
@@ -66,7 +106,6 @@ with open(raw_path) as f:
         try:
             obj = json.loads(line)
         except Exception:
-            # 비-JSON 라인 (Ripgrep 경고 등) 무시
             continue
         t = obj.get('type')
         if t == 'init':
@@ -79,17 +118,16 @@ with open(raw_path) as f:
         elif t == 'result':
             stats = obj.get('stats', {})
 
-# 응답 본문은 stdout으로 출력 (사용자에게 전달)
 content = ''.join(content_parts)
 sys.stdout.write(content)
 if content and not content.endswith('\n'):
     sys.stdout.write('\n')
 
-# stats 있으면 jsonl에 기록
 if stats:
     record = {
         'timestamp': ts,
         'caller': caller,
+        'cli': 'gemini',
         'session_id': session_id,
         'model': model,
         'status': 'ok' if exit_code == 0 else 'error',
