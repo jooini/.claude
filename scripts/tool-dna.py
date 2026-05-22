@@ -35,7 +35,15 @@ OUT_DOT = Path.home() / ".claude/cache/tool-dna.dot"
 
 
 def tokenize(text):
-    return re.findall(r"[A-Za-z_][A-Za-z0-9_]+", text or "")
+    # \w 는 re.UNICODE 기본 동작으로 한글/유니코드 식별자를 포함.
+    # 숫자만으로 시작하는 토큰은 제외 (식별자 규칙 유지).
+    return re.findall(r"[^\W\d][\w]*", text or "", flags=re.UNICODE)
+
+
+# 유사도 비교에서 제외할 최소 토큰 수.
+# 3줄짜리 stub 은 boilerplate 만 남아서 한글/문자열을 빼면 5~10 토큰이 전부 →
+# 어떤 두 stub 도 jaccard 1.00 으로 잘못 매칭됨.
+MIN_TOKENS_FOR_SIMILARITY = 20
 
 
 def shingles(tokens, k=3):
@@ -110,6 +118,27 @@ def load_settings_registrations():
     return dict(out)
 
 
+def load_router_calls():
+    """
+    동적 라우터(*-router.sh, turn-finalize.sh 등)가 호출하는 hook 이름 → [routers...].
+    settings.json에 등록되지 않았어도 라우터가 호출하면 살아있는 hook.
+    """
+    called_by = defaultdict(list)
+    hook_names = {p.name for p in HOOKS_DIR.glob("*.sh")}
+    for p in HOOKS_DIR.glob("*.sh"):
+        try:
+            text = p.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        for name in hook_names:
+            if name == p.name:
+                continue
+            # 단순 부분문자열 매치 — router는 보통 "$HOOKS/foo.sh" 형태로 호출
+            if name in text:
+                called_by[name].append(p.name)
+    return dict(called_by)
+
+
 def find_siblings(hooks):
     """.bak / .old / .orig / 2 / new 같은 형제 파일 감지."""
     siblings = defaultdict(list)
@@ -121,11 +150,19 @@ def find_siblings(hooks):
 
 
 def compute_pairs(hooks, threshold=0.3):
-    """모든 쌍의 jaccard 유사도 계산. threshold 이상만 반환."""
+    """모든 쌍의 jaccard 유사도 계산. threshold 이상만 반환.
+
+    너무 짧은 stub (MIN_TOKENS_FOR_SIMILARITY 미만)은 비교 제외 — 토큰이 부족하면
+    boilerplate 만으로 jaccard 가 인위적으로 부풀려진다.
+    """
     names = sorted(hooks.keys())
     pairs = []
     for i, a in enumerate(names):
+        if len(hooks[a]["tokens"]) < MIN_TOKENS_FOR_SIMILARITY:
+            continue
         for b in names[i + 1:]:
+            if len(hooks[b]["tokens"]) < MIN_TOKENS_FOR_SIMILARITY:
+                continue
             sim = jaccard(hooks[a]["shingles"], hooks[b]["shingles"])
             if sim >= threshold:
                 pairs.append({
@@ -169,19 +206,24 @@ def build_evolution_tree(hooks, pairs):
     return dict(tree)
 
 
-def detect_deprecated(hooks, registrations, siblings, pairs, days=90):
-    """deprecated 후보 감지."""
+def detect_deprecated(hooks, registrations, siblings, pairs, router_calls, days=90):
+    """deprecated 후보 감지. router_calls 가 호출하는 hook은 살아있는 것으로 간주."""
     candidates = []
     cutoff = datetime.now().timestamp() - days * 86400
 
+    def is_alive(name):
+        """settings.json 등록 OR 동적 라우터/다른 hook이 호출하면 살아있음."""
+        return name in registrations or name in router_calls
+
     for name, h in hooks.items():
         reasons = []
-        if h["mtime"] < cutoff and name not in registrations:
-            reasons.append(f"{days}일+ 미수정 + settings.json 미등록")
-        if name in registrations:
-            pass
-        else:
-            reasons.append("settings.json 미등록")
+        alive = is_alive(name)
+        callers = router_calls.get(name, [])
+
+        if h["mtime"] < cutoff and not alive:
+            reasons.append(f"{days}일+ 미수정 + 어디서도 호출 안 됨")
+        if not alive:
+            reasons.append("settings.json 미등록 + 동적 호출 없음")
         if any(name in v for v in siblings.values()):
             reasons.append("형제 파일 (.bak/.old/번호 변종) 감지")
 
@@ -208,6 +250,7 @@ def detect_deprecated(hooks, registrations, siblings, pairs, days=90):
                 "lines": h["lines"],
                 "reasons": reasons,
                 "registered": name in registrations,
+                "called_by": callers,
             })
     candidates.sort(key=lambda x: (-len(x["reasons"]), x["mtime"]))
     return candidates
@@ -283,7 +326,14 @@ def write_md(hooks, tree, pairs, deprecated, registrations, siblings):
     lines.append("")
     if deprecated:
         for d in deprecated[:30]:
-            lines.append(f"### `{d['hook']}` ({d['mtime'][:10]}, {d['lines']}줄, {'등록됨' if d['registered'] else '미등록'})")
+            status_bits = []
+            if d['registered']:
+                status_bits.append("등록됨")
+            elif d.get('called_by'):
+                status_bits.append(f"동적 호출됨 ({', '.join(d['called_by'])})")
+            else:
+                status_bits.append("미등록")
+            lines.append(f"### `{d['hook']}` ({d['mtime'][:10]}, {d['lines']}줄, {', '.join(status_bits)})")
             for r in d["reasons"]:
                 lines.append(f"- ⚠️ {r}")
             lines.append("")
@@ -328,6 +378,9 @@ def main():
     registrations = load_settings_registrations()
     print(f"  {len(registrations)}개 등록 hook", file=sys.stderr)
 
+    router_calls = load_router_calls()
+    print(f"  {len(router_calls)}개 동적 호출 hook (router/다른 hook이 호출)", file=sys.stderr)
+
     siblings = find_siblings(hooks)
     print(f"  {len(siblings)}개 형제 그룹", file=sys.stderr)
 
@@ -337,7 +390,7 @@ def main():
     tree = build_evolution_tree(hooks, pairs)
     print(f"  가계도 부모: {len(tree)}", file=sys.stderr)
 
-    deprecated = detect_deprecated(hooks, registrations, siblings, pairs, args.days)
+    deprecated = detect_deprecated(hooks, registrations, siblings, pairs, router_calls, args.days)
     print(f"  deprecated 후보: {len(deprecated)}", file=sys.stderr)
 
     write_md(hooks, tree, pairs, deprecated, registrations, siblings)

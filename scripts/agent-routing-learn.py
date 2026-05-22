@@ -131,9 +131,10 @@ def main():
         # 조사 분리 후 stopword 필터 (정확도 향상)
         kws = {normalize_keyword(k) for k in raw_kws}
         kws = {k for k in kws if k not in STOPWORDS and len(k) >= 2}
-        # hex 해시(5자 이상 hex만)는 노이즈 — 단, 6자리 컬러코드(#xxxxxx)는 의미 있어 따로 보존 안 함 (lift 알아서 처리)
-        # 7자 이상 순수 hex는 커밋 해시일 가능성 높음 → 제외
-        kws = {k for k in kws if not (len(k) >= 7 and all(c in '0123456789abcdef' for c in k))}
+        # hex 류 토큰 차단 — 4자 이상 순수 hex는 모두 노이즈 (해시 단편/컬러코드 모두 제거).
+        # 컬러코드는 frontend 명백 도메인이지만 a780/cb7fe 같은 hash 단편이 같이 학습돼
+        # 실측 16건 frontend 편향 노이즈를 만들었음. 차라리 통째 차단이 안전.
+        kws = {k for k in kws if not (len(k) >= 4 and all(c in '0123456789abcdef' for c in k))}
         for k in kws:
             keyword_to_agents[k][r["agent_type"]] += 1
     total_good = sum(agent_total.values())
@@ -151,29 +152,42 @@ def main():
             ar_str = f"{ar:.0%}" if ar is not None else "N/A"
             print(f"  {agent:25} accepted={rec['accepted']:3} ignored={rec['ignored']:3} accept_rate={ar_str} (total={rec['total']})")
 
+    # 소수 agent 의 prior 인위 부풀림 방지 — floor 0.15.
+    # 예: frontend prior 0.128 이면 5번 매칭만으로 lift 7.8x → floor 적용 시 lift 6.7x.
+    # 더 중요한 건 evidence 임계값 (아래 10) 으로 5건짜리 룰을 차단.
+    PRIOR_FLOOR = 0.15
+    # 최소 evidence — 3건은 우연 매칭 가능.
+    # 시뮬레이션 (2026-05-22): min_ev=3 → 495룰 (frontend 편향), min_ev=5 → 57룰,
+    # min_ev=7 → 12룰 (backend 7/frontend 5 균형), min_ev=10 → 1룰 (너무 엄격).
+    # 7건이 통계적 신뢰와 정보량의 균형점.
+    MIN_EVIDENCE = 7
+
     rules = []
     for kw, agents in keyword_to_agents.items():
         total = sum(agents.values())
-        if total < 3:
+        if total < MIN_EVIDENCE:
             continue
         top_agent, top_count = agents.most_common(1)[0]
+        if top_count < MIN_EVIDENCE:
+            continue
         observed = top_count / total
-        prior = agent_prior.get(top_agent, 0)
+        prior = max(agent_prior.get(top_agent, 0), PRIOR_FLOOR)
         if prior == 0: continue
         lift = observed / prior
         # lift ≥ 1.5 (이 agent 가 평균보다 1.5배 이상 자주 매칭) + observed ≥ 0.5
         if lift < 1.5 or observed < 0.5:
             continue
 
-        # outcome weight: acceptance rate 20% 미만 + decisive ≥ 5 면 lift 0.7배 차감
-        # 50% 이상 + decisive ≥ 5 면 boost (1.2배)
+        # outcome weight: acceptance rate 30% 미만 + decisive ≥ 5 면 lift 0.5배 강하게 차감.
+        # 50% 이상 + decisive ≥ 5 면 boost (1.2배).
+        # 2026-05-22: frontend 채택률 7% 인데 기존 0.7배 감쇠로는 부족했음 — 0.5배로 강화.
         weight_mult = 1.0
         outcome_note = ""
         rec = outcome_stats.get(top_agent)
         if rec and rec.get("decisive_count", 0) >= 5 and rec.get("acceptance_rate") is not None:
             ar = rec["acceptance_rate"]
-            if ar < 0.2:
-                weight_mult = 0.7
+            if ar < 0.3:
+                weight_mult = 0.5
                 outcome_note = f"low_accept({ar:.0%})"
             elif ar >= 0.5:
                 weight_mult = 1.2

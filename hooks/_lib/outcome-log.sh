@@ -30,6 +30,13 @@ outcome_log() {
     local detail="${3:-}"
     local trigger="${4:-}"
 
+    # 2026-05-22 노이즈 컷: outcome=pass + trigger=no-match 는 매칭 안 된 정상 통과.
+    # PreToolUse(Bash) 류는 모든 명령마다 발동돼 99.6%가 이 케이스 — 7일 16,000건 누적.
+    # 실제 가치 있는 pass(다른 trigger) 는 보존. HOOK_LOG_NOMATCH=1 로 강제 활성화 가능.
+    if [ "$outcome" = "pass" ] && [ "$trigger" = "no-match" ] && [ -z "$HOOK_LOG_NOMATCH" ]; then
+        return 0
+    fi
+
     local dir="${HOOK_OUTCOME_DIR:-$HOME/.claude/cache/hook-outcomes}"
     [ -d "$dir" ] || mkdir -p "$dir" 2>/dev/null || return 0
 

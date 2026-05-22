@@ -1,6 +1,9 @@
 #!/bin/zsh
 # PreToolUse: git commit 시 커밋 메시지가 한글인지 검증
 
+: "${HOME:?}"
+source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
+
 INPUT=$(cat)
 
 # git commit 명령인지 확인
@@ -8,6 +11,7 @@ COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\(.*\)"
 
 # git commit이 아니면 패스
 if ! echo "$COMMAND" | grep -q 'git commit'; then
+  outcome_log "commit-korean-check" "pass" "" "no-match" 2>/dev/null
   exit 0
 fi
 
@@ -21,6 +25,7 @@ fi
 
 # 메시지 추출 실패하면 패스
 if [ -z "$COMMIT_MSG" ]; then
+  outcome_log "commit-korean-check" "pass" "" "msg-extract-fail" 2>/dev/null
   exit 0
 fi
 
@@ -29,8 +34,10 @@ MSG_BODY=$(echo "$COMMIT_MSG" | sed '/Co-Authored-By/d' | head -1)
 
 # 한글이 포함되어 있는지 확인
 if echo "$MSG_BODY" | grep -q '[가-힣]'; then
+  outcome_log "commit-korean-check" "pass" "" "korean-ok" 2>/dev/null
   exit 0
 else
   echo '{"error": "커밋 메시지를 한글로 작성해주세요. 현재 메시지: '"$MSG_BODY"'"}' >&2
+  outcome_log "commit-korean-check" "block" "한글 미포함" "no-korean" 2>/dev/null
   exit 2
 fi

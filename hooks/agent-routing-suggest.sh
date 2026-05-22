@@ -4,6 +4,7 @@
 # 출력: 사용자에게 stdout 으로 경고 (차단 X — Claude 가 보고 판단)
 
 : "${HOME:?}"
+source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
 
 INPUT=$(cat)
 
@@ -141,6 +142,7 @@ if [ "$AGENT" = "general-purpose" ] && [ "${LIFT_INT:-0}" -ge 5 ] && [ "${SUGG_E
 조치: 이번 Agent 호출을 취소하고 subagent_type="$SUGG_AGENT" 로 재호출하세요.
 (차단 우회가 필요하면 ~/.claude/cache/md-live/agent-routing-rules.json 에서 해당 키워드 룰 제거)
 EOF
+    outcome_log "agent-routing-suggest" "block" "g-p→$SUGG_AGENT lift=$SUGG_LIFT" "gp-to-domain" 2>/dev/null
     exit 2
 fi
 
@@ -155,6 +157,7 @@ if [ "$AGENT" = "general-purpose" ] && [ "${LIFT_INT:-0}" -ge 5 ]; then
 권장: 이번 Agent 호출 취소 → '$SUGG_AGENT' 로 재호출
 (general-purpose 는 일반 탐색용이며, 도메인 전문 agent 가 더 정확한 결과를 냅니다)
 EOF
+    outcome_log "agent-routing-suggest" "warn" "g-p strong-suggest $SUGG_AGENT" "gp-strong-warn" 2>/dev/null
     exit 0
 fi
 

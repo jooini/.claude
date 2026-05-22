@@ -15,6 +15,8 @@
 
 : "${HOME:?}"
 
+source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
+
 INPUT_FILE=$(mktemp)
 trap 'rm -f "$INPUT_FILE"' EXIT
 cat > "$INPUT_FILE"
@@ -139,8 +141,10 @@ sys.exit(1)
 PYEOF
 )
 
-# RESULT 비어있고 exit code 1 이면 매칭 없음 → 통과
-[ -z "$RESULT" ] && exit 0
+if [ -z "$RESULT" ]; then
+  outcome_log "git-worktree-internal-block" "pass" "" "no-match" 2>/dev/null
+  exit 0
+fi
 
 WT_PATH="$RESULT"
 
@@ -178,8 +182,10 @@ case "$ABS_PATH/" in
 
 차단 우회가 정말 필요하면 사용자가 직접 명령 실행하세요.
 MSG
+    outcome_log "git-worktree-internal-block" "block" "$ABS_PATH" "internal-worktree" 2>/dev/null
     exit 2
     ;;
 esac
 
+outcome_log "git-worktree-internal-block" "pass" "" "external-worktree" 2>/dev/null
 exit 0
