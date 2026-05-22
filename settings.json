@@ -222,6 +222,26 @@
 						"command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/turn-finalize.sh"
 					}
 				]
+			},
+			{
+				"matcher": "TaskCreate",
+				"hooks": [
+					{
+						"type":    "command",
+						"command": "$HOME/.claude/hooks/taskhub-task-create.sh",
+						"timeout": 5
+					}
+				]
+			},
+			{
+				"matcher": "TaskUpdate",
+				"hooks": [
+					{
+						"type":    "command",
+						"command": "$HOME/.claude/hooks/taskhub-task-update.sh",
+						"timeout": 5
+					}
+				]
 			}
 		],
 		"PreCompact": [
@@ -366,6 +386,16 @@
 						"timeout": 120
 					}
 				]
+			},
+			{
+				"matcher": "*",
+				"hooks": [
+					{
+						"type":    "command",
+						"command": "$HOME/.claude/hooks/taskhub-session-start.sh",
+						"timeout": 5
+					}
+				]
 			}
 		],
 		"Stop": [
@@ -439,6 +469,16 @@
 						"timeout": 10
 					}
 				]
+			},
+			{
+				"matcher": "*",
+				"hooks": [
+					{
+						"type":    "command",
+						"command": "$HOME/.claude/hooks/taskhub-session-stop.sh",
+						"timeout": 5
+					}
+				]
 			}
 		],
 		"UserPromptSubmit": [
@@ -449,6 +489,16 @@
 						"type":    "command",
 						"command": "$HOME/.claude/hooks/user-prompt-router.sh",
 						"timeout": 10
+					}
+				]
+			},
+			{
+				"matcher": "*",
+				"hooks": [
+					{
+						"type":    "command",
+						"command": "$HOME/.claude/hooks/taskhub-utterance.sh",
+						"timeout": 5
 					}
 				]
 			}

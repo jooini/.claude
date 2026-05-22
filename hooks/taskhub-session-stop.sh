@@ -1,0 +1,1 @@
+/Users/leonard/Workspace/taskhub/hooks/taskhub-session-stop.sh
