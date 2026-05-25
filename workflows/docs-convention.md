@@ -20,6 +20,44 @@ Base: `~/Workspace/weaversbrain/weaversbrain/`
 - 파일명에 시분 포함: `YYYY-MM-DD-HHMM-{파일명}.md`
 - Claude 컨텍스트 파일: `~/.claude/{프로젝트명}/`
 
+## 문서 링크 표기 규칙
+
+문서/파일 경로를 사용자에게 안내할 때:
+
+### Obsidian Vault 내부 파일 (`~/Workspace/weaversbrain/weaversbrain/` 하위)
+
+**반드시 두 링크 모두 병기**:
+
+```
+- Obsidian: obsidian://open?vault=weaversbrain&file={vault_root_기준_상대경로_확장자제외_URL인코딩}
+- Antigravity IDE: antigravity-ide://file/{절대경로}
+  (URL 미지원 시: `open -a "Antigravity IDE" {절대경로}`)
+```
+
+예시 — `~/Workspace/weaversbrain/weaversbrain/Sessions/2026-05/2026-05-24-foo.md`:
+```
+- Obsidian: obsidian://open?vault=weaversbrain&file=Sessions%2F2026-05%2F2026-05-24-foo
+- Antigravity IDE: antigravity-ide://file//Users/leonard/Workspace/weaversbrain/weaversbrain/Sessions/2026-05/2026-05-24-foo.md
+```
+
+### Vault 외부 파일 (코드, 프로젝트, `~/.claude/`, `~/Workspace/{project}/` 등)
+
+**Antigravity IDE 링크만 안내** (Obsidian은 vault 외부 파일 못 염):
+
+```
+antigravity-ide://file/{절대경로}
+(URL 미지원 시: `open -a "Antigravity IDE" {절대경로}`)
+```
+
+### 주의
+
+- Obsidian URI의 `file=` 값은 vault 루트 기준 상대경로, **확장자 제외**, **URL 인코딩 필수** (`/` → `%2F`, 공백 → `%20`)
+- Antigravity IDE URL 스킴: `antigravity-ide://` (앱 번들 `com.google.antigravity-ide`, VSCode 포크)
+  - 구버전 `Antigravity.app` (`com.google.antigravity`) 의 `antigravity://` 와 다름. 시스템에 두 앱이 공존하면 `antigravity://` 는 구버전 앱으로 라우팅되어 안 열림. IDE 본체는 항상 `antigravity-ide://`
+  - 실측 검증: `/usr/bin/plutil -p "/Applications/Antigravity IDE.app/Contents/Info.plist" | grep -A 5 CFBundleURLSchemes`
+- 두 번째 슬래시(`antigravity-ide://file//Users/...`)는 오타 아님 — `://file` + `/{절대경로}` 구조
+- 마크다운 링크로 걸 때 `[텍스트](antigravity-ide://file//절대경로)` 형식 — 코드 블록은 클릭 불가, 반드시 링크 문법
+
 ## 세션 히스토리
 
 - 현재: `Sessions/YYYY-MM/YYYY-MM-DD-{project}.md`

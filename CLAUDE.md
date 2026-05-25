@@ -121,7 +121,17 @@
 - 파일명에 시분: `YYYY-MM-DD-HHMM-{파일명}.md`
 - YAML frontmatter 필수
 - 프로젝트 내부(docs/) 금지 → Obsidian Vault
-- 경로 안내 시 `obsidian://open?vault=weaversbrain&file={경로(확장자 제외, URL 인코딩)}` URI
+
+### 문서 링크 표기 규칙 (필수)
+
+| 위치 | 표기 |
+|------|------|
+| **Obsidian Vault 내부** (`~/Workspace/weaversbrain/weaversbrain/` 하위) | **두 링크 모두 병기** — ① `obsidian://open?vault=weaversbrain&file={vault_root_기준_경로(확장자 제외, URL 인코딩)}` ② `antigravity-ide://file/{절대경로}` (또는 `open -a "Antigravity IDE" {절대경로}`) |
+| **Vault 외부 일반 파일** (코드/프로젝트/.claude/ 등) | **Antigravity IDE 링크만** — `antigravity-ide://file/{절대경로}` (URL 미지원 환경이면 `open -a "Antigravity IDE" {절대경로}`) |
+
+- Obsidian 링크는 vault 외부 파일에는 동작하지 않음 → 외부 파일에 obsidian:// 절대 쓰지 말 것
+- Antigravity IDE URL 스킴: `antigravity-ide://` (앱 번들 `com.google.antigravity-ide`, `/Applications/Antigravity IDE.app`). 구버전 `Antigravity.app` (`com.google.antigravity`)이 등록한 `antigravity://` 와 다름 — 사용자 환경의 IDE 본체는 `antigravity-ide://` 이다. 환경별로 동작 다를 수 있어 `open -a "Antigravity IDE"` 폴백 함께 안내
+- 검증 명령: `/usr/bin/plutil -p "/Applications/Antigravity IDE.app/Contents/Info.plist" | grep -A 5 CFBundleURLSchemes` 로 실측 가능
 
 ## 워크플로우 자동화
 
