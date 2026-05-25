@@ -99,18 +99,37 @@
 
 > **실측 근거 (2026-05-25)**: 14일 사용량 Claude 99.5% / Codex 0.7% / Gemini 0.05%. 위임 hook이 권유만 하던 시기의 결과. **50줄+ Edit/Write는 hook이 차단형(exit 2)으로 동작 — 우회 키워드는 "직접 구현해"/"직접 작성해"**.
 
-| 조건 (조기 매칭 우선) | 1순위 위임 | 비고 |
-|----------------------|------------|------|
-| **50줄+ 코드 작성/Edit** | **Codex MCP** (`mcp__codex-cli__codex`) 또는 Skill(ask-codex) | hook이 차단함. 분할 작성 또는 위임 필수 |
-| **신규 보일러플레이트 100줄+ / 새 파일** | **Codex MCP** | 패턴 복제는 GPT 강점 |
-| **코드베이스 영향도 조사 (3파일+ 스캔/분석)** | **Skill(ask-gemini)** — Gemini 1M 컨텍스트 | Claude는 합성만, 토큰 절약 |
-| **리팩터링 사전 스캔 (TYPE C)** | **Gemini** Phase 0 (자동) | `workflows/standard-routines.md` |
-| **단순 번역/요약/문법 (200자 이하)** | **Skill(ask-ollama)** — qwen3.5:9b | 로컬, 무료, 빠름 |
-| **세컨드 오피니언 / 패치 검토** | **Codex + Gemini 병렬** | 편향 방지, 단일 메시지 병렬 호출 |
-| **디버깅 2회 실패** | 접근 재검토 | `workflows/debugging.md` |
-| **디버깅 3회 실패** | **codex:codex-rescue** (hook 자동 트리거) | 이미 등록됨 |
-| **테스트 3회 실패 / PR 생성 / 프로젝트 전환** | 각 hook이 자동 발동 (Codex/Gemini) | `workflows/automation.md` |
-| **사용자 "직접 구현해" / "직접 작성해" 명시** | Claude 직접 (위임 우회) | hook도 통과시킴 |
+| 조건 (조기 매칭 우선) | 1순위 위임 | 모델 | 비고 |
+|----------------------|------------|------|------|
+| **50줄+ 코드 작성/Edit (장문/복잡)** | **Codex MCP** (`mcp__codex-cli__codex`) | **gpt-5.5** | hook이 차단. 장문 컨텍스트 +37pp 우수 |
+| **50줄+ 단순 반복 보일러플레이트** | **Codex MCP** | **gpt-5.4** | 단가 1/2, 단순 패턴엔 충분 |
+| **신규 파일 100줄+** | **Codex MCP** | **gpt-5.5** | 토큰 효율 + 장문 일관성 |
+| **코드베이스 영향도 조사 (3파일+ 스캔/분석)** | **Skill(ask-gemini)** — Gemini 1M 컨텍스트 | gemini-3-flash | Claude는 합성만, 토큰 절약 |
+| **리팩터링 사전 스캔 (TYPE C)** | **Gemini** Phase 0 (자동) | gemini-3-pro | `workflows/standard-routines.md` |
+| **단순 번역/요약/문법 (200자 이하)** | **Skill(ask-ollama)** | qwen3.5:9b | 로컬, 무료, 빠름 |
+| **세컨드 오피니언 / 패치 검토** | **Codex + Gemini 병렬** | gpt-5.5 + gemini-3-pro | 편향 방지, 단일 메시지 병렬 |
+| **빠른 질의 / 리뷰 코멘트 / 짧은 분석** | **Codex** | **gpt-5.5** (default) | 실측: 세션당 252K 토큰 가벼움 |
+| **디버깅 2회 실패** | 접근 재검토 | — | `workflows/debugging.md` |
+| **디버깅 3회 실패** | **codex:codex-rescue** | gpt-5.5 | hook 자동 트리거 |
+| **테스트 3회 실패 / PR 생성 / 프로젝트 전환** | 각 hook이 자동 발동 | Codex/Gemini | `workflows/automation.md` |
+| **사용자 "직접 구현해" / "직접 작성해" 명시** | Claude 직접 (위임 우회) | — | hook 통과 |
+
+### Codex 모델 선택 가이드 (실측 + 벤치 근거)
+
+| 모델 | 단가(입/출, /1M) | 강점 | 사용처 |
+|------|------------------|------|--------|
+| **gpt-5.5** | $5 / $30 (2×) | 장문 컨텍스트 512K~1M 74% (vs 5.4 36.6%), Terminal-Bench 82.7%, ARC-AGI-2 +11.7pp, 동일 작업 시 토큰 적게 씀 | **기본값** — 코드 생성, 리뷰, 장문 분석, 복잡한 추론 |
+| **gpt-5.4** | $2.50 / $15 (1×) | 단순 반복 패턴엔 5.5와 차이 미미, 단가 1/2 | 단순 보일러플레이트, 단발성 짧은 작업 |
+| **gpt-5.3-codex** | — | Codex 전용 튜닝 | codex-rescue, 디버깅 |
+| **gpt-5.4-mini** | 최저 | 빠른 응답 | 분류/라우팅 |
+
+**기본 규칙**: 모델 명시 안 했을 때 Codex 호출은 **gpt-5.5 default**. 단순 반복 패턴이 명확하면 gpt-5.4로 비용 절감.
+
+**근거**: GPT-5.5는 단가 2배지만 동일 작업 토큰 효율 좋아 실비용 차이 작음. 14일 실측: 5.5 세션당 $1.68 (252K토큰) / 5.4 세션당 $16.30 (2.86M토큰).
+
+Sources:
+- [LLM Stats — GPT-5.5 vs 5.4](https://llm-stats.com/blog/research/gpt-5-5-vs-gpt-5-4)
+- [OpenAI — Introducing GPT-5.5](https://openai.com/index/introducing-gpt-5-5/)
 
 ### 위임 우회 조건 (정당한 직접 작성)
 
