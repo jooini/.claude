@@ -8,7 +8,7 @@ allowed-tools: Bash(gemini *), Bash(agy *), Read, Glob, Grep
 
 파이프라인을 돌리기엔 과한 간단한 질문을 Gemini/Antigravity CLI에 던지고, 결과를 정리한다.
 
-> **2026-06-18 전환**: 무료/Pro/Ultra 사용자 대상 `gemini` CLI 요청 처리 종료 → Antigravity CLI(`agy`)로 자동 전환. `$GEMINI_CLI=agy` (settings.json env)로 일원화. 호출 코드에서는 `${GEMINI_CLI:-agy}` 또는 wrapper(`gemini-wrapped.sh`)를 사용.
+> **2026-05-25 재전환**: `gemini` CLI v0.43.0 설치 + telemetry 활성화 완료 → **`gemini`를 default로 복귀** (토큰 측정 가능). `agy`는 fallback (stream-json 미지원으로 토큰 메타 0). `$GEMINI_CLI=gemini` (settings.json env). wrapper(`gemini-wrapped.sh`)가 nvm PATH 자동 보강 + gemini 우선 탐지.
 
 ## 사용 시점
 
@@ -27,21 +27,21 @@ allowed-tools: Bash(gemini *), Bash(agy *), Read, Glob, Grep
 
 ### 2단계: CLI 실행
 
-**기본 CLI는 `agy`** (Antigravity, 2026-06-18부터 무료/Pro/Ultra `gemini` deprecation).
-환경변수 `$GEMINI_CLI`로 결정 (settings.json env에 "agy" 지정됨). 기존 `gemini` 호출도 유지.
+**기본 CLI는 `gemini`** (토큰 측정 가능). agy는 fallback.
+환경변수 `$GEMINI_CLI`로 결정 (settings.json env에 "gemini" 지정됨).
 
 ```bash
-# 권장: wrapper로 caller 식별 + 호출 로깅 (agy/gemini 자동 분기)
+# 권장: wrapper로 caller 식별 + 호출 로깅 + nvm PATH 자동 보강
 GEMINI_CALLER="ask-gemini" ~/.claude/scripts/gemini-wrapped.sh -p "$QUESTION"
 
 # 직접 호출 (환경변수 fallback)
-"${GEMINI_CLI:-agy}" -p "$QUESTION"
+"${GEMINI_CLI:-gemini}" -p "$QUESTION"
 
 # 파일 컨텍스트 포함
-"${GEMINI_CLI:-agy}" -p "$QUESTION" < <(cat [관련 파일들])
+"${GEMINI_CLI:-gemini}" -p "$QUESTION" < <(cat [관련 파일들])
 
 # 대규모 스캔
-"${GEMINI_CLI:-agy}" -p "$QUESTION" < <(find [대상경로] -type f \( -name '*.py' -o -name '*.ts' -o -name '*.kt' \) | head -200 | xargs cat)
+"${GEMINI_CLI:-gemini}" -p "$QUESTION" < <(find [대상경로] -type f \( -name '*.py' -o -name '*.ts' -o -name '*.kt' \) | head -200 | xargs cat)
 ```
 
 로깅 위치:
