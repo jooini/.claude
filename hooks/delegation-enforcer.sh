@@ -39,22 +39,39 @@ case "$FILE_PATH" in
       exit 0
     fi
 
-    # 30줄 미만 변경: 작은 수정이라 위임 비효율 → 통과
+    # 30줄 미만: 통과
     if [ "$LINE_COUNT" -lt 30 ]; then
       exit 0
     fi
 
-    cat <<EOF
+    # 30~49줄: 권고만 (stdout, 비차단)
+    if [ "$LINE_COUNT" -lt 50 ]; then
+      cat <<EOF
 [위임 권장] $FILE_PATH 에 ${LINE_COUNT}줄 변경 감지
 
 대량 코드 작성은 Codex MCP에 위임이 더 효율적:
   - Codex 호출: mcp__codex-cli__codex 또는 Skill(ask-codex)
-  - 병렬 구현 + 토큰 분산
+  - Gemini 1M 컨텍스트: Skill(ask-gemini) — 코드베이스 영향도/대량 스캔
   - Claude는 판단/리뷰/통합에 집중
-
-직접 구현이 명확히 더 나은 경우(소규모/긴급/단순 패치)만 진행하고,
-그 외는 Codex/codex-rescue 에이전트 호출 검토.
 EOF
+      exit 0
+    fi
+
+    # 50줄+: 차단 (exit 2 → Claude에게 차단 사유 전달)
+    # 우회: 사용자가 "직접 구현해" 명시했거나, 자동 생성/마이그레이션 등 정당한 사유면
+    #       Claude가 stderr 메시지를 보고 다음 턴에서 사용자 확인 받아야 함
+    cat >&2 <<EOF
+[BLOCKED] $FILE_PATH 에 ${LINE_COUNT}줄 직접 작성 시도 차단됨
+
+50줄+ 코드 작성은 토큰 비효율 — 다음 중 하나 필요:
+  1. Codex 위임:    mcp__codex-cli__codex 또는 Skill(ask-codex)
+  2. Gemini 위임:   Skill(ask-gemini)  (대량 보일러플레이트/스캔)
+  3. 사용자 명시:   "직접 구현해" / "직접 작성해" 발화 시 우회 가능
+  4. 분할 작성:    50줄 미만 Edit 여러 번으로 나누기
+
+직접 구현이 명확히 더 나은 경우(긴급/단순 패치)만 사용자 확인 후 진행.
+EOF
+    exit 2
 
     ;;
 esac

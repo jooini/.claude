@@ -95,6 +95,37 @@
 - **Jules**: 백그라운드(테스트/문서/PR)
 - **Deep Research**: 기술 조사/전략
 
+## 자동 위임 트리거 (룰 — 명시 지시 없을 때 적용)
+
+> **실측 근거 (2026-05-25)**: 14일 사용량 Claude 99.5% / Codex 0.7% / Gemini 0.05%. 위임 hook이 권유만 하던 시기의 결과. **50줄+ Edit/Write는 hook이 차단형(exit 2)으로 동작 — 우회 키워드는 "직접 구현해"/"직접 작성해"**.
+
+| 조건 (조기 매칭 우선) | 1순위 위임 | 비고 |
+|----------------------|------------|------|
+| **50줄+ 코드 작성/Edit** | **Codex MCP** (`mcp__codex-cli__codex`) 또는 Skill(ask-codex) | hook이 차단함. 분할 작성 또는 위임 필수 |
+| **신규 보일러플레이트 100줄+ / 새 파일** | **Codex MCP** | 패턴 복제는 GPT 강점 |
+| **코드베이스 영향도 조사 (3파일+ 스캔/분석)** | **Skill(ask-gemini)** — Gemini 1M 컨텍스트 | Claude는 합성만, 토큰 절약 |
+| **리팩터링 사전 스캔 (TYPE C)** | **Gemini** Phase 0 (자동) | `workflows/standard-routines.md` |
+| **단순 번역/요약/문법 (200자 이하)** | **Skill(ask-ollama)** — qwen3.5:9b | 로컬, 무료, 빠름 |
+| **세컨드 오피니언 / 패치 검토** | **Codex + Gemini 병렬** | 편향 방지, 단일 메시지 병렬 호출 |
+| **디버깅 2회 실패** | 접근 재검토 | `workflows/debugging.md` |
+| **디버깅 3회 실패** | **codex:codex-rescue** (hook 자동 트리거) | 이미 등록됨 |
+| **테스트 3회 실패 / PR 생성 / 프로젝트 전환** | 각 hook이 자동 발동 (Codex/Gemini) | `workflows/automation.md` |
+| **사용자 "직접 구현해" / "직접 작성해" 명시** | Claude 직접 (위임 우회) | hook도 통과시킴 |
+
+### 위임 우회 조건 (정당한 직접 작성)
+
+다음 경우만 50줄+ 직접 작성 허용 (위임 hook 우회 시 사용자 확인 받을 것):
+- 사용자가 명시적으로 "직접" 키워드 사용
+- 긴급 hotfix (5분 내 운영 복구 필요)
+- 1줄짜리 반복 패턴 (예: import 50개 일괄 정리 — 이건 codemod가 더 빠름)
+- Claude의 판단/통합/최종 정리 단계 (Codex 결과물 머지)
+
+### 위임 효과 측정
+
+- 주간 `/usage` 로 Codex/Gemini 사용 비율 추적
+- 목표 비율: Claude 70% / Codex 20% / Gemini 8% / Ollama 2%
+- 현재(2026-05-25): Claude 99.5% — **개선 여지 큼**
+
 ## 디버깅 규칙
 
 추측 금지. 7단계 절차(재현→수집→범위축소→가설→검증→수정→확인). 2회 실패 시 접근 재검토, 3회 실패 시 `codex:codex-rescue`. 상세: `workflows/debugging.md`
