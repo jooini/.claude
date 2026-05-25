@@ -409,6 +409,18 @@
         "matcher": "Agent"
       }
     ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/iterm-badge-clear.sh",
+            "timeout": 3,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
@@ -518,18 +530,6 @@
           {
             "command": "$HOME/.claude/hooks/taskhub-session-stop.sh",
             "timeout": 5,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "command": "$HOME/.claude/hooks/iterm-badge-clear.sh",
-            "timeout": 3,
             "type": "command"
           }
         ],
