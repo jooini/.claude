@@ -12,8 +12,30 @@ set -u
 # iTerm2 외 터미널은 종료 (Terminal.app, Ghostty 등에서 garbage 방지)
 [ "${TERM_PROGRAM:-}" = "iTerm.app" ] || exit 0
 
-# /dev/tty 열기 가능 여부 사전 점검 (Bash tool 등 비대화형 환경에서 silent skip)
-{ exec 9>/dev/tty; } 2>/dev/null || exit 0
+# 부모 체인을 거슬러 올라가며 tty 있는 ancestor 탐지
+# SessionStart 시점 PPID는 tty 없는 Claude Code 본체일 수 있어 ancestor walk 필요
+find_tty() {
+    local pid="${1:-$PPID}"
+    local depth=0
+    while [ "$pid" != "1" ] && [ "$pid" != "0" ] && [ "$depth" -lt 10 ]; do
+        local tty ppid
+        read -r tty ppid <<<"$(ps -p "$pid" -o tty=,ppid= 2>/dev/null)"
+        tty="${tty// /}"
+        ppid="${ppid// /}"
+        if [ -n "$tty" ] && [ "$tty" != "??" ]; then
+            echo "$tty"
+            return 0
+        fi
+        [ -z "$ppid" ] && return 1
+        pid="$ppid"
+        depth=$((depth + 1))
+    done
+    return 1
+}
+PARENT_TTY=$(find_tty "$PPID")
+[ -n "$PARENT_TTY" ] || exit 0
+TTY_PATH="/dev/$PARENT_TTY"
+{ exec 9>"$TTY_PATH"; } 2>/dev/null || exit 0
 
 # 뱃지 텍스트: stdin JSON의 cwd 우선, 없으면 PWD
 CWD="${CLAUDE_PROJECT_DIR:-$PWD}"

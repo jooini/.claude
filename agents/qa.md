@@ -1,1 +1,1 @@
-/Users/leonard/.claude/agents/builds/root/qa.md
+/Users/leonard/.claude/agents/builds/python/qa.md

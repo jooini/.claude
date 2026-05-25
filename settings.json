@@ -522,16 +522,6 @@
           }
         ],
         "matcher": "*"
-      },
-      {
-        "hooks": [
-          {
-            "command": "$HOME/.claude/hooks/iterm-badge-clear.sh",
-            "timeout": 3,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
       }
     ],
     "UserPromptSubmit": [

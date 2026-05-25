@@ -10,7 +10,29 @@ set -u
 
 [ "${TERM_PROGRAM:-}" = "iTerm.app" ] || exit 0
 
-{ exec 9>/dev/tty; } 2>/dev/null || exit 0
+# 부모 체인을 거슬러 올라가며 tty 있는 ancestor 탐지
+find_tty() {
+    local pid="${1:-$PPID}"
+    local depth=0
+    while [ "$pid" != "1" ] && [ "$pid" != "0" ] && [ "$depth" -lt 10 ]; do
+        local tty ppid
+        read -r tty ppid <<<"$(ps -p "$pid" -o tty=,ppid= 2>/dev/null)"
+        tty="${tty// /}"
+        ppid="${ppid// /}"
+        if [ -n "$tty" ] && [ "$tty" != "??" ]; then
+            echo "$tty"
+            return 0
+        fi
+        [ -z "$ppid" ] && return 1
+        pid="$ppid"
+        depth=$((depth + 1))
+    done
+    return 1
+}
+PARENT_TTY=$(find_tty "$PPID")
+[ -n "$PARENT_TTY" ] || exit 0
+TTY_PATH="/dev/$PARENT_TTY"
+{ exec 9>"$TTY_PATH"; } 2>/dev/null || exit 0
 
 OSC=$'\033]1337;SetBadgeFormat=\a'
 
