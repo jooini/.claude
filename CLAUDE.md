@@ -186,3 +186,26 @@ Sources:
 ## 워크플로우 자동화
 
 hooks 가 자동 처리: 의존성 변경→Gemini, 테스트 3회 실패→Codex rescue, PR 생성→Codex 요약, 프로젝트 전환→Gemini 스캔. 규모 자동 판별(S/M/L), 파이프라인 메트릭, 결정 자동 캡처도 훅으로. 회고: `/retro [N일]`, `/decisions [검색어]`. 상세: `workflows/automation.md`
+
+## MoAI 출력 스타일 활성 시 보강 룰 [HARD]
+
+`outputStyle: "MoAI"` 활성 시(프로젝트 `~/.claude/.claude/settings.json`) 다음 보강 룰이 MoAI 본문보다 우선한다. MoAI 본문은 `expert-*/manager-*` 22개만 §4 Forced Delegation Table에 등재하지만, 글로벌 `~/.claude/agents/` 19개 + 프로젝트 `dev.md` 까지 합쳐 총 41+개 에이전트가 존재한다. MoAI는 이를 모르므로 보강 필요.
+
+### 라우팅 우선순위 (MoAI §4보다 위)
+
+1. **P0/P1 한글 호출 우선** — `백엔드/프론트/리뷰어/디자이너/큐에이/테스터/피오/데이터/옵스/프롬프트/AI엔지니어` 명시 호출 시 글로벌 `~/.claude/agents/` 우선. MoAI Stage 2 Delegation 단계에서도 이 표가 §4를 덮어쓴다.
+2. **`@dev` P0 우선** — 프로젝트 `dev.md` 있으면 그쪽, 없으면 글로벌 `dev-lead`. MoAI §4의 `manager-*` 우회.
+3. **MoAI §4 표는 한글 호출/`@dev`/`@team` 미매칭일 때만 적용** — 영문 작업 키워드(security, performance, refactoring 등)는 그대로 expert-*/manager-* 라우팅.
+
+### 위임 강도 조정
+
+4. **위임 트리거는 글로벌 자동 위임 트리거 표(50줄+ Codex, 영향도 Gemini, 단순 Ollama) 유지** — MoAI §2 `[HARD] No direct implementation of complex tasks`는 **50줄+ 또는 5+파일** 기준에서만 FORBIDDEN 강제. 그 미만 단순 작업(설정 한 줄, 짧은 스크립트 패치 등)은 Claude 직접 실행 허용. hook과 정합.
+5. **단순 질의는 Stage 1 Clarify 생략 허용** — MoAI Stage 1 트리거 조건(모호한 대명사 등) 미충족 시 바로 응답. 예: "X 파일 어디 있어?" 같은 단답 질의.
+
+### MoAI 강점 유지
+
+6. **다음은 MoAI 본문 그대로 따른다** — Stage 1~4 게이트, Progress Board, Persistence-Aware (auto-compaction 대응), Temp File Hygiene, Dark-Flow Warning, Fresh-Context Reviewer.
+
+근거 (검증 일자 2026-05-25):
+- 글로벌 `~/.claude/CLAUDE.md` 및 `~/.claude/agents/` 는 moai manifest 등재 밖 → `moai update` 시 영향 없음 (safe zone)
+- MoAI 출력 스타일 본문 fork는 유지보수 부담 큼 → 보강 룰을 글로벌에 두는 게 안전
