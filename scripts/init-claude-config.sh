@@ -10,6 +10,9 @@
 #   init-claude-config.sh --audit               # 전체 프로젝트 감사
 #   init-claude-config.sh --batch dir1 dir2...  # 일괄 처리 (다중 자동)
 
+. "$HOME/.claude/scripts/_nvm-path.sh"  # nvm PATH 보강
+
+
 set -eo pipefail
 setopt null_glob 2>/dev/null || true
 

@@ -1,4 +1,6 @@
 #!/bin/bash
+
+. "$HOME/.claude/scripts/_nvm-path.sh"  # nvm PATH 보강
 # local-rag CLI ingest wrapper — same config as MCP server
 # Usage: rag-ingest.sh <path> [--base-dir <dir>]
 

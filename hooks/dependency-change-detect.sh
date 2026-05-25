@@ -6,6 +6,9 @@
 #   2026-05-09: 동기 90초 대기 → 비동기 백그라운드 (사용자 체감 0ms)
 #     이유: Gemini API 응답 90초가 사용자 PreToolUse 대기를 그대로 막음
 
+. "$HOME/.claude/scripts/_nvm-path.sh"  # nvm PATH 보강
+
+
 : "${HOME:?}"
 
 GEM_CLI="${GEMINI_CLI:-}"

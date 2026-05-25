@@ -5,6 +5,8 @@
 
 : "${HOME:?}"
 
+. "$HOME/.claude/scripts/_nvm-path.sh"  # nvm PATH 보강
+
 GEM_CLI="${GEMINI_CLI:-}"
 if [ -z "$GEM_CLI" ]; then
     if command -v agy >/dev/null 2>&1; then GEM_CLI=agy

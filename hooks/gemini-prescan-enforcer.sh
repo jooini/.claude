@@ -5,6 +5,8 @@
 
 : "${HOME:?}"
 
+. "$HOME/.claude/scripts/_nvm-path.sh"  # nvm PATH 보강
+
 # CLI 선택: $GEMINI_CLI 우선, 없으면 agy(2026-06-18 이후 기본) → gemini 폴백
 GEM_CLI="${GEMINI_CLI:-}"
 if [ -z "$GEM_CLI" ]; then

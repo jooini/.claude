@@ -7,6 +7,9 @@
 #
 # 모든 출력은 stdout으로 누적. 각 hook은 독립적이며 어느 하나 실패해도 다른 hook 진행.
 
+. "$HOME/.claude/scripts/_nvm-path.sh"  # nvm PATH 보강
+
+
 : "${HOME:?}"
 
 GEM_CLI="${GEMINI_CLI:-}"
