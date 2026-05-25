@@ -69,7 +69,7 @@
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_DISABLE_PATH_WARNING": "1",
-    "GEMINI_CLI": "agy",
+    "GEMINI_CLI": "gemini",
     "PATH": "/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   },
   "extraKnownMarketplaces": {
@@ -518,6 +518,18 @@
           {
             "command": "$HOME/.claude/hooks/taskhub-session-stop.sh",
             "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/iterm-badge-clear.sh",
+            "timeout": 3,
             "type": "command"
           }
         ],

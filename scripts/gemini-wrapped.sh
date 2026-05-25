@@ -18,15 +18,25 @@
 
 : "${HOME:?}"
 
-# --- CLI 결정 ----------------------------------------------------------------
+# --- nvm PATH 보강 (Claude Code Bash tool 등 nvm 미소싱 환경 대응) ------------
+# gemini/node가 nvm 안에 있어 PATH 누락 시 'env: node: No such file' 발생
+for v in v22.22.0 v22.4.1; do
+    if [ -x "/Users/leonard/.nvm/versions/node/$v/bin/node" ]; then
+        export PATH="/Users/leonard/.nvm/versions/node/$v/bin:$PATH"
+        break
+    fi
+done
+
+# --- CLI 결정 (gemini 우선 — 토큰 측정 가능, agy는 fallback) ------------------
+# 2026-05-25 변경: agy는 stream-json 미지원으로 토큰 메타 0 → gemini를 default로
 if [ -n "$GEMINI_CLI" ]; then
     CLI="$GEMINI_CLI"
-elif command -v agy >/dev/null 2>&1; then
-    CLI="agy"
 elif command -v gemini >/dev/null 2>&1; then
     CLI="gemini"
+elif command -v agy >/dev/null 2>&1; then
+    CLI="agy"
 else
-    echo "gemini-wrapped: agy/gemini CLI 미설치" >&2
+    echo "gemini-wrapped: gemini/agy CLI 미설치" >&2
     exit 127
 fi
 
