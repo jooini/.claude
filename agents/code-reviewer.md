@@ -1,1 +1,1 @@
-/Users/leonard/.claude/agents/builds/python/code-reviewer.md
+/Users/leonard/.claude/agents/builds/root/code-reviewer.md
