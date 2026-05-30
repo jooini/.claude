@@ -451,18 +451,6 @@
             "type": "command"
           },
           {
-            "command": "/Users/leonard/.claude/hooks/qwen-decision-capture.sh",
-            "timeout": 60,
-            "type": "command",
-            "async": true
-          },
-          {
-            "command": "/Users/leonard/.claude/hooks/qwen-learning-capture.sh",
-            "timeout": 60,
-            "type": "command",
-            "async": true
-          },
-          {
             "command": "/Users/leonard/.claude/hooks/qwen-handoff-suggest.sh",
             "timeout": 5,
             "type": "command",
