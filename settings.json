@@ -122,30 +122,34 @@
         "hooks": [
           {
             "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/bash-postproc-async.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/bash-postproc-async.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/bash-postproc-sync.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/bash-postproc-sync.sh",
+            "type": "command",
+            "async": true
+          },
+          {
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/dangerous-command-detect.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/dangerous-command-detect.sh",
-            "type": "command"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/error-codex-remind.sh",
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/error-codex-remind.sh",
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-error-summarize.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-error-summarize.sh",
             "statusMessage": "Gemma 에러 요약 중...",
             "timeout": 15,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/git-commit-taskhub.sh",
-            "type": "command"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/git-commit-taskhub.sh",
+            "type": "command",
+            "async": true
           }
         ],
         "matcher": "Bash"
@@ -153,43 +157,47 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-usage-log.sh",
-            "type": "command"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-usage-log.sh",
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-complete-notify.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-complete-notify.sh",
+            "type": "command",
+            "async": true
+          },
+          {
+            "async": true,
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/pipeline-metrics-log.sh",
             "type": "command"
           },
           {
             "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/pipeline-metrics-log.sh",
-            "type": "command"
-          },
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/decision-capture.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/decision-capture.sh",
             "timeout": 8,
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-trace.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-trace.sh",
             "timeout": 3,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-build-verify.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-build-verify.sh",
+            "timeout": 3,
+            "type": "command",
+            "async": true
+          },
+          {
+            "async": true,
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-quality-incremental.sh",
             "timeout": 3,
             "type": "command"
           },
           {
             "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-quality-incremental.sh",
-            "timeout": 3,
-            "type": "command"
-          },
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/suggestion-outcome-track.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/suggestion-outcome-track.sh",
             "timeout": 3,
             "type": "command"
           }
@@ -199,39 +207,46 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/knowledge-change-rebuild.sh",
-            "type": "command"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/knowledge-change-rebuild.sh",
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/task-progress-tracker.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/task-progress-tracker.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/claudemd-change-broadcast.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/claudemd-change-broadcast.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/rag-auto-index.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/rag-auto-index.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-dependency-impact.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-dependency-impact.sh",
             "statusMessage": "Gemini 의존성 영향 분석 중...",
             "timeout": 45,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/learning-note-auto-ingest.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/learning-note-auto-ingest.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/vault-new-file-suggest.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/vault-new-file-suggest.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           }
         ],
         "matcher": "Edit|Write"
@@ -239,9 +254,10 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/md-read-trace.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/md-read-trace.sh",
             "timeout": 3,
-            "type": "command"
+            "type": "command",
+            "async": true
           }
         ],
         "matcher": "Read"
@@ -249,8 +265,9 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/mcp-knowledge-telemetry.sh",
-            "type": "command"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/mcp-knowledge-telemetry.sh",
+            "type": "command",
+            "async": true
           }
         ],
         "matcher": "mcp__local-rag__|mcp__plugin_claude-mem_mcp-search__"
@@ -258,8 +275,9 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/turn-finalize.sh",
-            "type": "command"
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-finalize.sh",
+            "type": "command",
+            "async": true
           }
         ],
         "matcher": ""
@@ -269,7 +287,8 @@
           {
             "command": "$HOME/.claude/hooks/taskhub-task-create.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           }
         ],
         "matcher": "TaskCreate"
@@ -279,7 +298,8 @@
           {
             "command": "$HOME/.claude/hooks/taskhub-task-update.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           }
         ],
         "matcher": "TaskUpdate"
@@ -299,16 +319,16 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/bash-codegen-block.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/bash-codegen-block.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/danger-keyword-detect.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/danger-keyword-detect.sh",
             "timeout": 5,
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/git-worktree-internal-block.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/git-worktree-internal-block.sh",
             "timeout": 3,
             "type": "command"
           }
@@ -318,34 +338,34 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-commit-draft.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-commit-draft.sh",
             "if": "Bash(git commit*)",
             "statusMessage": "Gemma 커밋 초안 생성 중...",
             "timeout": 20,
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-commit-convention.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-commit-convention.sh",
             "if": "Bash(git commit*)",
             "statusMessage": "Gemma 커밋 규약 검사 중...",
             "timeout": 12,
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/commit-korean-check.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/commit-korean-check.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/commit-no-coauthor.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/commit-no-coauthor.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-large-diff-prescan.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-large-diff-prescan.sh",
             "timeout": 10,
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
             "statusMessage": "Gemma 한글 번역 검사 중...",
             "timeout": 12,
             "type": "command"
@@ -356,11 +376,11 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/pr-create-codex-remind.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/pr-create-codex-remind.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
             "statusMessage": "Gemma 한글 번역 검사 중...",
             "timeout": 12,
             "type": "command"
@@ -371,19 +391,19 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/delegation-enforcer.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/delegation-enforcer.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/dependency-change-detect.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/dependency-change-detect.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemini-prescan-enforcer.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-prescan-enforcer.sh",
             "timeout": 5,
             "type": "command"
           }
@@ -393,23 +413,23 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-start-notify.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-start-notify.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-context-inject.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-context-inject.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-knowledge-remind.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-knowledge-remind.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/gemma-review-prescan.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-review-prescan.sh",
             "type": "command"
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/agent-routing-suggest.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-routing-suggest.sh",
             "timeout": 3,
             "type": "command"
           }
@@ -467,12 +487,14 @@
           {
             "command": "/Users/leonard/.claude/hooks/stop-notify.sh",
             "timeout": 10,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
             "command": "/Users/leonard/.claude/hooks/stop-pipeline-check.sh",
             "timeout": 10,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
             "async": true,
@@ -484,51 +506,60 @@
           {
             "command": "/Users/leonard/.claude/hooks/qwen-decision-capture.sh",
             "timeout": 60,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
             "command": "/Users/leonard/.claude/hooks/qwen-learning-capture.sh",
             "timeout": 60,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
             "command": "/Users/leonard/.claude/hooks/qwen-handoff-suggest.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
             "command": "/Users/leonard/.claude/hooks/daily-learning-capture.sh",
             "timeout": 15,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/llm-wiki-session-lint.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/llm-wiki-session-lint.sh",
             "timeout": 10,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/turn-summary.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-summary.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/budget-alert.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/budget-alert.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           },
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/turn-finalize.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-finalize.sh",
             "timeout": 10,
-            "type": "command"
+            "type": "command",
+            "async": true
           }
         ]
       },
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/_lib/hook-timing.sh /Users/leonard/.claude/hooks/closure-gate-stop.sh",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/closure-gate-stop.sh",
             "timeout": 10,
-            "type": "command"
+            "type": "command",
+            "async": true
           }
         ],
         "matcher": ""
@@ -538,7 +569,8 @@
           {
             "command": "$HOME/.claude/hooks/taskhub-session-stop.sh",
             "timeout": 5,
-            "type": "command"
+            "type": "command",
+            "async": true
           }
         ],
         "matcher": "*"
