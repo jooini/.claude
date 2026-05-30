@@ -81,3 +81,17 @@ image-cache/
 .moai/state/
 .moai/plans/
 .claude/settings.local.json
+
+# === llm-configs: 시크릿 방어 (화이트리스트 백업이지만 이중 안전장치) ===
+# sync-llm-configs.sh 는 비시크릿만 복사하지만, 실수 대비 시크릿 패턴 차단
+llm-configs/**/auth.json
+llm-configs/**/oauth_creds.json
+llm-configs/**/google_accounts.json
+llm-configs/**/config.toml
+llm-configs/**/*credential*
+llm-configs/**/*.sqlite
+llm-configs/**/*.sqlite-*
+llm-configs/**/history.jsonl
+llm-configs/**/*-state.json
+llm-configs/**/*.bak
+llm-configs/**/*.bak-*
