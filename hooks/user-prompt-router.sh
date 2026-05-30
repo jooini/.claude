@@ -19,10 +19,29 @@
 : "${HOME:?}"
 HOOKS="$HOME/.claude/hooks"
 LOG="$HOME/.claude/cache/user-prompt-router.log"
-mkdir -p "$(dirname "$LOG")"
+LOG_DIR="$(dirname "$LOG")"
+mkdir -p "$LOG_DIR" 2>/dev/null || true
 
 # stdin은 한 번만 읽을 수 있으므로 캐싱
 INPUT=$(cat)
+
+emit_output() {
+    local text="$1"
+    [ -n "$text" ] || return 0
+
+    if [ -n "${CODEX_THREAD_ID:-}" ] && [ "${CLAUDE_ROUTER_TEXT_OUTPUT:-0}" != "1" ]; then
+        # Codex rejects Claude-specific UserPromptSubmit output schemas.
+        # Keep sub-hook side effects, but suppress stdout for Codex sessions.
+        return 0
+    else
+        printf '%s' "$text"
+    fi
+}
+
+log_router() {
+    [ -w "$LOG_DIR" ] || return 0
+    { echo "$1"; } >> "$LOG" 2>/dev/null || true
+}
 
 # 단일 sub-hook 실행 — stdin 재공급 후 stdout 캡처
 run_hook() {
@@ -64,23 +83,28 @@ run_hook learning-queue-capture.sh >/dev/null 2>&1
 TS=$(date '+%Y-%m-%d %H:%M:%S')
 HAVE_P0=0
 [ -n "$P0_OUT" ] && HAVE_P0=1
+FINAL_OUT=""
 
 if [ $HAVE_P0 -eq 1 ]; then
     # P0 발동: P0만 출력 (P1/P2/P3 억제)
-    printf '%s' "$P0_OUT"
-    echo "[router $TS] P0 활성 — P1/P2/P3 출력 억제됨" >> "$LOG"
+    FINAL_OUT="$P0_OUT"
+    log_router "[router $TS] P0 활성 — P1/P2/P3 출력 억제됨"
 else
     # P0 없음: P1 + P2 최대 1개
-    [ -n "$P1_OUT" ] && printf '%s' "$P1_OUT"
+    [ -n "$P1_OUT" ] && FINAL_OUT+="$P1_OUT"
     if [ -n "$P2_OUT" ]; then
         # P2 첫 블록만 (system-reminder 1개)
-        echo "$P2_OUT" | awk '/UserPromptSubmit hook success/{c++} c<2' | head -20
+        FINAL_OUT+="$(echo "$P2_OUT" | awk '/UserPromptSubmit hook success/{c++} c<2' | head -20)"
+        FINAL_OUT+=$'\n'
     fi
     # P3는 P1/P2 모두 없을 때만
     if [ -z "$P1_OUT" ] && [ -z "$P2_OUT" ] && [ -n "$P3_OUT" ]; then
-        printf '%s' "$P3_OUT" | head -20
+        FINAL_OUT+="$(printf '%s' "$P3_OUT" | head -20)"
+        FINAL_OUT+=$'\n'
     fi
-    echo "[router $TS] P1=$([ -n "$P1_OUT" ] && echo 1 || echo 0) P2=$([ -n "$P2_OUT" ] && echo 1 || echo 0) P3=$([ -n "$P3_OUT" ] && echo 1 || echo 0)" >> "$LOG"
+    log_router "[router $TS] P1=$([ -n "$P1_OUT" ] && echo 1 || echo 0) P2=$([ -n "$P2_OUT" ] && echo 1 || echo 0) P3=$([ -n "$P3_OUT" ] && echo 1 || echo 0)"
 fi
+
+emit_output "$FINAL_OUT"
 
 exit 0

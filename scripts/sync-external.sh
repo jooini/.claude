@@ -116,6 +116,20 @@ append_unique_line() {
     printf '%s\n' "$line" >> "$target_file"
 }
 
+codex_silent_hook_command() {
+    local command_line="$1"
+    local adapter="$CLAUDE_DIR/hooks/codex-silent-json-adapter.sh"
+
+    [[ -n "$command_line" ]] || return 0
+
+    if [[ "$command_line" == *"$adapter"* ]]; then
+        printf '%s\n' "$command_line"
+        return 0
+    fi
+
+    printf '%s\n' "/bin/zsh $adapter -- $command_line"
+}
+
 json_array_from_file() {
     local source_file="$1"
 
@@ -444,6 +458,7 @@ hook_command_for_target() {
     local target="$1"
     local command_line="$2"
     local rewritten
+    local converted_command
     local basename_part
     local dirname_part
     local gemini_candidate
@@ -451,7 +466,18 @@ hook_command_for_target() {
     [[ -n "$command_line" ]] || return 0
 
     if [[ "$target" == "codex" ]]; then
-        printf '%s\n' "$command_line"
+        # Codex hook runner is stricter than Claude Code:
+        # - any stdout is parsed as event JSON
+        # - run imported Claude hooks through a silent side-effect adapter
+        # - avoid literal $HOME expansion drift
+        # - run shell hooks through an explicit zsh interpreter
+        rewritten="${command_line//\$HOME\/.claude\/hooks\//$CLAUDE_DIR/hooks/}"
+        if [[ "$rewritten" == $CLAUDE_DIR/hooks/*.sh && "$rewritten" != /bin/zsh* ]]; then
+            converted_command="/bin/zsh $rewritten"
+        else
+            converted_command="$rewritten"
+        fi
+        codex_silent_hook_command "$converted_command"
         return 0
     fi
 
@@ -520,7 +546,7 @@ build_external_hooks_file() {
     : > "$prompt_commands_file"
     : > "$stop_commands_file"
 
-    append_unique_line "$session_commands_file" "$SYNC_SCRIPT_FILE --quiet"
+    append_hook_command "$target" "$session_commands_file" "$SYNC_SCRIPT_FILE --quiet"
 
     append_settings_event_commands "$target" "SessionStart" "$session_commands_file"
     append_settings_event_commands "$target" "UserPromptSubmit" "$prompt_commands_file"
@@ -528,29 +554,29 @@ build_external_hooks_file() {
 
     if [[ "$target" == "codex" ]]; then
         if [[ -f "$CLAUDE_DIR/hooks/codex-session-notify.sh" ]]; then
-            append_unique_line "$session_commands_file" "$CLAUDE_DIR/hooks/codex-session-notify.sh"
+            append_hook_command "$target" "$session_commands_file" "$CLAUDE_DIR/hooks/codex-session-notify.sh"
         fi
 
         if [[ -f "$CLAUDE_DIR/hooks/codex-prompt-notify.sh" ]]; then
-            append_unique_line "$prompt_commands_file" "$CLAUDE_DIR/hooks/codex-prompt-notify.sh"
+            append_hook_command "$target" "$prompt_commands_file" "$CLAUDE_DIR/hooks/codex-prompt-notify.sh"
         fi
 
         if [[ -f "$CLAUDE_DIR/hooks/codex-hybrid-orchestrator.sh" ]]; then
-            append_unique_line "$prompt_commands_file" "/bin/zsh $CLAUDE_DIR/hooks/codex-hybrid-orchestrator.sh"
+            append_hook_command "$target" "$prompt_commands_file" "/bin/zsh $CLAUDE_DIR/hooks/codex-hybrid-orchestrator.sh"
         fi
     fi
 
     if [[ "$target" == "gemini" ]]; then
         if [[ -f "$CLAUDE_DIR/hooks/gemini-session-notify.sh" ]]; then
-            append_unique_line "$session_commands_file" "$CLAUDE_DIR/hooks/gemini-session-notify.sh"
+            append_hook_command "$target" "$session_commands_file" "$CLAUDE_DIR/hooks/gemini-session-notify.sh"
         fi
 
         if [[ -f "$CLAUDE_DIR/hooks/gemini-prompt-notify.sh" ]]; then
-            append_unique_line "$prompt_commands_file" "$CLAUDE_DIR/hooks/gemini-prompt-notify.sh"
+            append_hook_command "$target" "$prompt_commands_file" "$CLAUDE_DIR/hooks/gemini-prompt-notify.sh"
         fi
 
         if [[ -f "$CLAUDE_DIR/hooks/gemini-hybrid-orchestrator.sh" ]]; then
-            append_unique_line "$prompt_commands_file" "/bin/zsh $CLAUDE_DIR/hooks/gemini-hybrid-orchestrator.sh"
+            append_hook_command "$target" "$prompt_commands_file" "/bin/zsh $CLAUDE_DIR/hooks/gemini-hybrid-orchestrator.sh"
         fi
     fi
 
