@@ -85,21 +85,34 @@ done
 # 매칭 없으면 침묵
 [ ${#MATCHED[@]} -eq 0 ] && exit 0
 
-# === 주입 출력 ===
-echo "[📚 워크플로 컨텍스트 자동 로드]"
-echo ""
-echo "다음 워크플로 문서가 발화 키워드와 매칭되어 주입됨 (이번 세션 내 중복 주입 안 됨):"
-echo ""
+# === 주입 출력 (포인터 방식 — 전문 cat 금지) ===
+# 배경: 전문 cat 주입은 발화당 최대 ~7500tok(pipeline.md+standard-routines.md 등)을
+#   쏟아부어 컨텍스트를 오염시키고 도구 직렬화를 저하시킴(2026-05-31 실측).
+#   라우팅 룰 인지는 "경로 포인터 + 1줄 핵심"으로 충분. 정말 필요하면 Claude가 Read.
+#   세션 1회 중복방지 캐시는 그대로 유지(위 CACHE_FILE 로직).
 
+# 파일별 1줄 핵심 요약 (룰 인지용 — 키워드만으로 무슨 룰인지 알게)
+summarize() {
+    case "$1" in
+        codex.md)             echo "Codex CLI 호출 규약(codex exec, codex: 명령)" ;;
+        sso.md)               echo "SSO/Identity Hub/BFF 연동 컨텍스트" ;;
+        debugging.md)         echo "7단계 디버깅 절차(추측금지, 2회실패 재검토, 3회 rescue)" ;;
+        llm-routing.md)       echo "Gemma/Gemini/Codex/Ollama 라우팅 규약" ;;
+        docs-convention.md)   echo "Obsidian Vault 문서 작성 규칙(파일명/frontmatter/링크)" ;;
+        coding-convention.md) echo "코딩 컨벤션(공백4칸, 약어금지, FastAPI Annotated)" ;;
+        pipeline.md)          echo "backend/frontend/fullstack 파이프라인 단계" ;;
+        standard-routines.md) echo "TYPE A~G 표준 루틴(feature/bugfix/refactor/design/data/ops/docs)" ;;
+        automation.md)        echo "hook 자동화/메트릭/규모판별 동작" ;;
+        growth.md)            echo "학습/회고/3중 LLM 성장 루프" ;;
+        projects.md)          echo "프로젝트 목록/스택/위치" ;;
+        *)                    echo "워크플로 룰" ;;
+    esac
+}
+
+echo "[📚 워크플로 룰 적용 대상 — 키워드 매칭]"
+echo "이 발화는 아래 룰 적용 대상. 핵심은 요약대로. 세부 필요 시에만 해당 경로 Read:"
 for f in "${MATCHED[@]}"; do
-    echo "═══════════════════════════════════════════════════════════"
-    echo "📄 ~/.claude/workflows/$f"
-    echo "═══════════════════════════════════════════════════════════"
-    /bin/cat "$WF_DIR/$f"
-    echo ""
+    echo "  • ~/.claude/workflows/$f — $(summarize "$f")"
 done
-
-echo "─────────────────────────────────────────────"
-echo "위 내용을 컨텍스트로 활용. 추가 Read 불필요."
 
 exit 0

@@ -196,6 +196,23 @@ hooks 가 자동 처리: 의존성 변경→Gemini, 테스트 3회 실패→Code
 1. **P0/P1 한글 호출 우선** — `백엔드/프론트/리뷰어/디자이너/큐에이/테스터/피오/데이터/옵스/프롬프트/AI엔지니어` 명시 호출 시 글로벌 `~/.claude/agents/` 우선. MoAI Stage 2 Delegation 단계에서도 이 표가 §4를 덮어쓴다.
 2. **`@dev` P0 우선** — 프로젝트 `dev.md` 있으면 그쪽, 없으면 글로벌 `dev-lead`. MoAI §4의 `manager-*` 우회.
 3. **MoAI §4 표는 한글 호출/`@dev`/`@team` 미매칭일 때만 적용** — 영문 작업 키워드(security, performance, refactoring 등)는 그대로 expert-*/manager-* 라우팅.
+3-bis. **중복 8개 도메인은 MoAI 자율 위임 시에도 글로벌 두꺼운 agent 우선** [HARD] — 명시 호출 없이 MoAI가 Stage 2에서 자율 위임할 때, 아래 도메인은 MoAI 본문 §4의 expert-*/manager-* 대신 **글로벌 `~/.claude/agents/` 우선 선택**. 근거: 글로벌 agent가 7배 두껍고(현장 패턴 다수) opus 고정이라 단발 구현·리뷰 품질 우위. 단 MoAI 워크플로(`/moai run`의 GAN 루프/Stage 게이트) **명시 진입 시에는 MoAI 본문 계약 우선**(constitution.md FROZEN 존중) — 워크플로 밖 일반 작업에서만 글로벌 우선.
+
+| 도메인 | 글로벌 우선 (워크플로 밖) | MoAI 대응 (워크플로 안/명시 키워드) |
+|--------|--------------------------|--------------------------------------|
+| 백엔드/API/DB | `backend-developer` | expert-backend |
+| 프론트/UI | `frontend-developer` | expert-frontend |
+| 테스트 설계 | `qa` / 실행 `code-tester` | expert-testing |
+| 코드 리뷰 | `code-reviewer` | manager-quality |
+| 데이터/SQL/대시보드 | `data-analyst` | (MoAI 없음 → 글로벌 전담) |
+| DevOps/배포/인프라 | `ops-lead` | expert-devops |
+| 문서화 | `codebase-documenter` | manager-docs |
+| AI/ML/RAG | `ai-engineer` | (MoAI 없음 → 글로벌 전담) |
+| 프롬프트/PRD | `prompt-engineer` / `po` | (MoAI 없음 → 글로벌 전담) |
+| 디버깅/근본원인 | `debug-master`(7단계) | expert-debug → `codex:rescue`(3회실패) |
+| 멀티에이전트 리드 | `dev-lead` (또는 `@dev`) | (MoAI 오케스트레이터 본체가 담당) |
+
+3-ter. **MoAI 전담 (글로벌 대응 없음 → 항상 MoAI)** — 다음은 글로벌에 없으므로 MoAI 본문 agent를 그대로 사용: `manager-spec`(EARS SPEC), `manager-tdd`/`manager-ddd`(TDD/DDD 사이클), `manager-git`, `expert-security`, `expert-performance`, `expert-refactoring`, `expert-debug`, `evaluator-active`(독립 평가), `plan-auditor`(SPEC 감사), `builder-agent`/`builder-skill`/`builder-plugin`(메타 생성), `manager-strategy`, `researcher`. 디버깅은 글로벌 `debug-master`(존재) 또는 MoAI `expert-debug`/`codex:rescue` — 7단계 절차는 `debug-master` 우선, 3회 실패 시 `codex:rescue`.
 
 ### 위임 강도 조정
 
