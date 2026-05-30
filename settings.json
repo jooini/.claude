@@ -601,6 +601,12 @@
       "/Users/leonard/Workspace/weaversbrain/weaversbrain"
     ],
     "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Agent",
       "Bash(/bin/ls *)",
       "Bash(cat *)",
       "Bash(/bin/cat *)",
