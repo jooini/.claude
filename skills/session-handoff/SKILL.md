@@ -136,6 +136,92 @@ target: {대상 프로젝트 목록 (콤마 구분)}
 |-----------|--------|------|
 ```
 
+#### MoAI-ADK 호환 구조 [HARD]
+
+위 기본 구조와 충돌하면 이 섹션을 우선한다. 모든 핸드오프 문서는 MoAI-ADK 세션/에이전트가 바로 읽고 실행할 수 있도록 아래 메타데이터와 섹션을 포함한다.
+
+Frontmatter에는 기존 필드에 더해 아래 필드를 추가한다.
+
+```yaml
+status: pending
+handoff_id: "{YYYYMMDD-HHMM}-{source}-{target}-{slug}"
+moai_adk: "handoff/v1"
+source_project: "{소스 프로젝트명}"
+target_projects:
+  - "{대상 프로젝트명}"
+spec_id: "{SPEC-XXX 또는 none}"
+phase: "handoff"
+trust_gate_required: true
+```
+
+본문에는 아래 섹션을 `## 현재 상황` 뒤, `## 완료된 작업` 앞에 배치한다.
+
+````markdown
+## MoAI-ADK Handoff Package
+
+```yaml
+handoff_id: "{frontmatter.handoff_id}"
+from_agent: "session-handoff"
+to_agent: "@dev"
+session_context:
+  source_project: "{소스 프로젝트명}"
+  target_projects: ["{대상 프로젝트명}"]
+  user_language: "ko"
+  current_branch: "{소스 브랜치}"
+  dirty_state: "{clean|dirty + 요약}"
+task_context:
+  spec_id: "{SPEC-XXX 또는 none}"
+  current_phase: "handoff"
+  completed_steps:
+    - "{완료된 핵심 단계}"
+  next_steps:
+    - "{대상 프로젝트에서 해야 할 다음 작업}"
+  acceptance_criteria:
+    - "{완료 조건}"
+recovery_info:
+  last_checkpoint: "{마지막으로 검증된 상태}"
+  rollback_state: "{되돌린 변경/남은 변경}"
+  blocking_conditions:
+    - "{없으면 none}"
+  secrets_policy: "비밀번호/토큰 원문 금지. secret source 참조만 기록."
+```
+
+## Progress Board
+
+| 상태 | 항목 | 소유 | 검증 |
+|------|------|------|------|
+| pending | {작업명} | {대상 프로젝트/역할} | {검증 명령/스모크 기준} |
+
+## Execution Contract
+
+### Scope
+{이번 핸드오프가 처리할 범위}
+
+### Non-Goals
+{명시적으로 하지 않을 일. 없으면 "없음"}
+
+### Required Reads
+{대상 세션이 먼저 읽어야 할 파일/문서}
+
+### Steps
+1. {구체적 실행 단계}
+
+### Quality Gates
+- TRUST 5: Tested / Readable / Unified / Secured / Trackable 관점에서 최소 검증
+- 프로젝트별 lint/test/build/smoke 중 적용 가능한 검증 명시
+- 인프라/시크릿/배포 작업은 destructive 명령 전 승인 및 백업 조건 명시
+
+### Done Definition
+{완료 선언 조건}
+````
+
+MoAI-ADK 작성 규칙:
+- SPEC가 이미 있으면 `spec_id`에 기록하고, 수신 프롬프트에서 해당 프로젝트의 `/moai run`, `/moai sync`, `/moai gate` 규약을 우선하게 한다.
+- SPEC가 없으면 `spec_id: none`으로 두고, `Execution Contract`와 `acceptance_criteria`를 임시 SPEC 역할로 쓰게 한다.
+- `Progress Board`는 최소 1개 이상의 pending 작업을 포함한다.
+- `Context Memory` 성격의 내용은 `세션 히스토리`에 `Decision`, `Constraint`, `Risk`, `User Correction` 형태로 압축한다.
+- 비밀번호, 토큰, 개인키 원문은 절대 기록하지 않는다.
+
 ### 4단계: @dev 실행 프롬프트 생성
 
 문서 하단에 `## @dev 실행 프롬프트` 섹션을 추가한다.
@@ -154,6 +240,8 @@ target: {대상 프로젝트 목록 (콤마 구분)}
 
 핸드오프: {마스터 핸드오프 문서 절대 경로}
 현재 프로젝트에 해당하는 섹션만 실행할 것.
+MoAI-ADK Handoff Package, Progress Board, Execution Contract를 우선 따를 것.
+SPEC-ID가 있으면 대상 프로젝트의 /moai run/sync/gate 규약을 적용하고, 없으면 Execution Contract를 임시 SPEC으로 사용할 것.
 \```
 ```
 
