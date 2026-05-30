@@ -48,6 +48,6 @@ tail -r "$FILE" 2>/dev/null | awk -F'\t' -v start="$WINDOW_START_ISO" -v win="$W
         for (i = 1; i <= max_show; i++) printf " %s(%d)", arr_n[i], arr_c[i]
         printf "\n"
     }
-'
+' >&2
 
 exit 0

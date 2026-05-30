@@ -14,7 +14,7 @@ TOTAL=$((CODE_CHANGES + STAGED_CHANGES))
 
 if [ "$TOTAL" -gt 0 ]; then
   say -v Yuna "커밋되지 않은 코드 변경이 있습니다. 파이프라인 확인하세요." < /dev/null &
-  echo "⚠️ 커밋되지 않은 코드 변경 ${TOTAL}개 감지. 파이프라인(developer → codex-review → tester) 완료했는지 확인하세요."
+  echo "⚠️ 커밋되지 않은 코드 변경 ${TOTAL}개 감지. 파이프라인(developer → codex-review → tester) 완료했는지 확인하세요." >&2
 fi
 
 exit 0

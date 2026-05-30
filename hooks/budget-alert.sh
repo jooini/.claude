@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Stop hook: 매 응답 끝에 오늘 누적 비용 체크. 임계 넘으면 stdout에 경고 + osascript 알림
+# Stop hook: 매 응답 끝에 오늘 누적 비용 체크. 임계 넘으면 stderr에 경고 + osascript 알림
 # 임계는 환경변수로 조정 (기본 $50)
 #
 # 비용 목표: <300ms (캐시 활용 + stale-while-revalidate)
@@ -163,7 +163,7 @@ case "$LEVEL" in
             osascript -e "display notification \"오늘 누적 비용 \$${TODAY_COST} (임계 \$${CRIT_THRESHOLD}+ 초과)\" with title \"💸 LLM 예산 경고\" sound name \"Basso\"" 2>/dev/null &
             touch "$MARKER"
         fi
-        echo "[budget-alert] 🔴 오늘 비용 \$${TODAY_COST} — 임계 \$${CRIT_THRESHOLD} 초과"
+        echo "[budget-alert] 🔴 오늘 비용 \$${TODAY_COST} — 임계 \$${CRIT_THRESHOLD} 초과" >&2
         ;;
     warn)
         MARKER="$HOME/.claude/cache/budget-alerted-${TODAY}-warn"
@@ -171,7 +171,7 @@ case "$LEVEL" in
             osascript -e "display notification \"오늘 누적 비용 \$${TODAY_COST}\" with title \"⚠️ LLM 예산 알림\"" 2>/dev/null &
             touch "$MARKER"
         fi
-        echo "[budget-alert] 🟡 오늘 비용 \$${TODAY_COST} (임계 \$${WARN_THRESHOLD})"
+        echo "[budget-alert] 🟡 오늘 비용 \$${TODAY_COST} (임계 \$${WARN_THRESHOLD})" >&2
         ;;
     *)
         # 정상 — 출력 없음
