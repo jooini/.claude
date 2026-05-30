@@ -24,34 +24,15 @@ PYEOF
 
 [ -z "$CMD" ] && exit 0
 
-# 근본 차단: heredoc(<<) 이 든 멀티라인 명령은 tool call JSON 을 깨뜨려
-# "The model's tool call could not be parsed" 에러를 유발한다.
-# here-string(<<<) 은 허용. heredoc 마커 <<EOF / << 'EOF' / <<-EOF 만 감지.
-#
-# [중요] 진짜 heredoc 은 본질적으로 멀티라인이다(마커 뒤 줄바꿈 + 종료마커 줄).
-# 단일라인 명령은 <<EOF 글자가 있어도 heredoc 일 수 없다(그냥 문자열).
-# 따라서 "명령에 실제 줄바꿈이 있을 때만" 차단해 false positive 를 막는다.
-# 예: git commit -m "use <<HEREDOC" (단일라인) → 통과. 문자열 속 마커일 뿐.
-LINE_COUNT=$(printf '%s' "$CMD" | wc -l | tr -d ' ')
-if [ "$LINE_COUNT" -ge 1 ] \
-   && echo "$CMD" | grep -qE '<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*' \
-   && ! echo "$CMD" | grep -qE '<<<'; then
-  cat >&2 <<MSGEOF
-[차단] Bash heredoc(<<) 명령 감지
-
-heredoc + 멀티라인 + 중첩 따옴표는 tool call JSON 을 깨뜨려
-"The model's tool call could not be parsed" 에러를 유발한다.
-
-대안:
-  1. 코드/스크립트는 Write 도구로 파일 생성 후, 실행은 한 줄 명령으로
-  2. 컨테이너 실행: Write 로 .py 작성 -> docker cp -> docker exec python3 file.py
-  3. 인라인 코드가 꼭 필요하면 python3 -c "..." (줄바꿈 없는 한 줄)
-
-이유: heredoc 자체가 파싱 불가 에러의 근본 원인.
-MSGEOF
-  outcome_log "bash-codegen-block" "block" "heredoc-any" "heredoc-marker"
-  exit 2
-fi
+# [설계 결정 2026-05-30] heredoc 전면차단 제거.
+# 근거:
+#   - PreToolUse 훅이 CMD 를 받았다는 것 자체가 tool call JSON 파싱 성공의 증거다.
+#     파싱 에러가 날 명령은 훅에 도달하기 전 harness 단계에서 실패한다.
+#     따라서 "파싱 에러 방지" 목적의 heredoc 전면차단은 논리적으로 무효였다.
+#   - 실측: 전체 5751회 중 heredoc-marker 차단 18건이 거의 전부 분석/검증 명령 오탐.
+#   - 진짜 막을 대상(코드 파일 heredoc 생성)은 아래 redirect/echo 룰이 담당.
+#   - 코드 생성 유도는 Edit|Write 매처의 delegation-enforcer 가 별도 방어.
+# 따라서 "코드 파일로 리다이렉트하는 heredoc" 만 차단한다.
 
 # 코드 파일로 리다이렉트하는 패턴 감지
 if echo "$CMD" | grep -qE 'cat[[:space:]]+<<.*[[:space:]]*>[[:space:]]*[^[:space:]]+\.(py|ts|tsx|js|jsx|kt|java|php|go|rs|rb|swift|vue|svelte|scala|cs)([[:space:]]|$)'; then
