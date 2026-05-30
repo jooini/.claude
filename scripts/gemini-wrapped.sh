@@ -27,16 +27,18 @@ for v in v22.22.0 v22.4.1; do
     fi
 done
 
-# --- CLI 결정 (gemini 우선 — 토큰 측정 가능, agy는 fallback) ------------------
-# 2026-05-25 변경: agy는 stream-json 미지원으로 토큰 메타 0 → gemini를 default로
+# --- CLI 결정 (agy 우선 — gemini 는 2026-06-18 개인 계정 종료) -----------------
+# 2026-05-30 변경: gemini CLI 가 6/18 free/Pro/Ultra 종료(Google 공식) → agy 기본 전환.
+# GEMINI_CLI 환경변수(settings.json=agy) 최우선. 미설정 시 agy→gemini 폴백.
+# agy 는 stream-json 미지원으로 토큰 메타 0 (토큰 측정 필요 시에만 gemini 명시).
 if [ -n "$GEMINI_CLI" ]; then
     CLI="$GEMINI_CLI"
-elif command -v gemini >/dev/null 2>&1; then
-    CLI="gemini"
 elif command -v agy >/dev/null 2>&1; then
     CLI="agy"
+elif command -v gemini >/dev/null 2>&1; then
+    CLI="gemini"
 else
-    echo "gemini-wrapped: gemini/agy CLI 미설치" >&2
+    echo "gemini-wrapped: agy/gemini CLI 미설치" >&2
     exit 127
 fi
 
