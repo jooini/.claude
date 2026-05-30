@@ -27,7 +27,15 @@ PYEOF
 # 근본 차단: heredoc(<<) 이 든 멀티라인 명령은 tool call JSON 을 깨뜨려
 # "The model's tool call could not be parsed" 에러를 유발한다.
 # here-string(<<<) 은 허용. heredoc 마커 <<EOF / << 'EOF' / <<-EOF 만 감지.
-if echo "$CMD" | grep -qE '<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*' && ! echo "$CMD" | grep -qE '<<<'; then
+#
+# [중요] 진짜 heredoc 은 본질적으로 멀티라인이다(마커 뒤 줄바꿈 + 종료마커 줄).
+# 단일라인 명령은 <<EOF 글자가 있어도 heredoc 일 수 없다(그냥 문자열).
+# 따라서 "명령에 실제 줄바꿈이 있을 때만" 차단해 false positive 를 막는다.
+# 예: git commit -m "use <<HEREDOC" (단일라인) → 통과. 문자열 속 마커일 뿐.
+LINE_COUNT=$(printf '%s' "$CMD" | wc -l | tr -d ' ')
+if [ "$LINE_COUNT" -ge 1 ] \
+   && echo "$CMD" | grep -qE '<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*' \
+   && ! echo "$CMD" | grep -qE '<<<'; then
   cat >&2 <<MSGEOF
 [차단] Bash heredoc(<<) 명령 감지
 
