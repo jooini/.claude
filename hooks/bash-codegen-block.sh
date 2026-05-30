@@ -24,6 +24,27 @@ PYEOF
 
 [ -z "$CMD" ] && exit 0
 
+# 근본 차단: heredoc(<<) 이 든 멀티라인 명령은 tool call JSON 을 깨뜨려
+# "The model's tool call could not be parsed" 에러를 유발한다.
+# here-string(<<<) 은 허용. heredoc 마커 <<EOF / << 'EOF' / <<-EOF 만 감지.
+if echo "$CMD" | grep -qE '<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*' && ! echo "$CMD" | grep -qE '<<<'; then
+  cat >&2 <<MSGEOF
+[차단] Bash heredoc(<<) 명령 감지
+
+heredoc + 멀티라인 + 중첩 따옴표는 tool call JSON 을 깨뜨려
+"The model's tool call could not be parsed" 에러를 유발한다.
+
+대안:
+  1. 코드/스크립트는 Write 도구로 파일 생성 후, 실행은 한 줄 명령으로
+  2. 컨테이너 실행: Write 로 .py 작성 -> docker cp -> docker exec python3 file.py
+  3. 인라인 코드가 꼭 필요하면 python3 -c "..." (줄바꿈 없는 한 줄)
+
+이유: heredoc 자체가 파싱 불가 에러의 근본 원인.
+MSGEOF
+  outcome_log "bash-codegen-block" "block" "heredoc-any" "heredoc-marker"
+  exit 2
+fi
+
 # 코드 파일로 리다이렉트하는 패턴 감지
 if echo "$CMD" | grep -qE 'cat[[:space:]]+<<.*[[:space:]]*>[[:space:]]*[^[:space:]]+\.(py|ts|tsx|js|jsx|kt|java|php|go|rs|rb|swift|vue|svelte|scala|cs)([[:space:]]|$)'; then
   cat >&2 <<MSGEOF
