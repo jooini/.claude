@@ -1,33 +1,47 @@
 // ${MIDDLEWARE_PATH}
-// 로그인이 필요한 경로 보호. PUBLIC_PATHS는 프로젝트에 맞춰 조정.
-// NOTE: 이 thin-client는 Hub가 return_to를 왕복시키지 않으므로(flow-overview 참조) 로그인 후
-// 기본 경로(/)로 복원한다. 딥링크 복원이 필요하면 /login 페이지에서 현재 경로를 쿠키/스토리지에
-// 저장했다가 로그인 완료 후 클라이언트에서 이동하라 — middleware가 ?redirect= 쿼리를 심지 않는다
-// (login 라우트가 그 값을 소비하지 않아 조용히 누락되던 혼선을 제거).
+// 로그인이 필요한 경로 보호 + (있으면) 기존 x-request-id 등 부가 로직 유지.
+//
+// 쿠키 이름(${SESSION_COOKIE})은 callback 라우트가 발급하는 세션 쿠키와 정확히 일치해야 한다.
+// 불일치 시 인증된 사용자도 무한히 /login 으로 튕긴다 — 설치 시 반드시 확인할 것.
+//
+// 미인증 시 /login?return_to=<원래 경로> 로 보낸다. /login 페이지의 로그인 버튼이
+// 이 return_to 를 /api/auth/login 으로 넘기고, callback 이 로그인 후 그 경로로 복원한다.
+//
+// MERGE NOTE: 대상 프로젝트에 이미 middleware.ts 가 있으면 이 파일로 덮어쓰지 말 것.
+//   기존 미들웨어의 로직(예: x-request-id 주입)을 보존하면서, 아래 "인증 가드" 블록과
+//   PUBLIC_PATHS / matcher 만 합쳐 넣는다.
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-const PUBLIC_PATHS = ["/login", "/callback", "/api/auth", "/api/health"]
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/healthz", "/api/readyz"]
+const SESSION_COOKIE = "${SESSION_COOKIE}"
 
 export function middleware(request: NextRequest) {
-    const pathname = request.nextUrl.pathname
+    const { pathname } = request.nextUrl
+
+    // (기존 부가 로직이 있으면 여기서 함께 수행 — 예: x-request-id 주입)
+
     const isPublic = PUBLIC_PATHS.some(
-        (path) => pathname === path || pathname.startsWith(`${path}/`),
+        (p) => pathname === p || pathname.startsWith(`${p}/`),
     )
     if (isPublic) return NextResponse.next()
 
-    const token = request.cookies.get("access_token")
-    if (!token) {
+    // 인증 가드: 세션 쿠키 없으면 /login?return_to=원래경로 로 리다이렉트.
+    const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value)
+    if (!hasSession) {
         const loginUrl = request.nextUrl.clone()
         loginUrl.pathname = "/login"
         loginUrl.search = ""
+        loginUrl.searchParams.set("return_to", pathname + request.nextUrl.search)
         return NextResponse.redirect(loginUrl)
     }
+
     return NextResponse.next()
 }
 
 export const config = {
     matcher: [
-        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+        // 정적 자산/이미지 제외, 나머지 전부 가드. /api/* 도 포함(보호 API는 401, 화면은 /login).
+        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
     ],
 }
