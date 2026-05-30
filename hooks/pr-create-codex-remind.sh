@@ -30,7 +30,10 @@ fi
 echo "[Codex PR 요약 생성 중] 완료까지 대기..."
 
 # Codex 동기 실행 (타임아웃 90초)
-RESULT=$(timeout 90 codex -a "이 브랜치의 PR 설명을 작성해줘.
+# codex exec 사용 — 'codex -a' 는 --ask-for-approval 오해석 버그. PATH 폴백 + git-repo-check 스킵.
+CODEX_BIN="codex"
+command -v codex >/dev/null 2>&1 || CODEX_BIN="$HOME/.nvm/versions/node/v22.22.0/bin/codex"
+RESULT=$(timeout 90 "$CODEX_BIN" exec --skip-git-repo-check "이 브랜치의 PR 설명을 작성해줘.
 
 커밋 로그:
 ${COMMIT_LOG}

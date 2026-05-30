@@ -1,7 +1,7 @@
 ---
 name: ask-codex
 description: 파이프라인 밖에서 Codex에 임시 질문을 보내고 결과를 한국어로 요약한다. 구현 대안, 에러 분석, 패치 검토, 세컨드 오피니언 등에 사용.
-allowed-tools: mcp__codex-cli__codex, mcp__codex-cli__ping, Bash(codex *), Read, Glob, Grep
+allowed-tools: Bash(codex exec *), Bash(/Users/leonard/.nvm/versions/node/v22.22.0/bin/codex exec *), Read, Glob, Grep
 ---
 
 # Ask Codex
@@ -23,40 +23,37 @@ allowed-tools: mcp__codex-cli__codex, mcp__codex-cli__ping, Bash(codex *), Read,
 사용자 요청을 구현 중심 질문으로 정리한다.
 관련 코드가 있으면 컨텍스트에 포함한다 (파일 경로/스니펫을 prompt에 직접 첨부).
 
-### 2단계: Codex MCP 호출 (기본 경로)
+### 2단계: Codex CLI 호출 (기본 경로)
 
-`mcp__codex-cli__codex` 도구를 호출한다.
-
-| 파라미터 | 기본값 | 비고 |
-|----------|--------|------|
-| `prompt` | (필수) | 질문 + 컨텍스트. 한국어 결론 요청 명시 |
-| `reasoningEffort` | `low` (가벼운 의견) / `medium` (분석) / `high` (세컨드 오피니언) | 깊이 vs 시간 |
-| `sandbox` | `read-only` | ask-codex는 읽기만 — 수정 금지 |
-| `model` | `gpt-5.3-codex` (기본) | 명시 안 하면 기본값 |
-| `workingDirectory` | 프로젝트 루트 | 컨텍스트 분석 시 |
-| `sessionId` | (선택) | 대화 연속 필요 시만 |
-
-**호출 예** — Skill 결과 형식이 아닌 Claude의 도구 호출 형식:
-- `mcp__codex-cli__codex(prompt="...", reasoningEffort="low", sandbox="read-only")`
-- 컨텍스트 포함: prompt에 파일 경로(`@path/to/file.py`)나 스니펫을 직접 임베드
-
-> 자동 추적: 모든 호출이 `~/.codex/state_5.sqlite` 의 `threads` 테이블에 기록됨.
-> `/usage` 로 누적 토큰/세션 조회 가능.
-
-### 3단계: 폴백 — CLI 직접 호출 (MCP 장애 시만)
-
-`mcp__codex-cli__ping` 응답 없거나 MCP 호출 실패 시:
+`codex exec` 를 Bash로 호출한다. **MCP(`mcp__codex-cli__codex`)는 이 환경에서 세션 로드 안 됨("No such tool") — CLI 가 1순위다** (2026-05-30 검증).
 
 ```bash
-cd ~/.claude && codex exec --skip-git-repo-check "$QUESTION"
-cd ~/.claude && codex exec --skip-git-repo-check "$QUESTION" < <(cat [관련 파일들])
+# 기본 (codex 가 PATH 에 있을 때)
+codex exec --skip-git-repo-check "$QUESTION"
+
+# PATH 누락 시 절대경로 (which codex 는 'not found' 를 stdout 으로 뱉어 변수 오염시키므로 절대경로 직접 사용)
+/Users/leonard/.nvm/versions/node/v22.22.0/bin/codex exec --skip-git-repo-check "$QUESTION"
+
+# 파일 컨텍스트 포함 (heredoc 금지 — 파일은 인자나 stdin 으로)
+codex exec --skip-git-repo-check "$QUESTION" < 관련파일.txt
 ```
 
-⚠️ **CLI 폴백 주의**:
-- `codex -a "..."` → `--ask-for-approval` 플래그로 해석됨 (에러)
-- `--write` 플래그 금지 — 읽기 전용
-- 비-git 디렉토리(`~/.claude` 등)에서 `--skip-git-repo-check` 필요
-- stdout 빈 응답 자주 발생 (콜드스타트/제어문자 문제) → 폴백은 임시방편
+호출 가이드:
+- **effort**: 기본 config.toml 의 `xhigh` 사용. 가벼운 질문이면 `-c model_reasoning_effort=low` 로 낮춤
+- **model**: config.toml 기본 `gpt-5.5`. 단순 반복이면 `-c model=gpt-5.4` 로 비용 절감
+- **읽기 전용**: ask-codex 는 분석만 — `--write` 금지 (config 의 full-auto 와 무관하게 수정 위임 안 함)
+- **출력 정리**: `2>&1 | grep -v "^hook:" | tail -N` 로 hook 노이즈/배너 제거 후 결론만 취함
+- **타임아웃**: `timeout 120` 권장. xhigh 추론은 길어질 수 있음
+
+> 자동 추적: 모든 호출이 `~/.codex/state_5.sqlite` 와 `~/.codex/history.jsonl` 에 기록됨.
+> `/usage` 로 누적 토큰/세션 조회 가능.
+
+### 3단계: 주의사항 (CLI 호출 함정)
+
+- `codex -a "..."` → `--ask-for-approval` 플래그로 오해석됨. 반드시 `codex exec "..."` 형태
+- 비-git 디렉토리(`~/.claude` 등)에서 `--skip-git-repo-check` 필수
+- 프롬프트에 위험 키워드(DROP/rm 등) 직접 넣으면 danger-keyword 훅 오탐 가능 → 우회 표현 사용
+- write 모드(`--write` 또는 sandbox 미지정)면 codex 가 실제 파일 수정/명령 실행함 — 분석엔 read-only 의도 유지
 
 ### 4단계: 결과 정리
 
@@ -76,9 +73,9 @@ Codex 출력을 그대로 붙이지 않는다. 반드시 아래 형식으로 정
 
 ## 규칙
 
-- **MCP 우선** — `mcp__codex-cli__codex` 가 기본. CLI는 MCP 장애 시 폴백
+- **CLI 우선** — `codex exec` 가 기본. `mcp__codex-cli__codex` MCP는 이 환경에서 세션 로드 안 됨(검증 2026-05-30). MCP 호출 시도 금지
 - Codex 답변을 검증 없이 확정안으로 사용하지 않는다
-- 코드 수정이 필요하면 Claude가 직접 수정한다 (Codex 결과는 참고만)
-- MCP `sandbox: "read-only"` 고정 — 수정 권한 위임 금지
+- 코드 수정이 필요하면 Claude가 직접 수정한다 (Codex 결과는 참고만). 단 대량 구현 위임은 `codex:rescue`/파이프라인 사용
+- 분석 용도는 `--write` 금지 — 읽기 전용 의도 유지
 - 파이프라인 대상 작업이면 이 스킬 대신 파이프라인 실행 (`workflows/codex.md` 참조)
 - 같은 질문을 Gemini에도 중복 요청하지 않는다

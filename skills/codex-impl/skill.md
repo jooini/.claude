@@ -7,7 +7,7 @@ allowed-tools: Bash(codex *), Bash(ls *), Bash(cat *), Read, Glob, Grep
 
 # codex-impl
 
-Codex CLI(GPT-5.4)로 동일 태스크의 대안 구현을 생성한다.
+Codex CLI(기본 모델 gpt-5.5, config.toml)로 동일 태스크의 대안 구현을 생성한다.
 developer 에이전트와 병렬로 실행하여 두 결과를 비교, 최선안을 채택.
 
 ## 실행 절차
@@ -27,16 +27,18 @@ SCAN="$HOME/.claude/cache/gemini/${PROJECT}-scan.md"
 $ARGUMENTS에서 구현 태스크를 파악하고 Codex에 넘긴다.
 
 ```bash
-codex -a "다음 태스크를 구현해줘:
+# codex exec 사용 — 'codex -a' 는 --ask-for-approval 오해석 버그.
+# PATH 에 codex 없으면 절대경로: $HOME/.nvm/versions/node/v22.22.0/bin/codex
+codex exec --skip-git-repo-check --write "다음 태스크를 구현해줘:
 [태스크 설명]
 
 프로젝트 컨텍스트:
 [Gemini 스캔 결과 요약]
 
-기존 코드 패턴을 따르고, 테스트도 함께 작성할 것." --write
+기존 코드 패턴을 따르고, 테스트도 함께 작성할 것."
 ```
 
-`--write` 플래그로 Codex가 직접 파일을 수정하게 한다.
+`--write` 플래그로 Codex가 직접 파일을 수정하게 한다(config.toml full-auto + 기본 모델 gpt-5.5).
 
 ### 3단계: 결과 저장
 

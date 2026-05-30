@@ -223,7 +223,7 @@
 
 ## Deep Research 의무화 케이스
 
-다음 상황에서 **반드시** `deep-research` 스킬 또는 `mcp__codex-cli__websearch` 선행:
+다음 상황에서 **반드시** `deep-research` 스킬 또는 WebSearch/`codex exec`(웹검색 포함) 선행:
 
 | 상황 | 이유 |
 |------|------|

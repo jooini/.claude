@@ -12,7 +12,7 @@ cat <<'MSGEOF'
 
 | 작업 유형 | 위임 대상 | 트리거 |
 |----------|----------|--------|
-| 100줄+ 코드 구현 | Codex MCP (mcp__codex-cli__codex) | 대량 보일러플레이트, 신규 파일 |
+| 100줄+ 코드 구현 | Codex CLI (Skill ask-codex / codex exec / codex:rescue) | 대량 보일러플레이트, 신규 파일 |
 | 1M 토큰 스캔 | Gemini (Skill ask-gemini) | 코드베이스 전체 분석, 영향도 |
 | 단순 질의 (번역/요약/문법) | Ollama (Skill ask-ollama) | 200자 이하 발화 |
 | 한국어 요약/번역 | Ollama qwen3.5:9b | 무료, 로컬 |

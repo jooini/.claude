@@ -41,7 +41,7 @@ if echo "$CMD" | grep -qE 'cat[[:space:]]+<<.*[[:space:]]*>[[:space:]]*[^[:space
 
 대안:
   1. Write 도구 사용 (적은 변경)
-  2. Codex MCP에 구현 위임 (대량 변경): mcp__codex-cli__codex
+  2. Codex에 구현 위임 (대량 변경): Skill(ask-codex) 또는 codex exec / codex:rescue
   3. Skill(ask-codex) 호출
 
 이유: Bash heredoc은 검증/리뷰 우회 + 토큰 비효율

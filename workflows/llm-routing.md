@@ -56,7 +56,7 @@
 - 패치 초안 검토
 - Claude 수정안의 세컨드 오피니언
 
-**호출 방법**: `/ask-codex` 스킬 또는 `mcp__codex-cli__codex` 직접 호출
+**호출 방법**: `/ask-codex` 스킬 또는 `codex exec` CLI (MCP 미사용 — 2026-05-30)
 
 ---
 

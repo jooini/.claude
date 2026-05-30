@@ -17,9 +17,8 @@
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_DISABLE_PATH_WARNING": "1",
-    "ENABLE_TOOL_SEARCH": "false",
     "GEMINI_CLI": "gemini",
-    "PATH": "/Users/leonard/.local/bin:/opt/homebrew/bin:/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    "PATH": "/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   },
   "extraKnownMarketplaces": {
     "claude-code-plugins": {
@@ -73,30 +72,30 @@
             "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/bash-postproc-sync.sh",
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
             "command": "/bin/zsh /Users/leonard/.claude/hooks/dangerous-command-detect.sh",
             "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/error-codex-remind.sh",
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-error-summarize.sh",
             "statusMessage": "Gemma 에러 요약 중...",
             "timeout": 15,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/git-commit-taskhub.sh",
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ],
         "matcher": "Bash"
@@ -104,14 +103,14 @@
       {
         "hooks": [
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-usage-log.sh",
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-complete-notify.sh",
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
             "async": true,
@@ -125,16 +124,16 @@
             "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-trace.sh",
             "timeout": 3,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-build-verify.sh",
             "timeout": 3,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
             "async": true,
@@ -154,46 +153,46 @@
       {
         "hooks": [
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/knowledge-change-rebuild.sh",
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/task-progress-tracker.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/claudemd-change-broadcast.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/rag-auto-index.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-dependency-impact.sh",
             "statusMessage": "Gemini 의존성 영향 분석 중...",
             "timeout": 45,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/learning-note-auto-ingest.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/vault-new-file-suggest.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ],
         "matcher": "Edit|Write"
@@ -201,10 +200,10 @@
       {
         "hooks": [
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/md-read-trace.sh",
             "timeout": 3,
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ],
         "matcher": "Read"
@@ -212,9 +211,9 @@
       {
         "hooks": [
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/mcp-knowledge-telemetry.sh",
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ],
         "matcher": "mcp__local-rag__|mcp__plugin_claude-mem_mcp-search__"
@@ -222,9 +221,9 @@
       {
         "hooks": [
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-finalize.sh",
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ],
         "matcher": ""
@@ -232,10 +231,10 @@
       {
         "hooks": [
           {
+            "async": true,
             "command": "$HOME/.claude/hooks/taskhub-task-create.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ],
         "matcher": "TaskCreate"
@@ -243,10 +242,10 @@
       {
         "hooks": [
           {
+            "async": true,
             "command": "$HOME/.claude/hooks/taskhub-task-update.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ],
         "matcher": "TaskUpdate"
@@ -432,16 +431,16 @@
       {
         "hooks": [
           {
+            "async": true,
             "command": "/Users/leonard/.claude/hooks/stop-notify.sh",
             "timeout": 10,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/Users/leonard/.claude/hooks/stop-pipeline-check.sh",
             "timeout": 10,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
             "async": true,
@@ -451,50 +450,50 @@
             "type": "command"
           },
           {
+            "async": true,
             "command": "/Users/leonard/.claude/hooks/qwen-handoff-suggest.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/Users/leonard/.claude/hooks/daily-learning-capture.sh",
             "timeout": 15,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/llm-wiki-session-lint.sh",
             "timeout": 10,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-summary.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/budget-alert.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           },
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-finalize.sh",
             "timeout": 10,
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ]
       },
       {
         "hooks": [
           {
+            "async": true,
             "command": "/bin/zsh /Users/leonard/.claude/hooks/closure-gate-stop.sh",
             "timeout": 10,
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ],
         "matcher": ""
@@ -502,10 +501,10 @@
       {
         "hooks": [
           {
+            "async": true,
             "command": "$HOME/.claude/hooks/taskhub-session-stop.sh",
             "timeout": 5,
-            "type": "command",
-            "async": true
+            "type": "command"
           }
         ],
         "matcher": "*"
@@ -535,13 +534,6 @@
     ]
   },
   "mcpServers": {
-    "codex-cli": {
-      "args": [
-        "mcp-server"
-      ],
-      "command": "/Users/leonard/.nvm/versions/node/v22.22.0/bin/codex",
-      "env": {}
-    },
     "gitlab": {
       "args": [
         "-y",
@@ -634,7 +626,11 @@
       "mcp__plugin_claude-mem_mcp-search__get_observations",
       "Bash(gemini -p *)",
       "Bash(agy -p *)",
-      "Bash(agy --print *)"
+      "Bash(agy --print *)",
+      "Bash(codex exec *)",
+      "Bash(/Users/leonard/.nvm/versions/node/v22.22.0/bin/codex exec *)",
+      "Skill(ask-codex)",
+      "Skill(ask-gemini)"
     ],
     "defaultMode": "auto",
     "deny": [

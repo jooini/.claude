@@ -49,8 +49,9 @@ case "$FILE_PATH" in
       cat <<EOF
 [위임 권장] $FILE_PATH 에 ${LINE_COUNT}줄 변경 감지
 
-대량 코드 작성은 Codex MCP에 위임이 더 효율적:
-  - Codex 호출: mcp__codex-cli__codex 또는 Skill(ask-codex)
+대량 코드 작성은 Codex에 위임이 더 효율적:
+  - Codex 호출: Skill(ask-codex) 또는 codex exec (CLI — MCP는 미사용)
+  - 대량 구현/리팩터: codex:rescue (write 모드)
   - Gemini 1M 컨텍스트: Skill(ask-gemini) — 코드베이스 영향도/대량 스캔
   - Claude는 판단/리뷰/통합에 집중
 EOF
@@ -64,7 +65,7 @@ EOF
 [BLOCKED] $FILE_PATH 에 ${LINE_COUNT}줄 직접 작성 시도 차단됨
 
 50줄+ 코드 작성은 토큰 비효율 — 다음 중 하나 필요:
-  1. Codex 위임:    mcp__codex-cli__codex 또는 Skill(ask-codex)
+  1. Codex 위임:    Skill(ask-codex) / codex exec (분석) / codex:rescue (대량 구현)
   2. Gemini 위임:   Skill(ask-gemini)  (대량 보일러플레이트/스캔)
   3. 사용자 명시:   "직접 구현해" / "직접 작성해" 발화 시 우회 가능
   4. 분할 작성:    50줄 미만 Edit 여러 번으로 나누기
