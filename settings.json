@@ -70,6 +70,7 @@
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_DISABLE_PATH_WARNING": "1",
+    "ENABLE_TOOL_SEARCH": "false",
     "GEMINI_CLI": "gemini",
     "PATH": "/Users/leonard/.local/bin:/opt/homebrew/bin:/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   },
