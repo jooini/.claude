@@ -27,6 +27,7 @@ PYEOF
 WARN=""
 LEVEL=""
 TRIGGER=""
+BLOCK=0
 
 # 🔴 시스템/홈 디렉토리 삭제
 if echo "$CMD" | grep -qE 'rm[[:space:]]+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)[[:space:]]+(/|~|\$HOME)([[:space:]]|$|/[[:space:]]*$)'; then
@@ -51,10 +52,19 @@ elif echo "$CMD" | grep -qE 'git[[:space:]]+push[[:space:]]+.*(main|master).*(--
   LEVEL="🔴"; TRIGGER="main-force-push"
   WARN="main/master force push — 다른 사람 작업을 덮어씁니다."
 
-# 🔴 SQL 데이터 삭제
-elif echo "$CMD" | grep -qiE '(DROP[[:space:]]+(DATABASE|TABLE)|TRUNCATE[[:space:]]+TABLE)'; then
-  LEVEL="🔴"; TRIGGER="sql-destructive"
-  WARN="SQL 데이터 삭제 명령 — 복구 불가. 환경(prod/stage) 확인 필수."
+# 🔴 SQL 데이터 삭제 — 실제 DB 클라이언트 실행 컨텍스트에서만 차단
+# 조건: ① DB 클라이언트가 "실행 명령 위치"(줄 시작 또는 명령구분자 &&/||/;/|/뒤)에 오고
+#       ② 그 클라이언트에 실행 플래그(-c/-e/--eval/--command/-f) 또는 stdin 리다이렉트(<)가 붙고
+#       ③ 파괴 키워드(DROP/TRUNCATE/DELETE FROM/dropDatabase/deleteMany)가 있을 때만 차단.
+# git commit -m "...mysql..." 처럼 DB 도구명이 인자/문자열로만 등장하면 통과
+# (첫 토큰이 git/echo/codex 등이므로 클라이언트 실행 위치 매칭 안 됨).
+elif echo "$CMD" \
+       | grep -qiE '(^|&&|\|\||;|\|)[[:space:]]*(sudo[[:space:]]+)?(/[^[:space:]]*/)?(psql|mysql|mariadb|mongosh|sqlite3)([[:space:]]+[^[:space:]&|;]*)*[[:space:]]+(-c|-e|-f|--command|--eval|--execute|<)' \
+     && echo "$CMD" \
+       | grep -qiE '(DROP[[:space:]]+(DATABASE|TABLE|SCHEMA)|TRUNCATE([[:space:]]+TABLE)?|DELETE[[:space:]]+FROM|dropDatabase|deleteMany)'; then
+  LEVEL="🔴"; TRIGGER="sql-destructive-exec"
+  WARN="DB 클라이언트로 파괴적 SQL/쿼리 실행 — 복구 불가. 환경(prod/stage) 확인 필수. 의도와 다르면 즉시 중단."
+  BLOCK=1
 
 # 🟡 git reset --hard (commit/branch 인자 없음)
 elif echo "$CMD" | grep -qE 'git[[:space:]]+reset[[:space:]]+--hard[[:space:]]*$'; then
@@ -82,7 +92,19 @@ elif echo "$CMD" | grep -qE 'sudo[[:space:]]+rm[[:space:]]'; then
   WARN="sudo rm — 권한 상승 삭제. 경로 다시 확인."
 fi
 
-if [ -n "$WARN" ]; then
+if [ "$BLOCK" = "1" ]; then
+  # 차단: stderr + exit 2. 파괴적 DB 실행만 여기 도달.
+  cat >&2 <<EOF
+[$LEVEL 차단] 파괴적 DB 명령 감지
+  명령: $CMD
+  → $WARN
+
+정말 실행해야 한다면 사용자가 직접 터미널에서 실행하세요.
+오탐이면 알려주세요(훅 패턴 조정).
+EOF
+  outcome_log "danger-keyword-detect" "block" "${LEVEL} ${WARN}" "$TRIGGER"
+  exit 2
+elif [ -n "$WARN" ]; then
   cat <<EOF
 [$LEVEL 위험 명령 감지] $CMD
   → $WARN

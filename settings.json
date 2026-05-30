@@ -700,16 +700,8 @@
       "Bash(systemctl:*)",
       "Bash(kill -9:*)",
       "Bash(killall:*)",
-      "Bash(DROP DATABASE:*)",
-      "Bash(DROP TABLE:*)",
-      "Bash(TRUNCATE:*)",
-      "Bash(DELETE FROM:*)",
-      "Bash(mongo:*)",
-      "Bash(mongosh:*)",
       "Bash(redis-cli FLUSHALL:*)",
-      "Bash(redis-cli FLUSHDB:*)",
-      "Bash(psql -c DROP:*)",
-      "Bash(mysql -e DROP:*)"
+      "Bash(redis-cli FLUSHDB:*)"
     ]
   },
   "remoteControlAtStartup": false,
