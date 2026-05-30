@@ -1,1 +1,2 @@
 - [추정 금지 — 검증 후 대답 (글로벌)](feedback_no_speculation_global.md) — 모든 프로젝트에서 사실 확인 질문은 검증 후 답변. 추정/가정 절대 금지
+- [도구 호출 malformed 에러 진단](tool-call-format-fix.md) — 룰로 억제 말 것(역효과). 구버전/이중설치부터 점검
