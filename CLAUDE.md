@@ -202,10 +202,28 @@ hooks 가 자동 처리: 의존성 변경→Gemini, 테스트 3회 실패→Code
 4. **위임 트리거는 글로벌 자동 위임 트리거 표(50줄+ Codex, 영향도 Gemini, 단순 Ollama) 유지** — MoAI §2 `[HARD] No direct implementation of complex tasks`는 **50줄+ 또는 5+파일** 기준에서만 FORBIDDEN 강제. 그 미만 단순 작업(설정 한 줄, 짧은 스크립트 패치 등)은 Claude 직접 실행 허용. hook과 정합.
 5. **단순 질의는 Stage 1 Clarify 생략 허용** — MoAI Stage 1 트리거 조건(모호한 대명사 등) 미충족 시 바로 응답. 예: "X 파일 어디 있어?" 같은 단답 질의.
 
+### 외부 LLM 극대화 (agy/codex 통합) [HARD]
+
+MoAI 본문 §4 Forced Delegation Table은 Claude 내부 에이전트(expert-*/manager-*)만 안다. 외부 LLM(codex/agy)은 모른다. 다음으로 보강 — **MoAI 오케스트레이터(메인 Claude)가 Stage 2에서 작업 성격에 따라 내부 에이전트와 외부 LLM을 골라/병렬로 위임**한다. MoAI 서브에이전트가 codex를 직접 부르게 하지 않는다(격리 컨텍스트 결과수집 불가).
+
+7. **Stage 2 Delegation 확장 — 외부 LLM도 위임 후보** [HARD]
+   - **대량 신규 구현(100줄+/신규파일)** → `codex exec --write` 위임 (expert-* 대신 또는 병렬, Claude 토큰 절약). 결과를 Claude가 검증·통합
+   - **세컨드 오피니언/대안 구현(M/L 규모)** → expert-* 구현과 `Skill(ask-codex)` 또는 `codex exec` **병렬**, 최선안 채택
+   - **코드베이스 영향도/대량 스캔(3파일+)** → `Skill(ask-gemini)` (agy 1M 컨텍스트). manager-strategy/researcher 대신 또는 선행
+   - **디버깅 3회 실패** → `codex:rescue` (foreground). expert-debug 에스컬레이션
+   - 호출 경로는 `workflows/codex.md`(codex), `skills/ask-gemini`(agy) 규약 준수. codex는 `codex exec`(codex -a 금지), agy는 `${GEMINI_CLI:-agy}` 또는 wrapper
+
+8. **Stage 4 품질게이트 — codex 교차검증 병렬** [HARD]
+   - **evaluator-active 검증 / >200 LOC 변경 / 보안·DB·API breaking** → `codex:review`(일반) 또는 `codex:adversarial-review`(고위험)를 **병렬** 실행, Claude 평가와 교차검증으로 편향 감소
+   - MoAI GAN Loop(builder-evaluator)의 evaluator 단계에 codex 의견 추가 가능 — 단 MoAI 본문 GAN 계약(constitution.md FROZEN)은 변경 금지, 병렬 참고만
+   - PR 생성 전 → `codex:review` 단독 + manager-git 병행
+
 ### MoAI 강점 유지
 
 6. **다음은 MoAI 본문 그대로 따른다** — Stage 1~4 게이트, Progress Board, Persistence-Aware (auto-compaction 대응), Temp File Hygiene, Dark-Flow Warning, Fresh-Context Reviewer.
 
-근거 (검증 일자 2026-05-25):
-- 글로벌 `~/.claude/CLAUDE.md` 및 `~/.claude/agents/` 는 moai manifest 등재 밖 → `moai update` 시 영향 없음 (safe zone)
+근거 (검증 일자 2026-05-30 갱신):
+- 글로벌 `~/.claude/CLAUDE.md`, `~/.claude/agents/`, `~/.claude/skills/`, `~/.claude/workflows/`, `~/.claude/hooks/` 는 moai manifest(492개 파일, 기준 루트 `~/.claude/.claude/`) 등재 밖 → `moai update` 시 영향 없음 (safe zone). 실측 확인
+- MoAI 본문(`~/.claude/.claude/agents/moai/*`, `output-styles/moai/moai.md`, `skills/moai-*`)은 manifest 관리 → update 시 덮어쓰기. 절대 보강 두지 말 것
 - MoAI 출력 스타일 본문 fork는 유지보수 부담 큼 → 보강 룰을 글로벌에 두는 게 안전
+- agy/codex 통합(룰 7·8)도 전부 글로벌 영역 → update 무영향. codex는 MCP 아닌 CLI/플러그인 경로(`codex exec`/`codex:`), agy는 6/18 gemini 종료로 기본 CLI. 상세: 메모리 [[codex-cli-not-mcp]], [[gemini-agy-migration]]
