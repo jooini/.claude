@@ -1,8 +1,9 @@
 // lib/hub-service-token.js
 // M2M 토큰 매니저. 만료 30초 전까지 캐시 재사용.
-const HUB_URL = process.env.HUB_URL || "${HUB_URL}"
-const REALM = process.env.REALM || "${REALM}"
-const CLIENT_ID = process.env.CLIENT_ID || "${CLIENT_ID}"
+// SECURITY: never log or return token raw values. 발급 토큰은 호출자에게만 반환하고 로그/에러에 싣지 않는다.
+const HUB_URL = process.env.${ENV_PREFIX}URL || "${HUB_URL}"
+const REALM = process.env.${ENV_PREFIX}REALM || "${REALM}"
+const CLIENT_ID = process.env.${ENV_PREFIX}CLIENT_ID || "${CLIENT_ID}"
 
 let cached = null
 
@@ -15,6 +16,7 @@ async function getServiceToken() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ client_id: CLIENT_ID, realm: REALM }),
     })
+    // SECURITY: 상태 코드만 노출, Hub 응답 본문(토큰 포함 가능)은 메시지에 싣지 않는다
     if (!resp.ok) throw new Error(`service-token failed: ${resp.status}`)
     const { access_token, expires_in } = await resp.json()
     cached = { token: access_token, expiresAt: now + expires_in * 1000 }

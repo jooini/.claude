@@ -1,13 +1,14 @@
 # app/hub_service_token.py
 # 서비스 간 통신용 M2M 토큰 매니저. 만료 30초 전까지 캐시 재사용.
+# SECURITY: never log or return token raw values. 발급 토큰은 호출자에게만 반환하고 로그에 남기지 않는다.
 import os
 import time
 
 import httpx
 
-HUB_URL = os.getenv("HUB_URL", "${HUB_URL}")
-REALM = os.getenv("REALM", "${REALM}")
-CLIENT_ID = os.getenv("CLIENT_ID", "${CLIENT_ID}")
+HUB_URL = os.getenv("${ENV_PREFIX}URL", "${HUB_URL}")
+REALM = os.getenv("${ENV_PREFIX}REALM", "${REALM}")
+CLIENT_ID = os.getenv("${ENV_PREFIX}CLIENT_ID", "${CLIENT_ID}")
 TOKEN_URL = f"{HUB_URL}/api/v1/auth/service-token"
 
 

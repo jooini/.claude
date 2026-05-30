@@ -1,9 +1,10 @@
-// src/app/api/auth/refresh/route.ts
+// ${APP_DIR}/api/auth/refresh/route.ts
 // Access Token 만료 임박 시 호출. Hub /auth/refresh는 새 access_token만 반환 (expires_in 없음).
 // 만료 시각은 JWT exp 클레임을 직접 파싱해서 계산.
+// SECURITY: never log or return token raw values. 토큰은 httpOnly 쿠키로만 오가고 응답 본문/로그에 싣지 않는다.
 import { NextRequest, NextResponse } from "next/server"
 
-const HUB_URL = process.env.HUB_URL ?? "${HUB_URL}"
+const HUB_URL = process.env.${ENV_PREFIX}URL ?? "${HUB_URL}"
 
 function parseJwtExp(token: string): number | null {
     try {
@@ -28,7 +29,8 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ access_token: accessToken }),
     })
     if (!resp.ok) {
-        return NextResponse.json({ error: "refresh_failed" }, { status: resp.status })
+        // SECURITY: Hub 응답 본문/상태를 그대로 전달하지 않고 일반화된 에러로만 응답
+        return NextResponse.json({ error: "refresh_failed" }, { status: 401 })
     }
     const { access_token } = await resp.json()
     const exp = parseJwtExp(access_token)
