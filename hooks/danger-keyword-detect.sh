@@ -34,6 +34,20 @@ if echo "$CMD" | grep -qE 'rm[[:space:]]+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA
   LEVEL="🔴"; TRIGGER="rm-rf-root-or-home"
   WARN="시스템/홈 디렉토리 삭제 — 시스템 파괴 위험. 경로 다시 확인."
 
+# 🔴 find 로 대량 삭제 (-delete / -exec rm) — rm 키워드가 경로와 분리된 우회 형태
+elif echo "$CMD" | grep -qE 'find[[:space:]]+.*-delete([[:space:]]|$)'; then
+  LEVEL="🔴"; TRIGGER="find-delete"
+  WARN="find -delete — 매칭 파일 대량 삭제. 검색 범위/패턴 다시 확인."
+
+elif echo "$CMD" | grep -qE 'find[[:space:]]+.*-exec[[:space:]]+rm([[:space:]]|$)'; then
+  LEVEL="🔴"; TRIGGER="find-exec-rm"
+  WARN="find -exec rm — 매칭 파일 대량 삭제. 검색 범위/패턴 다시 확인."
+
+# 🔴 xargs rm — 파이프로 받은 목록을 대량 삭제
+elif echo "$CMD" | grep -qE 'xargs[[:space:]]+(-[a-zA-Z0-9]+[[:space:]]+)*rm([[:space:]]|$)'; then
+  LEVEL="🔴"; TRIGGER="xargs-rm"
+  WARN="xargs rm — 파이프 입력을 대량 삭제. 입력 목록 먼저 확인."
+
 # 🔴 디스크 디바이스 직접 쓰기 (dd of=/dev/...)
 elif echo "$CMD" | grep -qE 'dd[[:space:]]+.*of=/dev/'; then
   LEVEL="🔴"; TRIGGER="dd-to-device"
