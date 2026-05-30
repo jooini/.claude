@@ -1,6 +1,6 @@
 #!/bin/zsh
 # gemma-session-stop-unified.sh.new 통합 훅 검증
-NEW="$HOME/.claude/hooks/gemma-session-stop-unified.sh.new"
+NEW="$HOME/.claude/hooks/gemma-session-stop-unified.sh"
 
 echo "=== 1. 문법 검증 ==="
 /bin/zsh -n "$NEW" && echo "OK zsh 문법" || echo "FAIL 문법"
