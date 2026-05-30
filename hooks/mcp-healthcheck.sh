@@ -50,14 +50,45 @@ if [ ! -d "$RAG_DB" ]; then
     ERRORS+=("local-rag: DB 디렉토리 없음 ($RAG_DB)")
 fi
 
-# 2. claude-mem worker (port 37777) — 깨졌으면 자동 재기동 시도
+# uvx 경로 보장: claude-mem worker가 chroma(semantic 검색)를 띄울 때 PATH에서 uvx를 찾는다.
+# GUI로 뜬 hook은 nvm 전용 PATH만 상속하는 경우가 있어 ~/.local/bin, /opt/homebrew/bin을 명시 주입.
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH"
+
+# 2. claude-mem worker (port 37777) — 깨졌거나 uvx(semantic) 불가하면 자동 재기동 시도
+#    port health(200)만으로는 chroma 죽은 상태를 못 잡으므로 uvx 가용성도 함께 본다.
 HEALTH=$(/usr/bin/curl -s --max-time 2 http://localhost:37777/health 2>/dev/null)
-if [ -z "$HEALTH" ] || ! echo "$HEALTH" | /usr/bin/grep -q "ok"; then
+UVX_OK=""
+command -v uvx >/dev/null 2>&1 && UVX_OK="1"
+
+# worker가 떠 있어도 uvx 경로를 상속받지 못한 상태면 chroma(semantic)가 죽는다.
+# 실행 중인 worker 프로세스의 PATH에 uvx 디렉토리가 있는지 확인 → 없으면 재기동 대상.
+WORKER_PATH_BROKEN=""
+RUNNING_PID=$(/usr/bin/python3 -c "
+import json
+try: print(json.load(open('$HOME/.claude-mem/worker.pid')).get('pid',''))
+except: pass
+" 2>/dev/null)
+if [ -n "$UVX_OK" ] && [ -n "$RUNNING_PID" ] && /bin/kill -0 "$RUNNING_PID" 2>/dev/null; then
+    UVX_DIR=$(/usr/bin/dirname "$(command -v uvx)")
+    WORKER_ENV_PATH=$(/bin/ps eww "$RUNNING_PID" 2>/dev/null | /usr/bin/tr ' ' '\n' | /usr/bin/grep -E '^PATH=' | /usr/bin/head -1)
+    if [ -n "$WORKER_ENV_PATH" ] && ! echo "$WORKER_ENV_PATH" | /usr/bin/grep -q "$UVX_DIR"; then
+        WORKER_PATH_BROKEN="1"
+    fi
+fi
+
+if [ -z "$HEALTH" ] || ! echo "$HEALTH" | /usr/bin/grep -q "ok" || [ -n "$WORKER_PATH_BROKEN" ]; then
+    # uvx 경로 누락으로 재기동하는 경우, 기존 worker를 먼저 정리해야 새 PATH로 뜬다.
+    if [ -n "$WORKER_PATH_BROKEN" ] && [ -n "$RUNNING_PID" ]; then
+        /bin/kill "$RUNNING_PID" 2>/dev/null
+        /bin/sleep 2
+    fi
     # 자동 재기동: worker-cli.js start (detached)
     # Codex 권고: kill 단독은 PID/캐시 꼬임 → worker-service의 start 명령 사용
-    WORKER_DIR="$HOME/.claude/plugins/cache/thedotmack/claude-mem/10.6.2"
+    # 버전 하드코딩 금지: 설치된 최신 버전 디렉토리를 동적 탐지 (이전 10.6.2 하드코딩 버그 수정)
+    WORKER_DIR=$(/bin/ls -dt "$HOME/.claude/plugins/cache/thedotmack/claude-mem"/[0-9]*/ 2>/dev/null | /usr/bin/head -1)
+    WORKER_DIR="${WORKER_DIR%/}"
 
-    if [ -d "$WORKER_DIR" ] && [ -x "/opt/homebrew/bin/node" ]; then
+    if [ -n "$WORKER_DIR" ] && [ -d "$WORKER_DIR" ] && [ -x "/opt/homebrew/bin/node" ]; then
         # Stale PID 파일 정리 (프로세스 죽었는데 파일만 남은 경우)
         OLD_PID_FILE="$HOME/.claude-mem/worker.pid"
         if [ -f "$OLD_PID_FILE" ]; then
@@ -72,8 +103,9 @@ except: pass
             fi
         fi
 
-        # 새 워커 detached spawn
+        # 새 워커 detached spawn — uvx 경로 포함 PATH를 명시 전달 (chroma/semantic 검색 복구의 핵심)
         (
+            export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH"
             cd "$WORKER_DIR" && \
             /usr/bin/nohup /opt/homebrew/bin/node scripts/bun-runner.js scripts/worker-cli.js start \
                 </dev/null >/dev/null 2>&1 &
@@ -91,7 +123,11 @@ except: pass
         done
 
         if [ -n "$REVIVED" ]; then
-            ERRORS+=("claude-mem worker: 자동 재기동 성공 (port 37777, ${REVIVED}초)")
+            if [ -n "$WORKER_PATH_BROKEN" ]; then
+                ERRORS+=("claude-mem worker: uvx 경로 누락 감지 → PATH 보강 후 재기동 성공 (port 37777, ${REVIVED}초). semantic 검색 복구됨")
+            else
+                ERRORS+=("claude-mem worker: 자동 재기동 성공 (port 37777, ${REVIVED}초)")
+            fi
         else
             ERRORS+=("claude-mem worker (port 37777): 응답 없음 + 자동 재기동 실패 (5초 timeout) — 메모리 검색 작동 안 함")
         fi
