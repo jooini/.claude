@@ -71,7 +71,7 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_DISABLE_PATH_WARNING": "1",
     "GEMINI_CLI": "gemini",
-    "PATH": "/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    "PATH": "/Users/leonard/.local/bin:/opt/homebrew/bin:/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   },
   "extraKnownMarketplaces": {
     "claude-code-plugins": {
