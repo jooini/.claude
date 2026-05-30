@@ -311,7 +311,7 @@
     "MOAI_CONFIG_SOURCE": "sections",
     "CLAUDE_CODE_NO_FLICKER": "1",
     "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
-    "PATH": "/Users/leonard/.local/bin:/Users/leonard/go/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
+    "PATH": "/Users/leonard/.local/bin:/Users/leonard/.nvm/versions/node/v22.22.0/bin:/Users/leonard/go/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
   },
   "permissions": {
     "defaultMode": "acceptEdits",
