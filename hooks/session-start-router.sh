@@ -37,6 +37,8 @@ run_hook hook-dormant-warn.sh >/dev/null 2>&1
 
 # === P0 (반드시 표시) ===
 P0_OUT=""
+# transcript 크기 경고 최우선 (긴 대화 = 도구호출 직렬화 깨짐 조기경고, 2026-05-31)
+out=$(run_hook session-transcript-size-warn.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 out=$(run_hook delegation-principle-inject.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 out=$(run_hook session-today-reminder.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 
