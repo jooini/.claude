@@ -36,9 +36,9 @@ DANGER=1782579  # 1.7MB — 강력 권고 (실측 깨짐 발생 지점)
 MB=$(echo "scale=1; $SIZE/1048576" | /usr/bin/bc 2>/dev/null || echo "?")
 
 if [ "$SIZE" -ge "$DANGER" ]; then
-    printf '%s\n' "[🔴 컨텍스트 한계 경고] 이 세션 transcript ${MB}MB — AskUserQuestion 등 복잡한 한글 도구호출이 깨질 수 있음(구조화출력 저하). 복잡한 작업 전 새 세션 권장(/clear 또는 새 창). 회피: 이 세션에선 AskUserQuestion 대신 평문 질문 사용."
+    printf '%s\n' "[🔴 긴 세션 ${MB}MB] 컨텍스트 비대 — 응답 비용/지연 증가. 큰 작업은 새 세션 권장. 참고: AskUserQuestion이 questions=string으로 깨지면(이중 직렬화) 평문 질문으로 대체."
 elif [ "$SIZE" -ge "$WARN" ]; then
-    printf '%s\n' "[🟡 컨텍스트 누적] transcript ${MB}MB. 더 길어지면 도구호출 직렬화 불안정 가능. 큰 작업은 새 세션 고려."
+    printf '%s\n' "[🟡 세션 ${MB}MB] 길어지는 중. 큰 작업은 새 세션 고려."
 fi
 
 exit 0
