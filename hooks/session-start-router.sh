@@ -46,6 +46,7 @@ out=$(run_hook session-today-reminder.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 P1_OUT=""
 out=$(run_hook qwen-project-context-inject.sh); [ -n "$out" ] && P1_OUT+="$out"$'\n'
 out=$(run_hook gemma-intent-restore.sh); [ -n "$out" ] && P1_OUT+="$out"$'\n'
+out=$(run_hook mcp-warmup-remind.sh); [ -n "$out" ] && P1_OUT+="$out"$'\n'
 
 # === P2 (가끔 너무 길어서 압축 후보) ===
 # 아침 브리핑/주간 회고: 무거워서 timeout 길게 잡혀있음. P0 정보와 겹칠 수 있어 압축.

@@ -17,9 +17,8 @@
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_DISABLE_PATH_WARNING": "1",
-    "ENABLE_TOOL_SEARCH": "false",
     "GEMINI_CLI": "agy",
-    "PATH": "/Users/leonard/.local/bin:/Users/leonard/.nvm/versions/node/v22.22.0/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    "PATH": "/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   },
   "extraKnownMarketplaces": {
     "claude-code-plugins": {
@@ -141,12 +140,6 @@
             "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-quality-incremental.sh",
             "timeout": 3,
             "type": "command"
-          },
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/suggestion-outcome-track.sh",
-            "timeout": 3,
-            "type": "command"
           }
         ],
         "matcher": "Agent"
@@ -250,6 +243,15 @@
           }
         ],
         "matcher": "TaskUpdate"
+      },
+      {
+        "hooks": [
+          {
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/toolsearch-mark-loaded.sh",
+            "type": "command"
+          }
+        ],
+        "matcher": "ToolSearch"
       }
     ],
     "PreCompact": [
@@ -374,14 +376,18 @@
           {
             "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-review-prescan.sh",
             "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-routing-suggest.sh",
-            "timeout": 3,
-            "type": "command"
           }
         ],
         "matcher": "Agent"
+      },
+      {
+        "hooks": [
+          {
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/mcp-deferred-guard.sh",
+            "type": "command"
+          }
+        ],
+        "matcher": "mcp__"
       }
     ],
     "SessionEnd": [
