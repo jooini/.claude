@@ -5,7 +5,7 @@
 # 행동(부수효과: 캡처/카운터/큐)은 모두 보존, 사용자에게 보이는 reminder만 압축.
 #
 # 우선순위:
-#   P0 (필수): memory-search-suggest, ultrathink-auto-trigger, assumption-warning
+#   P0 (필수): askuserquestion-bug-guard, memory-search-suggest, ultrathink-auto-trigger, assumption-warning
 #   P1 (강추천): workflow-md-inject
 #   P2 (정보): auto-scale-detect, qq-realtime-warning, self-reflection-inject
 #   P3 (선택): command-suggest, simple-query-ollama-route
@@ -58,6 +58,7 @@ P2_OUT=""
 P3_OUT=""
 
 # === P0 (필수, 행동 변경 강제) ===
+out=$(run_hook askuserquestion-bug-guard.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 out=$(run_hook assumption-warning.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 out=$(run_hook ultrathink-auto-trigger.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 out=$(run_hook memory-search-suggest.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
