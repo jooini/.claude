@@ -43,7 +43,7 @@
 ## 에이전트 라우팅 결정표 (단일표 — 위에서 아래로 첫 매칭 적용)
 
 > **충돌 시 우선순위**: P0(프로젝트) > P1(역할 호출) > P2(파이프라인) > P3(단축 호출) > P4(타입 키워드) > P5(1차 분류 휴리스틱) > P6(컨텍스트 유지)
-> **실측 근거 (2026-05-21 정정)**: `~/.claude/cache/md-live/suggestion-outcomes.jsonl` 16건 분석 — suggest hook의 frontend 추천 15건 중 **채택 0건(0%)**, 81%가 ignored. **현재 호출 에이전트가 옳고 hook 추천이 틀림**. P5는 추측 휴리스틱이 아니라 **명시 신호 기반**(UI 키워드 등장 시만 frontend) + **불명확 시 현재 호출 유지**로 운영. 기존 routing-memo의 "21/24 frontend" 통계는 hook 추천 흔적이지 사용자 채택률이 아님.
+> **실측 근거 (2026-06-01 갱신)**: `suggestion-outcomes.jsonl` 최종 43건 중 frontend 추천 39건, 채택률 7%(accepted 3, ignored 34)로 확정 → **2026-06-01 `agent-routing-suggest.sh` + `suggestion-outcome-track.sh` hook 제거**([[project_routing_suggest_hook_removed_2026_06_01]]). P5는 추측 휴리스틱이 아니라 **명시 신호 기반**(UI 키워드 등장 시만 frontend) + **불명확 시 현재 호출 유지**로 운영. 라우팅은 이 표가 단독 담당(추천 hook 없음).
 
 | P | 입력 신호 | 결정 | 비고 |
 |---|----------|------|------|
@@ -73,7 +73,7 @@
 | **P5** | UI 신호 감지 (`component`, `page`, `style`, `css`, `tsx`, `jsx`, `Tailwind`, `shadcn`, `버튼`, `화면`, `레이아웃`) | 1차 라우팅을 **frontend-developer 우선** | 재지정 21건 완화 |
 | **P5** | 백엔드 신호 명시 (`API`, `endpoint`, `DB`, `migration`, `auth`, `JWT`, `FastAPI`, `Spring`) | backend-developer | UI 신호 없을 때만 |
 | **P5** | 풀스택 혼합 신호 | **2트랙 병렬**: frontend-developer(UI) + backend-developer(API), 통합은 dev-lead | 재지정/왕복 감소 |
-| **P5** | 신호 불명확 | **현재 호출/직전 에이전트 유지** (frontend 추천 채택률 0/15 = 0%, 사용자는 추천 무시 81%) | 추측 라우팅 금지 |
+| **P5** | 신호 불명확 | **현재 호출/직전 에이전트 유지** (추천 hook 제거됨 2026-06-01, 채택률 7%였음) | 추측 라우팅 금지 |
 | **P6** | 운영성 명령 (`재시작`, `재설치`, `서비스`, `로그 봐`, `상태 확인`, `restart`, `재배포`) | 현재 작업 컨텍스트 유지 (직전 에이전트 재사용) — 없으면 ops-lead | 세션 35cdacf2 실측: "서비스 재시작해줘" 등이 ops로 빗나갔다가 frontend로 재지정 3회. **운영 명령은 메인 작업 흐름 끊지 말 것** |
 | **P6** | 세션 내 직전 에이전트 동일 도메인 (UI/API/ops) 3턴 이상 지속 시 | **sticky routing** — 동일 에이전트 재사용. 짧은 운영 명령에 재분류 금지 | 같은 세션 1차 분류 반복 빗나감 방지 |
 | **P6** | `codex:codex-rescue` 종료 후 다음 발화 | rescue 직전 작업 컨텍스트 유지 (frontend/backend 분류 그대로) | rescue 후 frontend로 빗나간 2회 패턴 차단 |
@@ -139,11 +139,11 @@ Sources:
 - 1줄짜리 반복 패턴 (예: import 50개 일괄 정리 — 이건 codemod가 더 빠름)
 - Claude의 판단/통합/최종 정리 단계 (Codex 결과물 머지)
 
-### 위임 효과 측정
+### 위임 효과 측정 (2026-06-01 지표 재설계)
 
-- 주간 `/usage` 로 Codex/Gemini 사용 비율 추적
-- 목표 비율: Claude 70% / Codex 20% / Gemini 8% / Ollama 2%
-- 현재(2026-05-25): Claude 99.5% — **개선 여지 큼**
+- **주지표 = 조건 충족률** (비율 아님): "위임 트리거 조건(50줄+ 구현 / 신규파일 100줄+ / 3파일+ 조사 / 세컨드오피니언·리뷰)이 발생했을 때 실제로 위임됐는가"의 충족률. 단순 질의·짧은 패치까지 위임 강요하지 않으므로 전체 Claude 비율 99%대는 정상일 수 있음.
+- 참고지표: 주간 `/usage` 로 Codex/Gemini 누적 토큰·호출 추세 (절대 비율 목표 아님). 실측 14일: Codex 104회 / Gemini~agy 30회 — 위임 인프라 작동 중.
+- 폐기: "Claude 70%" 절대 비율 목표 (측정 지표로 부적절, 14일 미동 확인 2026-06-01).
 
 ## 디버깅 규칙
 
