@@ -845,6 +845,38 @@ sync_hooks() {
     fi
 }
 
+repair_codex_project_moai_hooks() {
+    local workspace_dir="$HOME/Workspace"
+    local hooks_file
+    local generated_file
+
+    [[ -d "$workspace_dir" ]] || return 0
+
+    while IFS= read -r hooks_file; do
+        [[ -f "$hooks_file" ]] || continue
+        generated_file="$TEMP_DIR/$(echo "$hooks_file" | tr '/ ' '__').json"
+
+        if ! jq --arg prefix "/bin/zsh $CLAUDE_DIR/hooks/codex-silent-json-adapter.sh -- /bin/bash " '
+            def unquote:
+                if startswith("'") and endswith("'") then .[1:-1] else . end;
+            def wrap_moai:
+                if type == "string"
+                    and (contains("codex-silent-json-adapter.sh") | not)
+                    and ((unquote) | test("^/.+/.codex/hooks/moai/handle-[^/]+\\.sh$"))
+                then $prefix + (unquote)
+                else .
+                end;
+
+            (.. | objects | select(has("command")).command) |= wrap_moai
+        ' "$hooks_file" > "$generated_file"; then
+            warn "Codex 프로젝트 MoAI 훅 보정 실패: $hooks_file"
+            continue
+        fi
+
+        sync_generated_file "$generated_file" "$hooks_file" >/dev/null || true
+    done < <(find "$workspace_dir" -maxdepth 4 -path '*/.codex/hooks.json' -type f 2>/dev/null)
+}
+
 count_available_links() {
     local source_dir="$1"
     local target_dir="$2"
@@ -1195,6 +1227,7 @@ main() {
     log "7/8 Hooks 동기화"
     sync_hooks "codex"
     sync_hooks "gemini"
+    repair_codex_project_moai_hooks
 
     log "8/8 MCP 서버 등록 동기화 (Claude → Codex/Gemini 단방향)"
     sync_mcp_servers
