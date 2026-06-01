@@ -476,6 +476,15 @@
             "command": "/bin/zsh /Users/leonard/.claude/hooks/mcp-deferred-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/askuserquestion-korean-block.sh"
+          }
+        ]
       }
     ],
     "SessionEnd": [
