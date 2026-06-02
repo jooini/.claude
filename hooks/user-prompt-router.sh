@@ -58,6 +58,7 @@ P2_OUT=""
 P3_OUT=""
 
 # === P0 (필수, 행동 변경 강제) ===
+out=$(run_hook malformed-toolcall-guard.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 out=$(run_hook askuserquestion-bug-guard.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 out=$(run_hook assumption-warning.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
 out=$(run_hook ultrathink-auto-trigger.sh); [ -n "$out" ] && P0_OUT+="$out"$'\n'
