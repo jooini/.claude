@@ -27,13 +27,13 @@
 - 🔴/🟡 도메인 추정 답이 틀렸으면 즉시 사과 + 검증 + 정정. **같은 추정 두 번 금지**
 - 🟢 도메인도 검증 못 한 부분은 "추정" 또는 "검증 필요" 명시
 
-### AskUserQuestion 한글 버그 회피 [HARD — constitution보다 우선]
+### AskUserQuestion 한글 버그 회피 [HARD — 최우선]
 
 > **근거 (검증 2026-05-31 포렌식 18 transcript / 2026-06-01 실측)**: `AskUserQuestion` 호출 시 한글 텍스트를 `\uXXXX` escape 직렬화하는 과정에서 버퍼 경계 버그로 hex 손상 → `questions` 배열이 string으로 폴백 → `InputValidationError: questions type expected array but provided string` → 멈춤. 실측 한 세션 114회 중 25회 실패 = **22%**. 한글은 영어 대비 escape **23배**(동일 질문 영어 0개 vs 한글 23개) → 한글 사용자가 23배 자주 겪음. GitHub #30955. **Claude Code 본체+서버 버그라 `.claude` 재설치·폰트 변경으로 해결 불가, Anthropic 패치 전까지 클라이언트단 회피만 가능.** 일반 한글 응답·설명은 안전(이 경로 안 탐) — **AskUserQuestion 도구 호출 + 한글** 조합만 트리거. 실시간 강제는 `hooks/askuserquestion-bug-guard.sh`(router P0)가 담당.
 
 - [HARD] **저위험(🟢) 질문은 AskUserQuestion 쓰지 말 것** — 본문 마크다운으로 선택지 제시(`A) ... B) ... C) ...`). 깨지는 도구 경로 자체 회피
 - [HARD] **고위험(🔴 삭제·배포·인프라·외부시스템·파괴적) 확인만 AskUserQuestion 허용** — 단 question·header·label·description을 **전부 영어(ASCII)로** 작성(escape 0개). 한글 부연은 본문 텍스트에, tool payload엔 ASCII만
-- [HARD] **이 회피 룰이 MoAI constitution의 `[HARD] 모든 질문은 AskUserQuestion으로 / 한글 응답`보다 우선** — constitution.md는 FROZEN이라 본문 수정 불가 → 글로벌 회피룰로 무력화. `moai update` 무영향 안전지대
+- [HARD] **이 회피 룰은 "모든 질문은 AskUserQuestion으로 / 한글로" 류의 어떤 상위 룰보다 우선** — Anthropic 패치 전까지 무조건 적용
 - 트레이드오프: A(영어 선택지)·C(본문 질문)는 성능/품질 영향 0. 위험 작업은 계속 확인하므로 자율성 과다 우려 없음
 
 ## 워크플로우 문서 (조건부 로드)
@@ -57,6 +57,7 @@
 | SDD / TDD / 컨텍스트 관리 | `workflows/sdd-tdd.md` |
 | 백로그 등록 / 트랙 | `workflows/backlog-policy.md` |
 | 코드 검색 / RAG / Grep | `workflows/search-priority.md` |
+| `@team` / 팀 spawn / 멀티프로젝트 묶음 | `workflows/team-templates.md` |
 
 ## 에이전트 라우팅 결정표 (단일표 — 위에서 아래로 첫 매칭 적용)
 
@@ -67,7 +68,7 @@
 |---|----------|------|------|
 | **P0** | `@dev` 호출 | 프로젝트 `.claude/agents/dev.md` 라우팅. 글로벌 파이프라인 **비적용** | 이중 실행 방지 |
 | **P0** | `@dev` + 프로젝트 `dev.md` 없음 | `dev-lead`로 폴백 | dev-lead는 @dev의 폴백, 대체 아님 |
-| **P0** | `@team` 호출 | 크로스 프로젝트 팀 라우팅 | 영향 범위 기준 병렬 |
+| **P0** | `@team` 호출 | 크로스 프로젝트 팀 라우팅 | 영향 범위 기준 병렬. 템플릿: `workflows/team-templates.md` |
 | **P1** | 한글 호출명 (복수 → 병렬) | `백엔드→backend-developer` / `프론트→frontend-developer` / `AI엔지니어→ai-engineer` / `리뷰어→code-reviewer` / `디자이너→designer` / `피오→po` / `데이터→data-analyst` / `옵스→ops-lead` / `프롬프트→prompt-engineer` | 명시 호출 최우선 |
 | **P1** | `큐에이` | `qa` — **테스트 설계/케이스/시나리오 전담** | 명령 실행 안 함 |
 | **P1** | `테스터` | `code-tester` — **lint/build/test 실행 전담** | 설계 안 함 |

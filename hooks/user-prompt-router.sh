@@ -44,11 +44,18 @@ log_router() {
 }
 
 # 단일 sub-hook 실행 — stdin 재공급 후 stdout 캡처
+# timeout: 멈추는 sub-hook(네트워크/LLM 의존)이 발화 전체를 블록하지 않도록 alarm 가드.
+# macOS엔 timeout/gtimeout 없음 → /usr/bin/perl alarm 폴백. perl 없으면 무가드 실행.
+HOOK_TIMEOUT="${CLAUDE_HOOK_TIMEOUT:-3}"
 run_hook() {
     local name="$1"
     local script="$HOOKS/$name"
     [ -x "$script" ] || return 1
-    echo "$INPUT" | "$script" 2>/dev/null
+    if [ -x /usr/bin/perl ]; then
+        echo "$INPUT" | /usr/bin/perl -e 'alarm shift; exec @ARGV or exit 127' "$HOOK_TIMEOUT" "$script" 2>/dev/null
+    else
+        echo "$INPUT" | "$script" 2>/dev/null
+    fi
 }
 
 # 우선순위별 실행
