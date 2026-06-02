@@ -15,7 +15,7 @@
 > **근거 (실측 2026-06-01 세션)**: 도구 호출 블록을 여는 토큰으로 `course` 같은 잘못된 텍스트를 출력하면 `Your tool call was malformed and could not be parsed` 로 전부 실패. 한 세션에서 Edit/Read/Bash/Write 8회 연속 malformed 발생. 성공한 호출은 모두 올바른 여는 토큰 + invoke 네임스페이스 형식. 깨진 호출은 `course` + 네임스페이스 없는 invoke. 인프라/hook 문제 아님 — **출력 토큰 생성 일관성 문제**.
 
 - [HARD] 모든 도구 호출은 올바른 function_calls 여는 토큰 + 올바른 invoke 태그(네임스페이스 포함) 형식으로만 출력
-- [HARD] `course`, 네임스페이스 없는 invoke, 기타 텍스트로 도구 호출 블록을 시작 금지
+- [HARD] **`call`, `course`, 네임스페이스 없는 invoke, 기타 어떤 평문 단어로도 도구 호출 블록을 시작 절대 금지** — 실측(2026-06-01 세션 89ada186): 누출 20건 100% 가 `<invoke>` 바로 앞에 평문 `call\n` 을 출력한 패턴. 즉 여는 토큰 자리에 `call` 이라는 단어가 들어가면 파서가 전체를 text로 처리 → malformed. `<invoke>` 직전 토큰은 반드시 올바른 function_calls 여는 토큰이어야 하며, 그 앞 줄에 `call`/`course`/설명문구를 두면 100% 깨진다
 - [HARD] malformed 1회 발생 시: 다음 호출에서 즉시 형식 교정. 같은 깨진 형식 두 번 금지
 - [HARD] 연속 malformed 시 우회책(Bash sed/python 인플레이스)으로 작업은 진행하되, 형식 자체를 교정하는 게 근본 해결
 
@@ -204,61 +204,3 @@ Sources:
 ## 워크플로우 자동화
 
 hooks 가 자동 처리: 의존성 변경→Gemini, 테스트 3회 실패→Codex rescue, PR 생성→Codex 요약, 프로젝트 전환→Gemini 스캔. 규모 자동 판별(S/M/L), 파이프라인 메트릭, 결정 자동 캡처도 훅으로. 회고: `/retro [N일]`, `/decisions [검색어]`. 상세: `workflows/automation.md`
-
-## MoAI 출력 스타일 활성 시 보강 룰 [HARD]
-
-`outputStyle: "MoAI"` 활성 시(프로젝트 `~/.claude/.claude/settings.json`) 다음 보강 룰이 MoAI 본문보다 우선한다. MoAI 본문은 `expert-*/manager-*` 22개만 §4 Forced Delegation Table에 등재하지만, 글로벌 `~/.claude/agents/` 19개 + 프로젝트 `dev.md` 까지 합쳐 총 41+개 에이전트가 존재한다. MoAI는 이를 모르므로 보강 필요.
-
-### 라우팅 우선순위 (MoAI §4보다 위)
-
-1. **P0/P1 한글 호출 우선** — `백엔드/프론트/리뷰어/디자이너/큐에이/테스터/피오/데이터/옵스/프롬프트/AI엔지니어` 명시 호출 시 글로벌 `~/.claude/agents/` 우선. MoAI Stage 2 Delegation 단계에서도 이 표가 §4를 덮어쓴다.
-2. **`@dev` P0 우선** — 프로젝트 `dev.md` 있으면 그쪽, 없으면 글로벌 `dev-lead`. MoAI §4의 `manager-*` 우회.
-3. **MoAI §4 표는 한글 호출/`@dev`/`@team` 미매칭일 때만 적용** — 영문 작업 키워드(security, performance, refactoring 등)는 그대로 expert-*/manager-* 라우팅.
-3-bis. **중복 8개 도메인은 MoAI 자율 위임 시에도 글로벌 두꺼운 agent 우선** [HARD] — 명시 호출 없이 MoAI가 Stage 2에서 자율 위임할 때, 아래 도메인은 MoAI 본문 §4의 expert-*/manager-* 대신 **글로벌 `~/.claude/agents/` 우선 선택**. 근거: 글로벌 agent가 7배 두껍고(현장 패턴 다수) opus 고정이라 단발 구현·리뷰 품질 우위. 단 MoAI 워크플로(`/moai run`의 GAN 루프/Stage 게이트) **명시 진입 시에는 MoAI 본문 계약 우선**(constitution.md FROZEN 존중) — 워크플로 밖 일반 작업에서만 글로벌 우선.
-
-| 도메인 | 글로벌 우선 (워크플로 밖) | MoAI 대응 (워크플로 안/명시 키워드) |
-|--------|--------------------------|--------------------------------------|
-| 백엔드/API/DB | `backend-developer` | expert-backend |
-| 프론트/UI | `frontend-developer` | expert-frontend |
-| 테스트 설계 | `qa` / 실행 `code-tester` | expert-testing |
-| 코드 리뷰 | `code-reviewer` | manager-quality |
-| 데이터/SQL/대시보드 | `data-analyst` | (MoAI 없음 → 글로벌 전담) |
-| DevOps/배포/인프라 | `ops-lead` | expert-devops |
-| 문서화 | `codebase-documenter` | manager-docs |
-| AI/ML/RAG | `ai-engineer` | (MoAI 없음 → 글로벌 전담) |
-| 프롬프트/PRD | `prompt-engineer` / `po` | (MoAI 없음 → 글로벌 전담) |
-| 디버깅/근본원인 | `debug-master`(7단계) | expert-debug → `codex:rescue`(3회실패) |
-| 멀티에이전트 리드 | `dev-lead` (또는 `@dev`) | (MoAI 오케스트레이터 본체가 담당) |
-
-3-ter. **MoAI 전담 (글로벌 대응 없음 → 항상 MoAI)** — 다음은 글로벌에 없으므로 MoAI 본문 agent를 그대로 사용: `manager-spec`(EARS SPEC), `manager-tdd`/`manager-ddd`(TDD/DDD 사이클), `manager-git`, `expert-security`, `expert-performance`, `expert-refactoring`, `expert-debug`, `evaluator-active`(독립 평가), `plan-auditor`(SPEC 감사), `builder-agent`/`builder-skill`/`builder-plugin`(메타 생성), `manager-strategy`, `researcher`. 디버깅은 글로벌 `debug-master`(존재) 또는 MoAI `expert-debug`/`codex:rescue` — 7단계 절차는 `debug-master` 우선, 3회 실패 시 `codex:rescue`.
-
-### 위임 강도 조정
-
-4. **위임 트리거는 글로벌 자동 위임 트리거 표(50줄+ Codex, 영향도 Gemini, 단순 Ollama) 유지** — MoAI §2 `[HARD] No direct implementation of complex tasks`는 **50줄+ 또는 5+파일** 기준에서만 FORBIDDEN 강제. 그 미만 단순 작업(설정 한 줄, 짧은 스크립트 패치 등)은 Claude 직접 실행 허용. hook과 정합.
-5. **단순 질의는 Stage 1 Clarify 생략 허용** — MoAI Stage 1 트리거 조건(모호한 대명사 등) 미충족 시 바로 응답. 예: "X 파일 어디 있어?" 같은 단답 질의.
-
-### 외부 LLM 극대화 (agy/codex 통합) [HARD]
-
-MoAI 본문 §4 Forced Delegation Table은 Claude 내부 에이전트(expert-*/manager-*)만 안다. 외부 LLM(codex/agy)은 모른다. 다음으로 보강 — **MoAI 오케스트레이터(메인 Claude)가 Stage 2에서 작업 성격에 따라 내부 에이전트와 외부 LLM을 골라/병렬로 위임**한다. MoAI 서브에이전트가 codex를 직접 부르게 하지 않는다(격리 컨텍스트 결과수집 불가).
-
-7. **Stage 2 Delegation 확장 — 외부 LLM도 위임 후보** [HARD]
-   - **대량 신규 구현(100줄+/신규파일)** → `codex exec --write` 위임 (expert-* 대신 또는 병렬, Claude 토큰 절약). 결과를 Claude가 검증·통합
-   - **세컨드 오피니언/대안 구현(M/L 규모)** → expert-* 구현과 `Skill(ask-codex)` 또는 `codex exec` **병렬**, 최선안 채택
-   - **코드베이스 영향도/대량 스캔(3파일+)** → `Skill(ask-gemini)` (agy 1M 컨텍스트). manager-strategy/researcher 대신 또는 선행
-   - **디버깅 3회 실패** → `codex:rescue` (foreground). expert-debug 에스컬레이션
-   - 호출 경로는 `workflows/codex.md`(codex), `skills/ask-gemini`(agy) 규약 준수. codex는 `codex exec`(codex -a 금지), agy는 `${GEMINI_CLI:-agy}` 또는 wrapper
-
-8. **Stage 4 품질게이트 — codex 교차검증 병렬** [HARD]
-   - **evaluator-active 검증 / >200 LOC 변경 / 보안·DB·API breaking** → `codex:review`(일반) 또는 `codex:adversarial-review`(고위험)를 **병렬** 실행, Claude 평가와 교차검증으로 편향 감소
-   - MoAI GAN Loop(builder-evaluator)의 evaluator 단계에 codex 의견 추가 가능 — 단 MoAI 본문 GAN 계약(constitution.md FROZEN)은 변경 금지, 병렬 참고만
-   - PR 생성 전 → `codex:review` 단독 + manager-git 병행
-
-### MoAI 강점 유지
-
-6. **다음은 MoAI 본문 그대로 따른다** — Stage 1~4 게이트, Progress Board, Persistence-Aware (auto-compaction 대응), Temp File Hygiene, Dark-Flow Warning, Fresh-Context Reviewer.
-
-근거 (검증 일자 2026-05-30 갱신):
-- 글로벌 `~/.claude/CLAUDE.md`, `~/.claude/agents/`, `~/.claude/skills/`, `~/.claude/workflows/`, `~/.claude/hooks/` 는 moai manifest(492개 파일, 기준 루트 `~/.claude/.claude/`) 등재 밖 → `moai update` 시 영향 없음 (safe zone). 실측 확인
-- MoAI 본문(`~/.claude/.claude/agents/moai/*`, `output-styles/moai/moai.md`, `skills/moai-*`)은 manifest 관리 → update 시 덮어쓰기. 절대 보강 두지 말 것
-- MoAI 출력 스타일 본문 fork는 유지보수 부담 큼 → 보강 룰을 글로벌에 두는 게 안전
-- agy/codex 통합(룰 7·8)도 전부 글로벌 영역 → update 무영향. codex는 MCP 아닌 CLI/플러그인 경로(`codex exec`/`codex:`), agy는 6/18 gemini 종료로 기본 CLI. 상세: 메모리 [[codex-cli-not-mcp]], [[gemini-agy-migration]]
