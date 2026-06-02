@@ -685,6 +685,7 @@
     }
   },
   "alwaysThinkingEnabled": false,
+  "effortLevel": "xhigh",
   "theme": "dark-daltonized",
   "remoteControlAtStartup": false,
   "skipAutoPermissionPrompt": true,
