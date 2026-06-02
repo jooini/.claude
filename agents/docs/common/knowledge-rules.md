@@ -20,6 +20,6 @@
 
 ### 추가 참조
 
-- **RAG 검색**: `mcp__local-rag__query_documents`로 의미 검색 (예: "캐싱 ���략", "컴포넌트 설계")
-- **직접 Read**: 특정 파��이 필요하면 `~/.claude/agents/knowledge/` 경로에서 직접 Read
-- knowledge와 프로젝트 컨벤션이 ��돌하면 **프로젝트 컨벤션을 우선**��다
+- **RAG 검색**: `mcp__local-rag__query_documents`로 의미 검색 (예: "캐싱 전략", "컴포넌트 설계")
+- **직접 Read**: 특정 파일이 필요하면 `~/.claude/agents/knowledge/` 경로에서 직접 Read
+- knowledge와 프로젝트 컨벤션이 충돌하면 **프로젝트 컨벤션을 우선**한다
