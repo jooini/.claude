@@ -12,12 +12,14 @@
 
 ### 도구 호출 형식 [HARD — 최우선, 모든 룰보다 위]
 
-> **근거 (실측 2026-06-01 세션)**: 도구 호출 블록을 여는 토큰으로 `course` 같은 잘못된 텍스트를 출력하면 `Your tool call was malformed and could not be parsed` 로 전부 실패. 한 세션에서 Edit/Read/Bash/Write 8회 연속 malformed 발생. 성공한 호출은 모두 올바른 여는 토큰 + invoke 네임스페이스 형식. 깨진 호출은 `course` + 네임스페이스 없는 invoke. 인프라/hook 문제 아님 — **출력 토큰 생성 일관성 문제**.
+> **진짜 원인 (포렌식 확정 2026-05-31 #12952, 18 세션 분석 / 99.8K 토큰)**: malformed 의 근본 원인은 **streaming tool execution 의 `stop_sequence` truncation — Claude Code 2.1.157+ 회귀**다. 모델이 streaming 중 function_calls XML 을 생성하다 내부 stop sequence 에 잘려서 꼬리 토큰(`call`/`count`)이 평문으로 굳고 `<invoke>` 앞에 누출 → 파서가 전체를 text 처리 → `Your tool call was malformed and could not be parsed`. **결정적 증거**: 깨진 메시지는 `stop_reason=stop_sequence`(정상은 `tool_use`), tool_use 블록 0, tool_result 없음. **세션 크기·컨텍스트 오염과 무관**(168K 세션이 5회 깨지고 2.0M 세션은 1회 — 임계값 없음). 따라서 과거 "출력 토큰 생성 일관성 / 세션 컨텍스트 오염" 설명은 **반증됨(틀림)**. 실측 빈도 ~3.1%(20/648), 재시도 시 대개 성공(비결정적). **서빙/API 레이어 버그라 env 토글로 끌 수 없음**(2.1.159 바이너리 전수조사: streaming tool exec 비활성화 토글 부재, `CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK` 는 반대 방향 — 안전 폴백을 끄는 것). 근본 수정은 Anthropic. **클라이언트 완화책은 2.1.156 다운그레이드(`versions/2.1.156` 존재)뿐.** 자세한 정정·완화 결정: [[malformed-toolcall-streaming-regression]].
+>
+> 아래 HARD 룰은 **근본 수정이 아니라 증상 완화/복구 절차**다(누출 자체는 모델이 의도한 게 아니라 막을 수 없지만, 1회 발생 후 즉시 형식 교정·재시도로 루프를 끊는다).
 
 - [HARD] 모든 도구 호출은 올바른 function_calls 여는 토큰 + 올바른 invoke 태그(네임스페이스 포함) 형식으로만 출력
 - [HARD] **`call`, `course`, 네임스페이스 없는 invoke, 기타 어떤 평문 단어로도 도구 호출 블록을 시작 절대 금지** — 실측(2026-06-01 세션 89ada186): 누출 20건 100% 가 `<invoke>` 바로 앞에 평문 `call\n` 을 출력한 패턴. 즉 여는 토큰 자리에 `call` 이라는 단어가 들어가면 파서가 전체를 text로 처리 → malformed. `<invoke>` 직전 토큰은 반드시 올바른 function_calls 여는 토큰이어야 하며, 그 앞 줄에 `call`/`course`/설명문구를 두면 100% 깨진다
-- [HARD] malformed 1회 발생 시: 다음 호출에서 즉시 형식 교정. 같은 깨진 형식 두 번 금지
-- [HARD] 연속 malformed 시 우회책(Bash sed/python 인플레이스)으로 작업은 진행하되, 형식 자체를 교정하는 게 근본 해결
+- [HARD] malformed 1회 발생 시: 다음 호출에서 즉시 올바른 형식으로 재시도. 같은 깨진 형식 두 번 금지 (재시도는 비결정적이라 대개 성공 — 자가복구가 정상 동작이다)
+- [HARD] 연속 malformed 시 우회책(Bash sed/python 인플레이스)으로 작업은 진행. **단 "형식 교정 = 근본 해결" 아님** — 누출은 서빙측 stop_sequence truncation 이라 모델이 형식을 의도해도 streaming 중 잘리면 또 샌다. 근본 완화는 2.1.156 다운그레이드(`bin/claude-version-switch.sh downgrade`, 단 loop keepalive·plugin sync·Pewter Owl 상실), 근본 수정은 Anthropic 패치 대기
 
 ### 공통 룰
 
