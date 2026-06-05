@@ -6,6 +6,7 @@
 : "${HOME:?}"
 
 . "$HOME/.claude/scripts/_nvm-path.sh"  # nvm PATH 보강
+source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
 
 GEM_CLI="${GEMINI_CLI:-}"
 if [ -z "$GEM_CLI" ]; then
@@ -71,6 +72,7 @@ print(json.dumps({
     }
 }))
 "
+        outcome_log "gemini-dependency-impact" "trigger" "${PROJECT_NAME}:${FILE_PATH##*/}" "gemini-impact-cached"
         exit 0
     fi
 fi
@@ -83,10 +85,14 @@ PROMPT=$(printf '의존성 파일 변경 영향 분석. 프로젝트 루트: %s\
 # 프롬프트를 단일 -p 인자로 직접 전달.
 RESULT=$("$GEM_CLI" -p "$PROMPT" 2>/dev/null | tail -50)
 
-[ -z "$RESULT" ] && exit 0
+if [ -z "$RESULT" ]; then
+    outcome_log "gemini-dependency-impact" "warn" "${PROJECT_NAME}:${FILE_PATH##*/}:empty" "gemini-impact-noresult"
+    exit 0
+fi
 
 echo "$RESULT" > "$OUTPUT_FILE"
 echo "$DIFF_HASH" > "$HASH_FILE"
+outcome_log "gemini-dependency-impact" "trigger" "${PROJECT_NAME}:${FILE_PATH##*/}:${GEM_CLI}" "gemini-impact-fired"
 
 export GEMINI_RESULT="$RESULT" PROJECT_NAME
 python3 -c "

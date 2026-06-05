@@ -21,7 +21,14 @@
       "Bash(rm -rf /tmp/zip-verify)",
       "Bash(mkdir -p /tmp/zip-verify)",
       "Bash(unzip -q /tmp/claude-code-config-20260506-1818.zip -d /tmp/zip-verify)",
-      "Bash(~/.claude/scripts/gemma-knowledge-refresh.sh)"
+      "Bash(~/.claude/scripts/gemma-knowledge-refresh.sh)",
+      "Edit(/Users/leonard/.claude/hooks/**)",
+      "Write(/Users/leonard/.claude/hooks/**)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "sequential-thinking",
+    "moai-lsp"
+  ]
 }

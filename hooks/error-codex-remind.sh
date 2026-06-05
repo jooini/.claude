@@ -4,6 +4,8 @@
 
 : "${HOME:?}"
 
+source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
+
 INPUT=$(cat)
 
 COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\(.*\)"/\1/p' | head -1)
@@ -72,12 +74,15 @@ ${ERROR_CONTEXT}
     echo "[Codex rescue 완료] 분석 결과:"
     echo "---"
     echo "$RESULT"
+    outcome_log "error-codex-remind" "trigger" "${PROJECT_NAME}:${CMD_TYPE}:${CURRENT_COUNT}fail" "codex-rescue-fired"
   else
     echo "[Codex rescue 실패/타임아웃] — codex:codex-rescue 스킬을 수동 실행하세요"
+    outcome_log "error-codex-remind" "warn" "${PROJECT_NAME}:${CMD_TYPE}:timeout" "codex-rescue-failed"
   fi
   echo "0" > "$STATE_FILE"
 elif [ "$CURRENT_COUNT" -ge 2 ]; then
   echo "[${CMD_TYPE} ${CURRENT_COUNT}회 연속 실패] 다음 실패 시 Codex rescue 자동 실행"
+  outcome_log "error-codex-remind" "warn" "${PROJECT_NAME}:${CMD_TYPE}:2fail" "test-fail-2"
 fi
 
 exit 0

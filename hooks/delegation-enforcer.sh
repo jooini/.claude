@@ -5,6 +5,8 @@
 
 : "${HOME:?}"
 
+source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
+
 # stdin → 임시 파일 (echo/printf 백슬래시 해석 회피)
 INPUT_FILE=$(mktemp)
 trap 'rm -f "$INPUT_FILE"' EXIT
@@ -55,6 +57,7 @@ case "$FILE_PATH" in
   - Gemini 1M 컨텍스트: Skill(ask-gemini) — 코드베이스 영향도/대량 스캔
   - Claude는 판단/리뷰/통합에 집중
 EOF
+      outcome_log "delegation-enforcer" "warn" "${FILE_PATH##*/}:${LINE_COUNT}L" "recommend-30to49"
       exit 0
     fi
 
@@ -72,6 +75,7 @@ EOF
 
 직접 구현이 명확히 더 나은 경우(긴급/단순 패치)만 사용자 확인 후 진행.
 EOF
+    outcome_log "delegation-enforcer" "block" "${FILE_PATH##*/}:${LINE_COUNT}L" "block-50plus"
     exit 2
 
     ;;
