@@ -8,7 +8,7 @@
 #   learning-to-anki.sh <디렉토리>                # 일괄 처리 (사용자 명시 시에만)
 #   OUT_DIR=/path/to/out learning-to-anki.sh ...  # 출력 디렉토리 오버라이드
 #
-# 의존성: codex CLI, jq, python3
+# 의존성: llm-call.sh, jq, python3
 set -euo pipefail
 
 # ---------- 인자 검증 ----------
@@ -40,12 +40,16 @@ default_out_dir() {
 }
 
 # ---------- 의존성 체크 ----------
-for cmd in codex jq python3; do
+for cmd in jq python3; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
         echo "[ERR] 의존성 누락: $cmd" >&2
         exit 1
     fi
 done
+if [[ ! -x "$HOME/.claude/scripts/llm-call.sh" ]]; then
+    echo "[ERR] 의존성 누락: $HOME/.claude/scripts/llm-call.sh" >&2
+    exit 1
+fi
 
 # ---------- 코어: 노트 1개 처리 ----------
 process_one() {
@@ -95,8 +99,11 @@ JSON 배열만 출력해라.
 PROMPT
 )
 
-    # codex exec 실행 (timeout 방어)
-    if ! (cd "$HOME/.claude" && codex exec --skip-git-repo-check "$prompt") > "$raw_out" 2>/dev/null; then
+    # Codex 실행 (공통 LLM 어댑터 경유)
+    if ! (cd "$HOME/.claude" && "$HOME/.claude/scripts/llm-call.sh" codex \
+        --caller learning-to-anki \
+        --timeout 120 \
+        --prompt "$prompt") > "$raw_out" 2>/dev/null; then
         echo "  [WARN] codex exec 실패 — raw 출력 보관: $raw_out" >&2
     fi
 

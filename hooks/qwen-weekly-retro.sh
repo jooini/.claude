@@ -8,12 +8,13 @@
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/ini"
+INI_BIN="$HOME/.local/bin/ini"
 RETRO_DIR="$HOME/.claude/cache/retro"
 SESSION_SUMMARY_DIR="$HOME/.claude/cache/session-summary"
 
-# ini 미설치 시 즉시 스킵
-[ -x "$QWEN" ] || exit 0
+# ini stats와 LLM 어댑터 확인
+[ -x "$INI_BIN" ] || exit 0
+[ -x "$HOME/.claude/scripts/llm-call.sh" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
 source "$HOME/.claude/hooks/_lib/ollama-available.sh"
@@ -40,7 +41,7 @@ fi
 # 위 OUTPUT_FILE 부재 체크가 곧 "그 주 첫 세션" 판정이므로 이대로 진행
 
 # 3) ini stats --tail 7d 실행 (실패해도 best-effort)
-STATS_OUTPUT=$("$QWEN" stats --tail 7d 2>/dev/null)
+STATS_OUTPUT=$("$INI_BIN" stats --tail 7d 2>/dev/null)
 STATS_EXIT=$?
 if [ "$STATS_EXIT" -ne 0 ] || [ -z "$STATS_OUTPUT" ]; then
     STATS_OUTPUT="(ini stats 호출 실패 또는 출력 없음 — 세션 요약만으로 진행)"
@@ -86,7 +87,13 @@ fi
 # 6) ini writer 페르소나로 회고 노트 생성
 PROMPT=$(printf '다음은 지난 한 주간의 Claude Code 사용 통계와 세션 요약이다. 한국어로 주간 회고 노트를 작성해줘.\n\n출력 형식 (정확히 이 4개 섹션, 다른 섹션 추가 금지):\n\n## 이번 주 데이터\n<stats 출력에서 핵심 지표 3-5개 (호출 수, 토큰, 모델별 분포 등). 숫자 위주.>\n\n## 잘한 것\n- <근거 있는 성과 1>\n- <근거 있는 성과 2>\n- <근거 있는 성과 3>\n\n## 개선할 점\n- <반복된 비효율/실수 1>\n- <반복된 비효율/실수 2>\n\n## 다음 주 우선순위\n- <세션 요약에서 미완료/후속 조치로 언급된 것>\n- <상위 우선순위 작업>\n\n규칙:\n- 통계 + 세션 요약을 근거로만 작성. 추측 금지\n- 이모지/장식/인사말 금지\n- 위 4개 섹션 헤더 그대로 유지\n- 각 항목 짧게 (한 줄)\n\n[STATS]\n%s\n\n[SESSIONS]\n%s' "$STATS_OUTPUT" "$SESSIONS_BODY")
 
-RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile writer --num-ctx 16384 2>/dev/null)
+RESULT=$(echo "$PROMPT" | "$HOME/.claude/scripts/llm-call.sh" ini \
+    --caller qwen-weekly-retro \
+    --timeout 45 \
+    --profile writer \
+    --num-ctx 16384 \
+    --prompt - \
+    2>/dev/null)
 EXIT=$?
 
 # ini 실패 시: 원재료라도 저장

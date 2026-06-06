@@ -1,18 +1,26 @@
 #!/bin/zsh
-# claude-version-switch.sh — malformed-toolcall 회귀(2.1.157+) 비상 전환 스크립트
+# claude-version-switch.sh — Claude Code 버전 전환 스크립트
 #
-# 배경: streaming stop_sequence truncation 회귀가 2.1.157+ 에서 도입됨(포렌식 #12952).
-# 클라이언트 완화책은 2.1.156(회귀 전 빌드) 다운그레이드뿐. env 토글로는 못 끔.
-# 메모리: malformed-toolcall-streaming-regression.md
+# ☠️☠️ DEAD PATH 경고 (2026-06-02): `downgrade`(→2.1.156) 는 더 이상 유효하지 않다.
+#   (1) 2.1.156 은 디스크에서 삭제됨 — ~/.local/share/claude/versions/ 에 158/159/160 만 존재.
+#       → downgrade 서브커맨드는 자체 가드(69행)에서 "clean 버전 없음"으로 실패함.
+#   (2) malformed-toolcall 의 근본원인은 2.1.157+ 클라 streaming 회귀가 아니라
+#       **Opus 4.8 모델 레이어 회귀**로 재귀속됨(공식 #63604/#64076 이 2.1.156 에서도 재현 = 반증).
+#       즉 2.1.156 으로 내려도 malformed 안 고쳐짐.
+#   ✅ malformed 비상 완화책 = 바이너리 다운그레이드가 아니라 **모델 다운그레이드**:
+#        /model claude-opus-4-7   (또는 settings.json env ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-4-7)
+#      maintainer 문서화 #63604 "Opus 4.8→4.7 전환 시 즉시 정상화". loop keepalive/plugin sync/Pewter Owl 유지.
+#   메모리: malformed-toolcall-streaming-regression.md (2026-06-02 재귀속)
+#
+# status/restore/<버전> 서브커맨드는 일반 버전 전환용으로 여전히 동작. downgrade 만 죽음.
 #
 # 사용:
 #   claude-version-switch.sh status      # 현재 버전 + 가용 버전
-#   claude-version-switch.sh downgrade    # → 2.1.156 (회귀 전, malformed 없음)
-#   claude-version-switch.sh restore      # → 최신(2.1.159 등)
+#   claude-version-switch.sh downgrade    # ☠️ DEAD: 2.1.156 없음 + malformed 안 고침. /model claude-opus-4-7 쓸 것
+#   claude-version-switch.sh restore      # → 최신
 #   claude-version-switch.sh <버전>       # 특정 버전 지정
 #
 # ⚠️ 전환은 symlink 만 바꾼다. 현재 실행 중인 세션엔 즉시 적용 안 됨 — 다음 claude 실행부터 적용.
-# ⚠️ 2.1.156 다운그레이드 시 상실: loop keepalive(/loop 재예약), plugin 자동동기화, Pewter Owl.
 
 set -u
 
@@ -60,16 +68,20 @@ case "$cmd" in
     status)
         print -r -- "현재 버전 : $(current_version)"
         print -r -- "최신 버전 : $(latest_version)"
-        print -r -- "clean 버전: $CLEAN_VERSION (회귀 전, malformed 없음)"
+        print -r -- "malformed : Opus 4.8 모델 레이어 회귀라 버전 다운그레이드로 안 고쳐짐 → /model claude-opus-4-7 쓸 것"
         print -r -- "가용 버전 :"
         list_versions | sed 's/^/  - /'
         print -r -- "symlink   : $LINK -> $(current_target)"
         ;;
     downgrade)
-        [ -x "$VER_DIR/$CLEAN_VERSION" ] || err "clean 버전 $CLEAN_VERSION 없음. 다운그레이드 불가."
-        print -r -- "[*] malformed 회귀 완화를 위해 $CLEAN_VERSION 로 다운그레이드합니다."
-        print -r -- "    상실 기능: loop keepalive, plugin 자동동기화, Pewter Owl."
-        switch_to "$CLEAN_VERSION"
+        print -r -- "☠️ [DEAD] 2.1.156 바이너리 다운그레이드는 malformed 를 고치지 못합니다." >&2
+        print -r -- "    이유: malformed 근본원인은 Opus 4.8 모델 레이어 회귀(#63604/#64076 은 2.1.156 에서도 재현)." >&2
+        print -r -- "    또한 2.1.156 은 디스크에서 삭제됨(현재 가용: $(list_versions | tr '\n' ' '))." >&2
+        print -r -- "" >&2
+        print -r -- "    ✅ malformed 비상 완화책 = 모델 다운그레이드:" >&2
+        print -r -- "         세션 한정:  /model claude-opus-4-7" >&2
+        print -r -- "         영구 핀  :  settings.json env ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-4-7" >&2
+        err "downgrade 비활성화됨 — 위 모델 다운그레이드를 사용하세요."
         ;;
     restore)
         switch_to "$(latest_version)"

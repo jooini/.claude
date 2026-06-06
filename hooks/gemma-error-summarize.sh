@@ -7,8 +7,7 @@
 
 source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
 
-QWEN="$HOME/.local/bin/ini"
-[ -x "$QWEN" ] || exit 0
+[ -x "$HOME/.claude/scripts/llm-call.sh" ] || exit 0
 
 INPUT=$(cat)
 
@@ -86,7 +85,13 @@ esac
 # ini 호출 — debugger 페르소나 (qwen2.5-coder:14b 자동 적용)
 PROMPT=$(printf '다음 Bash 명령이 실패했다. 출력을 분석해서 한국어로 간결하게 정리.\n\n형식 (정확히 3줄):\n**원인**: <1줄>\n**위치**: <파일:라인 또는 함수명, 없으면 "불명">\n**다음 조치**: <1줄 권고>\n\n원문 복사/장황한 설명 금지.\n\n명령 및 출력:\n%s' "$PAYLOAD_RAW")
 
-RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile debugger --num-ctx 8192 2>/dev/null)
+RESULT=$(echo "$PROMPT" | "$HOME/.claude/scripts/llm-call.sh" ini \
+    --caller gemma-error-summarize \
+    --timeout 15 \
+    --profile debugger \
+    --num-ctx 8192 \
+    --prompt - \
+    2>/dev/null)
 EXIT=$?
 
 if [ "$EXIT" -ne 0 ] || [ -z "$RESULT" ]; then

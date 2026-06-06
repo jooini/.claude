@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "description": "Synthetic Claude Code hook payloads for dry-run wrapper replay. These fixtures are not production transcripts.",
+  "fixtures": [
+    {
+      "id": "posttooluse-agent-basic",
+      "event": "PostToolUse",
+      "matcher": "Agent",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "tool_input": {
+          "subagent_type": "code-reviewer",
+          "description": "fixture review task",
+          "prompt": "Review the current diff."
+        },
+        "tool_response": {
+          "status": "completed",
+          "summary": "fixture response"
+        }
+      }
+    },
+    {
+      "id": "posttooluse-edit-write-basic",
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/Users/leonard/.claude/cache/generated-docs/fixture.md",
+          "content": "# Fixture\n"
+        },
+        "tool_response": {
+          "status": "completed"
+        }
+      }
+    },
+    {
+      "id": "posttooluse-bash-failure",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "npm test"
+        },
+        "tool_response": {
+          "stdout": "",
+          "stderr": "fixture failure",
+          "exit_code": 1
+        }
+      }
+    },
+    {
+      "id": "stop-basic",
+      "event": "Stop",
+      "matcher": "*",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "Stop"
+      }
+    },
+    {
+      "id": "pretooluse-bash-basic",
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "git status --short"
+        }
+      }
+    },
+    {
+      "id": "pretooluse-bash-codegen-block",
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "cat <<'EOF' > fixture.py\nprint('blocked')\nEOF"
+        }
+      }
+    },
+    {
+      "id": "pretooluse-git-commit-basic",
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "git commit -m \"작업 정리\""
+        }
+      }
+    },
+    {
+      "id": "pretooluse-git-commit-non-korean",
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "git commit -m \"fix\""
+        }
+      }
+    },
+    {
+      "id": "pretooluse-git-commit-coauthor",
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "git commit -m \"작업 정리\" -m \"Co-Authored-By: Other <other@example.com>\""
+        }
+      }
+    },
+    {
+      "id": "pretooluse-gh-pr-create-basic",
+      "event": "PreToolUse",
+      "matcher": "Bash(gh pr*)",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh pr create --title \"작업 정리\" --body \"변경 내용을 정리합니다.\""
+        }
+      }
+    },
+    {
+      "id": "pretooluse-gh-pr-create-english",
+      "event": "PreToolUse",
+      "matcher": "Bash(gh pr*)",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "gh pr create --title \"fix\" --body \"update behavior\""
+        }
+      }
+    },
+    {
+      "id": "pretooluse-edit-write-basic",
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Edit",
+        "tool_input": {
+          "file_path": "/Users/leonard/.claude/cache/generated-docs/fixture.md",
+          "old_string": "old",
+          "new_string": "new"
+        }
+      }
+    },
+    {
+      "id": "pretooluse-edit-write-large-direct",
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/Users/leonard/.claude/cache/generated-docs/fixture-large.md",
+          "content": "line 01\nline 02\nline 03\nline 04\nline 05\nline 06\nline 07\nline 08\nline 09\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\nline 39\nline 40\nline 41\nline 42\nline 43\nline 44\nline 45\nline 46\nline 47\nline 48\nline 49\nline 50\nline 51\n"
+        }
+      }
+    },
+    {
+      "id": "pretooluse-agent-reviewer-basic",
+      "event": "PreToolUse",
+      "matcher": "Agent",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Agent",
+        "tool_input": {
+          "subagent_type": "code-reviewer",
+          "description": "fixture review task",
+          "prompt": "Review the current diff."
+        }
+      }
+    }
+  ]
+}

@@ -16,6 +16,7 @@ JSONL 로깅: ~/.claude/cache/gemma-calls.jsonl (gemma-logger.sh와 동일 위�
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import shutil
@@ -159,11 +160,16 @@ def call_ollama(
     response = response or ""
 
     record = {
+        "schema_version": 1,
         "timestamp": ts_start,
+        "adapter": "python_ini",
+        "provider": "ollama",
         "caller": caller,
         "model": model,
         "status": status,
+        "exit_code": 0 if status == "ok" else 1,
         "duration_ms": duration_ms,
+        "timeout_seconds": timeout,
         "num_predict": num_predict,
         "temperature": temperature,
         "transport": transport,
@@ -174,6 +180,7 @@ def call_ollama(
         "prompt_length": len(prompt),
         "response_preview": response[:500],
         "response_length": len(response),
+        "output_bytes": len(response.encode("utf-8")),
     }
     if ini_err:
         record["ini_stderr_preview"] = ini_err
@@ -302,11 +309,16 @@ def call_ollama_messages(
     else:
         flat_for_log = "\n\n".join(m.get("content", "") for m in messages)
     record = {
+        "schema_version": 1,
         "timestamp": ts_start,
+        "adapter": "python_ini",
+        "provider": "ollama",
         "caller": caller,
         "model": model,
         "status": status,
+        "exit_code": 0 if status == "ok" else 1,
         "duration_ms": duration_ms,
+        "timeout_seconds": timeout,
         "num_predict": num_predict,
         "temperature": temperature,
         "transport": transport,
@@ -319,6 +331,7 @@ def call_ollama_messages(
         "prompt_length": len(flat_for_log),
         "response_preview": response[:500],
         "response_length": len(response),
+        "output_bytes": len(response.encode("utf-8")),
     }
     if ini_err:
         record["ini_stderr_preview"] = ini_err
@@ -339,12 +352,53 @@ def is_ollama_reachable(timeout: int = 3) -> bool:
         return False
 
 
-if __name__ == "__main__":
-    # Self-test
+def self_test() -> int:
     print(f"INI_BIN exists: {INI_BIN.exists()}")
     print(f"OLLAMA: {OLLAMA}")
     print(f"reachable: {is_ollama_reachable()}")
-    if len(sys.argv) > 1:
-        prompt = " ".join(sys.argv[1:])
-        print(f"Calling: {prompt}")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv:
+        return self_test()
+    if argv and not argv[0].startswith("-"):
+        prompt = " ".join(argv)
         print(call_ollama(prompt, caller="self-test"))
+        return 0
+
+    parser = argparse.ArgumentParser(description="Call local Ollama through the shared ini helper.")
+    parser.add_argument("--caller", default="unknown")
+    parser.add_argument("--model", default="gemma4:e4b")
+    parser.add_argument("--prompt", required=True, help="Prompt text, or '-' to read stdin.")
+    parser.add_argument("--num-predict", type=int, default=800)
+    parser.add_argument("--temperature", type=float, default=0.3)
+    parser.add_argument("--timeout", type=int, default=90)
+    parser.add_argument("--self-test", action="store_true")
+    args = parser.parse_args(argv)
+
+    if args.self_test:
+        return self_test()
+
+    prompt = sys.stdin.read() if args.prompt == "-" else args.prompt
+    if not prompt:
+        print("missing prompt", file=sys.stderr)
+        return 2
+
+    response = call_ollama(
+        prompt,
+        model=args.model,
+        num_predict=args.num_predict,
+        temperature=args.temperature,
+        timeout=args.timeout,
+        caller=args.caller,
+    )
+    if response:
+        print(response)
+        return 0
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

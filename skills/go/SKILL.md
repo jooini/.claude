@@ -78,7 +78,7 @@ vendor/bin/phpunit 2>&1 | tail -30
 
 검증 실패 시:
 - 원인 분석 후 수정 → 재검증 (최대 3회)
-- 3회 실패 시 `codex:codex-rescue` foreground 호출 또는 사용자에게 판단 요청
+- 3회 실패 시 `codex:rescue` foreground 호출 또는 사용자에게 판단 요청
 
 ### 3단계: /simplify 실행
 

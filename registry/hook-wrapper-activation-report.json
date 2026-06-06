@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "description": "Dry-run validation report for planned hook wrapper activation gates.",
+  "generated_from": [
+    "registry/hook-wrapper-plan.json",
+    "registry/hook-wrapper-activation-gates.json",
+    "registry/hook-replay-fixtures.json"
+  ],
+  "runner": "scripts/hook-wrapper-runner.py",
+  "gate_count": 4,
+  "validation_count": 8,
+  "failed_validation_count": 0,
+  "status": "pass",
+  "gates": [
+    {
+      "plan_id": "pretooluse-git-commit-pipeline",
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "dry-run-only",
+      "fixture_count": 3,
+      "status": "pass",
+      "fixture_results": [
+        {
+          "fixture_id": "pretooluse-git-commit-basic",
+          "event": "PreToolUse",
+          "matcher": "Bash(git commit*)",
+          "payload_bytes": 242,
+          "step_count": 6,
+          "orders": [
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "fixture_id": "pretooluse-git-commit-non-korean",
+          "event": "PreToolUse",
+          "matcher": "Bash(git commit*)",
+          "payload_bytes": 232,
+          "step_count": 6,
+          "orders": [
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "fixture_id": "pretooluse-git-commit-coauthor",
+          "event": "PreToolUse",
+          "matcher": "Bash(git commit*)",
+          "payload_bytes": 291,
+          "step_count": 6,
+          "orders": [
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "status": "pass",
+          "failures": []
+        }
+      ]
+    },
+    {
+      "plan_id": "pretooluse-gh-pr-pipeline",
+      "event": "PreToolUse",
+      "matcher": "Bash(gh pr*)",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "dry-run-only",
+      "fixture_count": 2,
+      "status": "pass",
+      "fixture_results": [
+        {
+          "fixture_id": "pretooluse-gh-pr-create-basic",
+          "event": "PreToolUse",
+          "matcher": "Bash(gh pr*)",
+          "payload_bytes": 294,
+          "step_count": 2,
+          "orders": [
+            20,
+            21
+          ],
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "fixture_id": "pretooluse-gh-pr-create-english",
+          "event": "PreToolUse",
+          "matcher": "Bash(gh pr*)",
+          "payload_bytes": 266,
+          "step_count": 2,
+          "orders": [
+            20,
+            21
+          ],
+          "status": "pass",
+          "failures": []
+        }
+      ]
+    },
+    {
+      "plan_id": "pretooluse-edit-write-event-matcher",
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "dry-run-only",
+      "fixture_count": 2,
+      "status": "pass",
+      "fixture_results": [
+        {
+          "fixture_id": "pretooluse-edit-write-basic",
+          "event": "PreToolUse",
+          "matcher": "Edit|Write",
+          "payload_bytes": 309,
+          "step_count": 4,
+          "orders": [
+            22,
+            23,
+            24,
+            25
+          ],
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "fixture_id": "pretooluse-edit-write-large-direct",
+          "event": "PreToolUse",
+          "matcher": "Edit|Write",
+          "payload_bytes": 748,
+          "step_count": 4,
+          "orders": [
+            22,
+            23,
+            24,
+            25
+          ],
+          "status": "pass",
+          "failures": []
+        }
+      ]
+    },
+    {
+      "plan_id": "pretooluse-agent-event-matcher",
+      "event": "PreToolUse",
+      "matcher": "Agent",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "dry-run-only",
+      "fixture_count": 1,
+      "status": "pass",
+      "fixture_results": [
+        {
+          "fixture_id": "pretooluse-agent-reviewer-basic",
+          "event": "PreToolUse",
+          "matcher": "Agent",
+          "payload_bytes": 307,
+          "step_count": 4,
+          "orders": [
+            26,
+            27,
+            28,
+            29
+          ],
+          "status": "pass",
+          "failures": []
+        }
+      ]
+    }
+  ]
+}

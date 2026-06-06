@@ -6,18 +6,7 @@
 #   2026-05-09: 동기 90초 대기 → 비동기 백그라운드 (사용자 체감 0ms)
 #     이유: Gemini API 응답 90초가 사용자 PreToolUse 대기를 그대로 막음
 
-. "$HOME/.claude/scripts/_nvm-path.sh"  # nvm PATH 보강
-
-
 : "${HOME:?}"
-
-GEM_CLI="${GEMINI_CLI:-}"
-if [ -z "$GEM_CLI" ]; then
-    if command -v agy >/dev/null 2>&1; then GEM_CLI=agy
-    elif command -v gemini >/dev/null 2>&1; then GEM_CLI=gemini
-    else exit 0
-    fi
-fi
 
 INPUT=$(cat)
 
@@ -81,7 +70,11 @@ echo "  완료 후 \`/usage\` 또는 직접 Read 로 확인"
 # 30초 안에 안 끝나면 분석 가치 없음 + 백그라운드 점유 방지
 (
   cd "$SEARCH_DIR" 2>/dev/null || cd "$PROJECT_DIR"
-  RESULT=$(timeout 30 "$GEM_CLI" -p "의존성 파일 '${FILENAME}'이 변경되었다. 이 변경이 프로젝트에 미치는 영향을 분석해줘: 1) 추가/제거/변경된 패키지 2) 영향받는 import/코드 3) 잠재적 호환성 이슈. 한글로 답변." 2>/dev/null)
+  RESULT=$("$HOME/.claude/scripts/llm-call.sh" gemini \
+    --caller dependency-change-detect \
+    --timeout 30 \
+    --prompt "의존성 파일 '${FILENAME}'이 변경되었다. 이 변경이 프로젝트에 미치는 영향을 분석해줘: 1) 추가/제거/변경된 패키지 2) 영향받는 import/코드 3) 잠재적 호환성 이슈. 한글로 답변." \
+    2>/dev/null)
 
   if [ -n "$RESULT" ]; then
     {

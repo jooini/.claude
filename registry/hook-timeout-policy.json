@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "status": "transitional",
+  "description": "Timeout policy for Claude Code hooks. Runtime hooks in settings.json must declare timeout explicitly; generated inventories may use this policy only as a transition fallback.",
+  "runtime_requirement": "Every hook entry in settings.json must have timeout_seconds. Missing runtime timeout is an audit failure.",
+  "default_timeout_rules": [
+    {
+      "name": "notification-local",
+      "event": "Notification",
+      "timeout_seconds": 3,
+      "reason": "Local notification hooks must never delay the turn."
+    },
+    {
+      "name": "precompact-local",
+      "event": "PreCompact",
+      "timeout_seconds": 3,
+      "reason": "Pre-compaction notification is local-only."
+    },
+    {
+      "name": "pretool-blocking-p0-local",
+      "event": "PreToolUse",
+      "priority": "P0",
+      "blocking": true,
+      "calls_llm": false,
+      "timeout_seconds": 3,
+      "reason": "P0 local guards should fail fast."
+    },
+    {
+      "name": "pretool-blocking-llm",
+      "event": "PreToolUse",
+      "blocking": true,
+      "calls_llm": true,
+      "timeout_seconds": 30,
+      "reason": "Blocking LLM-assisted reminders need a hard upper bound."
+    },
+    {
+      "name": "pretool-blocking-local",
+      "event": "PreToolUse",
+      "blocking": true,
+      "timeout_seconds": 5,
+      "reason": "Blocking local reminders and guards should finish quickly."
+    },
+    {
+      "name": "posttool-async-llm",
+      "event": "PostToolUse",
+      "async": true,
+      "calls_llm": true,
+      "timeout_seconds": 45,
+      "reason": "Async LLM post-processors can do useful work but must not linger."
+    },
+    {
+      "name": "posttool-async-local",
+      "event": "PostToolUse",
+      "async": true,
+      "timeout_seconds": 5,
+      "reason": "Async local telemetry/cache updates should be short."
+    },
+    {
+      "name": "posttool-local",
+      "event": "PostToolUse",
+      "timeout_seconds": 3,
+      "reason": "Synchronous local post-processors should be fail-fast."
+    },
+    {
+      "name": "stop-async-local",
+      "event": "Stop",
+      "async": true,
+      "timeout_seconds": 10,
+      "reason": "End-of-turn local persistence should finish within one user-visible pause."
+    },
+    {
+      "name": "session-start-local",
+      "event": "SessionStart",
+      "timeout_seconds": 10,
+      "reason": "Startup local hooks should not block session availability."
+    },
+    {
+      "name": "session-end-local",
+      "event": "SessionEnd",
+      "timeout_seconds": 3,
+      "reason": "Session cleanup should be quick and fail-open."
+    },
+    {
+      "name": "prompt-router",
+      "event": "UserPromptSubmit",
+      "timeout_seconds": 10,
+      "reason": "Prompt routing can inject context but must keep input latency bounded."
+    }
+  ],
+  "script_overrides": [
+    {
+      "script": "hooks/session-start-router.sh",
+      "timeout_seconds": 120,
+      "reason": "Startup router performs compressed context loading and health side effects."
+    },
+    {
+      "script": "hooks/bash-postproc-async.sh",
+      "timeout_seconds": 45,
+      "reason": "Bash post-processing may start Gemini/agy background scans."
+    },
+    {
+      "script": "hooks/bash-postproc-sync.sh",
+      "timeout_seconds": 45,
+      "reason": "Integrated Bash post-processing can run project-switch and failure-analysis checks."
+    },
+    {
+      "script": "hooks/error-codex-remind.sh",
+      "timeout_seconds": 120,
+      "reason": "Codex rescue has an internal 120 second timeout after repeated build/test failures."
+    },
+    {
+      "script": "hooks/pr-create-codex-remind.sh",
+      "timeout_seconds": 90,
+      "reason": "PR summary generation intentionally waits for Codex before gh pr create."
+    },
+    {
+      "script": "hooks/gemini-dependency-impact.sh",
+      "timeout_seconds": 45,
+      "reason": "Dependency impact analysis is an async LLM side effect."
+    },
+    {
+      "script": "hooks/gemma-session-stop-unified.sh",
+      "timeout_seconds": 90,
+      "reason": "Session-end summary generation is intentionally longer than local cleanup hooks."
+    },
+    {
+      "script": "hooks/gemma-review-prescan.sh",
+      "timeout_seconds": 30,
+      "reason": "Local reviewer prescan should complete or skip quickly."
+    },
+    {
+      "script": "hooks/gemma-commit-draft.sh",
+      "timeout_seconds": 20,
+      "reason": "Commit draft generation is user-visible but bounded."
+    },
+    {
+      "script": "hooks/gemma-commit-convention.sh",
+      "timeout_seconds": 12,
+      "reason": "Commit convention validation uses local LLM assistance."
+    },
+    {
+      "script": "hooks/gemma-korean-translate-gate.sh",
+      "timeout_seconds": 12,
+      "reason": "Translation gate uses local LLM assistance."
+    },
+    {
+      "script": "hooks/gemma-error-summarize.sh",
+      "timeout_seconds": 15,
+      "reason": "Error summarization is async but should stay short."
+    },
+    {
+      "script": "hooks/decision-capture.sh",
+      "timeout_seconds": 8,
+      "reason": "Decision capture writes local knowledge and must avoid end-of-turn drag."
+    },
+    {
+      "script": "hooks/knowledge-change-rebuild.sh",
+      "timeout_seconds": 10,
+      "reason": "Knowledge rebuild is async local maintenance."
+    },
+    {
+      "script": "hooks/turn-finalize.sh",
+      "timeout_seconds": 10,
+      "reason": "Turn finalization may run on PostToolUse and Stop."
+    }
+  ]
+}

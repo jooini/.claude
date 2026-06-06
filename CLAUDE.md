@@ -12,14 +12,14 @@
 
 ### 도구 호출 형식 [HARD — 최우선, 모든 룰보다 위]
 
-> **진짜 원인 (포렌식 확정 2026-05-31 #12952, 18 세션 분석 / 99.8K 토큰)**: malformed 의 근본 원인은 **streaming tool execution 의 `stop_sequence` truncation — Claude Code 2.1.157+ 회귀**다. 모델이 streaming 중 function_calls XML 을 생성하다 내부 stop sequence 에 잘려서 꼬리 토큰(`call`/`count`)이 평문으로 굳고 `<invoke>` 앞에 누출 → 파서가 전체를 text 처리 → `Your tool call was malformed and could not be parsed`. **결정적 증거**: 깨진 메시지는 `stop_reason=stop_sequence`(정상은 `tool_use`), tool_use 블록 0, tool_result 없음. **세션 크기·컨텍스트 오염과 무관**(168K 세션이 5회 깨지고 2.0M 세션은 1회 — 임계값 없음). 따라서 과거 "출력 토큰 생성 일관성 / 세션 컨텍스트 오염" 설명은 **반증됨(틀림)**. 실측 빈도 ~3.1%(20/648), 재시도 시 대개 성공(비결정적). **서빙/API 레이어 버그라 env 토글로 끌 수 없음**(2.1.159 바이너리 전수조사: streaming tool exec 비활성화 토글 부재, `CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK` 는 반대 방향 — 안전 폴백을 끄는 것). 근본 수정은 Anthropic. **클라이언트 완화책은 2.1.156 다운그레이드(`versions/2.1.156` 존재)뿐.** 자세한 정정·완화 결정: [[malformed-toolcall-streaming-regression]].
+> **진짜 원인 (2026-06-02 재귀속 — 공식 이슈트래커 + 2.1.160 바이너리 실측으로 기존 진단 반증)**: malformed 의 근본 원인은 **Opus 4.8 모델 레이어의 tool_use 생성 회귀**다. ⚠️ 과거 "streaming `stop_sequence` truncation — 2.1.157+ 클라이언트 회귀" 설명은 **틀렸다(반증)**: GitHub #63604/#64076 이 **2.1.156(회귀 전 버전)에서도 재현** → 클라 버전 회귀가 아님. 모든 malformed 이슈가 `area:model`/`api:anthropic` 라벨 + **Opus 4.8 특정**(같은 세션·버전에서 4.7/Sonnet 4.6 은 깨끗). 증상은 동일: 모델이 tool_use XML 생성 중 꼬리 토큰(`call`/`count`/`court`)이 평문으로 누출 → `<invoke>` 앞에 굳음 → 파서가 text 처리 → `Your tool call was malformed and could not be parsed`. 실측 빈도 ~3.1~4%, **1M+effortLevel:xhigh 최고위험**(#64235/#64150), 재시도 시 대개 성공(비결정적). **모델 레이어 버그라 env 토글·바이너리 다운그레이드로 못 고침**. ✅ **유일한 효과적 client 레버 = Opus 4.7 모델 다운그레이드**(`/model claude-opus-4-7`, maintainer 문서화 #63604 "즉시 정상화"). ❌ FGTS=0 (firstParty 이미 OFF, 바이너리 확인된 placebo), ❌ `DISABLE_NONSTREAMING_FALLBACK`(반대방향), ❌ 2.1.156 다운그레이드(디스크에서 삭제됨 + 156 에서도 재현). 근본 수정은 Anthropic. OPEN: #63604/#63875/#64129/#64076/#64150/#64235/#64112. 자세한 정정: [[malformed-toolcall-streaming-regression]].
 >
 > 아래 HARD 룰은 **근본 수정이 아니라 증상 완화/복구 절차**다(누출 자체는 모델이 의도한 게 아니라 막을 수 없지만, 1회 발생 후 즉시 형식 교정·재시도로 루프를 끊는다).
 
 - [HARD] 모든 도구 호출은 올바른 function_calls 여는 토큰 + 올바른 invoke 태그(네임스페이스 포함) 형식으로만 출력
 - [HARD] **`call`, `course`, 네임스페이스 없는 invoke, 기타 어떤 평문 단어로도 도구 호출 블록을 시작 절대 금지** — 실측(2026-06-01 세션 89ada186): 누출 20건 100% 가 `<invoke>` 바로 앞에 평문 `call\n` 을 출력한 패턴. 즉 여는 토큰 자리에 `call` 이라는 단어가 들어가면 파서가 전체를 text로 처리 → malformed. `<invoke>` 직전 토큰은 반드시 올바른 function_calls 여는 토큰이어야 하며, 그 앞 줄에 `call`/`course`/설명문구를 두면 100% 깨진다
 - [HARD] malformed 1회 발생 시: 다음 호출에서 즉시 올바른 형식으로 재시도. 같은 깨진 형식 두 번 금지 (재시도는 비결정적이라 대개 성공 — 자가복구가 정상 동작이다)
-- [HARD] 연속 malformed 시 우회책(Bash sed/python 인플레이스)으로 작업은 진행. **단 "형식 교정 = 근본 해결" 아님** — 누출은 서빙측 stop_sequence truncation 이라 모델이 형식을 의도해도 streaming 중 잘리면 또 샌다. 근본 완화는 2.1.156 다운그레이드(`bin/claude-version-switch.sh downgrade`, 단 loop keepalive·plugin sync·Pewter Owl 상실), 근본 수정은 Anthropic 패치 대기
+- [HARD] 연속 malformed 시 우회책(Bash sed/python 인플레이스)으로 작업은 진행. **단 "형식 교정 = 근본 해결" 아님** — 누출은 Opus 4.8 모델 레이어 생성 회귀라 모델이 형식을 의도해도 또 샐 수 있다. **연속/빈발 시 근본 완화 = `/model claude-opus-4-7` 로 모델 다운그레이드**(maintainer 문서화 #63604, 즉시 정상화). 2.1.156 바이너리 다운그레이드는 **죽은 길**(디스크 삭제됨 + 156에서도 재현). 근본 수정은 Anthropic 패치 대기
 
 ### 공통 룰
 
@@ -97,7 +97,7 @@
 | **P5** | 신호 불명확 | **현재 호출/직전 에이전트 유지** (추천 hook 제거됨 2026-06-01, 채택률 7%였음) | 추측 라우팅 금지 |
 | **P6** | 운영성 명령 (`재시작`, `재설치`, `서비스`, `로그 봐`, `상태 확인`, `restart`, `재배포`) | 현재 작업 컨텍스트 유지 (직전 에이전트 재사용) — 없으면 ops-lead | 세션 35cdacf2 실측: "서비스 재시작해줘" 등이 ops로 빗나갔다가 frontend로 재지정 3회. **운영 명령은 메인 작업 흐름 끊지 말 것** |
 | **P6** | 세션 내 직전 에이전트 동일 도메인 (UI/API/ops) 3턴 이상 지속 시 | **sticky routing** — 동일 에이전트 재사용. 짧은 운영 명령에 재분류 금지 | 같은 세션 1차 분류 반복 빗나감 방지 |
-| **P6** | `codex:codex-rescue` 종료 후 다음 발화 | rescue 직전 작업 컨텍스트 유지 (frontend/backend 분류 그대로) | rescue 후 frontend로 빗나간 2회 패턴 차단 |
+| **P6** | `codex:rescue` 종료 후 다음 발화 | rescue 직전 작업 컨텍스트 유지 (frontend/backend 분류 그대로) | rescue 후 frontend로 빗나간 2회 패턴 차단 |
 
 ### @dev 태스크 관리 (P0 보조)
 
@@ -110,7 +110,7 @@
 ## 도구 역할 분담
 
 - **Claude Code**: 판단/채택/최종 구현/의사결정
-- **Codex MCP**: 병렬 구현+검증+리뷰+세컨드 오피니언
+- **Codex CLI/Plugin**: 병렬 구현+검증+리뷰+세컨드 오피니언 (`codex exec`, `codex:*`, `Skill(ask-codex)`)
 - **Gemini**: Phase 0 스캔(1M토큰)+테스트 생성+3중 리뷰+최종 통합 검증
 - **Antigravity**: 멀티 에이전트 디스패치
 - **Jules**: 백그라운드(테스트/문서/PR)
@@ -122,16 +122,16 @@
 
 | 조건 (조기 매칭 우선) | 1순위 위임 | 모델 | 비고 |
 |----------------------|------------|------|------|
-| **50줄+ 코드 작성/Edit (장문/복잡)** | **Codex MCP** (`mcp__codex-cli__codex`) | **gpt-5.5** | hook이 차단. 장문 컨텍스트 +37pp 우수 |
-| **50줄+ 단순 반복 보일러플레이트** | **Codex MCP** | **gpt-5.4** | 단가 1/2, 단순 패턴엔 충분 |
-| **신규 파일 100줄+** | **Codex MCP** | **gpt-5.5** | 토큰 효율 + 장문 일관성 |
+| **50줄+ 코드 작성/Edit (장문/복잡)** | **Codex CLI/Plugin** (`codex exec`, `codex:*`, `Skill(ask-codex)`) | **gpt-5.5** | hook이 차단. 장문 컨텍스트 +37pp 우수 |
+| **50줄+ 단순 반복 보일러플레이트** | **Codex CLI/Plugin** | **gpt-5.4** | 단가 1/2, 단순 패턴엔 충분 |
+| **신규 파일 100줄+** | **Codex CLI/Plugin** | **gpt-5.5** | 토큰 효율 + 장문 일관성 |
 | **코드베이스 영향도 조사 (3파일+ 스캔/분석)** | **Skill(ask-gemini)** — Gemini 1M 컨텍스트 | gemini-3-flash | Claude는 합성만, 토큰 절약 |
 | **리팩터링 사전 스캔 (TYPE C)** | **Gemini** Phase 0 (자동) | gemini-3-pro | `workflows/standard-routines.md` |
 | **단순 번역/요약/문법 (200자 이하)** | **Skill(ask-ollama)** | qwen3.5:9b | 로컬, 무료, 빠름 |
 | **세컨드 오피니언 / 패치 검토** | **Codex + Gemini 병렬** | gpt-5.5 + gemini-3-pro | 편향 방지, 단일 메시지 병렬 |
 | **빠른 질의 / 리뷰 코멘트 / 짧은 분석** | **Codex** | **gpt-5.5** (default) | 실측: 세션당 252K 토큰 가벼움 |
 | **디버깅 2회 실패** | 접근 재검토 | — | `workflows/debugging.md` |
-| **디버깅 3회 실패** | **codex:codex-rescue** | gpt-5.5 | hook 자동 트리거 |
+| **디버깅 3회 실패** | **codex:rescue** | gpt-5.5 | hook 자동 트리거 |
 | **테스트 3회 실패 / PR 생성 / 프로젝트 전환** | 각 hook이 자동 발동 | Codex/Gemini | `workflows/automation.md` |
 | **사용자 "직접 구현해" / "직접 작성해" 명시** | Claude 직접 (위임 우회) | — | hook 통과 |
 
@@ -168,7 +168,7 @@ Sources:
 
 ## 디버깅 규칙
 
-추측 금지. 7단계 절차(재현→수집→범위축소→가설→검증→수정→확인). 2회 실패 시 접근 재검토, 3회 실패 시 `codex:codex-rescue`. 상세: `workflows/debugging.md`
+추측 금지. 7단계 절차(재현→수집→범위축소→가설→검증→수정→확인). 2회 실패 시 접근 재검토, 3회 실패 시 `codex:rescue`. 상세: `workflows/debugging.md`
 
 ## SSH 접속 규칙
 

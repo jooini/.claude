@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "status": "active",
+  "description": "Non-secret policy for settings.json and .mcp.json invariants. Do not store tokens or passwords here.",
+  "settings_top_level_required_keys": [
+    "enabledPlugins",
+    "env",
+    "hooks",
+    "mcpServers",
+    "permissions",
+    "skills",
+    "statusLine"
+  ],
+  "env": {
+    "required_exact": {
+      "CCGUI_CLI_LOGIN_AUTHORIZED": "1",
+      "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+      "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+      "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "3",
+      "CLAUDE_DISABLE_PATH_WARNING": "1",
+      "GEMINI_CLI": "agy"
+    },
+    "path_must_start_with": "/Users/leonard/.nvm/versions/node/v22.22.0/bin"
+  },
+  "mcp": {
+    "settings_json_required_servers": {
+      "gitlab": {
+        "command": "npx",
+        "required_env_keys": [
+          "GITLAB_API_URL"
+        ]
+      },
+      "local-rag": {
+        "command": "/Users/leonard/.claude/scripts/run-local-rag.sh",
+        "required_env_keys": [
+          "BASE_DIR",
+          "CACHE_DIR",
+          "DB_PATH",
+          "MODEL_NAME",
+          "RAG_BASE_DIR"
+        ]
+      }
+    },
+    "project_mcp_required_servers": {
+      "context7": {
+        "command": "/bin/bash",
+        "args_contains": "@upstash/context7-mcp"
+      },
+      "sequential-thinking": {
+        "command": "/bin/bash",
+        "args_contains": "@modelcontextprotocol/server-sequential-thinking"
+      }
+    }
+  },
+  "permissions": {
+    "default_mode": "auto",
+    "minimum_allow_count": 60,
+    "minimum_deny_count": 40,
+    "required_additional_directories": [
+      "/Users/leonard/Workspace/weaversbrain/weaversbrain"
+    ],
+    "required_allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Agent",
+      "mcp__local-rag__query_documents",
+      "mcp__local-rag__status",
+      "mcp__plugin_claude-mem_mcp-search__search",
+      "Bash(agy -p *)",
+      "Bash(codex exec *)",
+      "Skill(ask-codex)",
+      "Skill(ask-gemini)"
+    ],
+    "required_deny": [
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Write(~/.ssh/**)",
+      "Edit(~/.ssh/**)",
+      "Bash(rm -rf /:*)",
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -fdx:*)",
+      "Bash(redis-cli FLUSHALL:*)"
+    ]
+  }
+}

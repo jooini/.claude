@@ -5,12 +5,10 @@
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/ini"
 CACHE_DIR="$HOME/.claude/cache/gemma"
 mkdir -p "$CACHE_DIR"
 
-# ini 미설치 시 즉시 스킵
-[ -x "$QWEN" ] || exit 0
+[ -x "$HOME/.claude/scripts/llm-call.sh" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
 source "$HOME/.claude/hooks/_lib/ollama-available.sh"
@@ -84,7 +82,13 @@ echo "[ini 커밋 초안 생성 중] 최대 15초..."
 # ini stdin pipe — commit 페르소나가 모델/시스템 프롬프트 자동 적용
 PROMPT=$(printf '변경 파일 통계:\n%s\n\n변경 내용:\n%s' "$STAT" "$DIFF_TRUNCATED")
 
-RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile commit --num-ctx 8192 2>/dev/null)
+RESULT=$(echo "$PROMPT" | "$HOME/.claude/scripts/llm-call.sh" ini \
+    --caller gemma-commit-draft \
+    --timeout 20 \
+    --profile commit \
+    --num-ctx 8192 \
+    --prompt - \
+    2>/dev/null)
 EXIT=$?
 
 if [ "$EXIT" -eq 0 ] && [ -n "$RESULT" ]; then

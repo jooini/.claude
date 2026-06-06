@@ -998,23 +998,15 @@ generate_dir_tree() {
 # ═══════════════════════════════════════════
 HAS_GEMINI=false
 HAS_CODEX=false
-GEM_CLI=""
 
 check_ai_tools() {
-    # 2026-06-18 이후 agy(Antigravity) 우선, gemini 폴백
-    if [[ -n "${GEMINI_CLI:-}" ]] && command -v "${GEMINI_CLI}" &>/dev/null; then
-        GEM_CLI="${GEMINI_CLI}"; HAS_GEMINI=true
-    elif command -v agy &>/dev/null; then
-        GEM_CLI="agy"; HAS_GEMINI=true
-    elif command -v gemini &>/dev/null; then
-        GEM_CLI="gemini"; HAS_GEMINI=true
-    fi
+    [[ -x "$HOME/.claude/scripts/llm-call.sh" ]] && HAS_GEMINI=true
     command -v codex &>/dev/null && HAS_CODEX=true
 
     if $HAS_GEMINI; then
-        ok "$GEM_CLI CLI 감지"
+        ok "llm-call.sh gemini 어댑터 감지"
     else
-        skip "agy/gemini CLI 미설치 → 정적 분석만 수행"
+        skip "llm-call.sh 미설치 → 정적 분석만 수행"
     fi
     if $HAS_CODEX; then
         ok "Codex CLI 감지"
@@ -1092,20 +1084,14 @@ src/
 예: '- fastapi >= 0.115.0'
 핵심 의존성만 15개 이내."
 
-    # Gemini/Antigravity 실행 (프로젝트 디렉토리에서, 비대화형)
-    # agy는 -m 플래그 미지원이라 gemini일 때만 모델 지정
     local gemini_output
-    if [[ "$GEM_CLI" == "gemini" ]]; then
-        gemini_output=$(cd "$dir" && "$GEM_CLI" -p "$prompt" -m gemini-2.5-pro 2>/dev/null) || {
-            warn "$GEM_CLI 분석 실패 → 정적 분석 폴백"
-            return 1
-        }
-    else
-        gemini_output=$(cd "$dir" && "$GEM_CLI" -p "$prompt" 2>/dev/null) || {
-            warn "$GEM_CLI 분석 실패 → 정적 분석 폴백"
-            return 1
-        }
-    fi
+    gemini_output=$(cd "$dir" && "$HOME/.claude/scripts/llm-call.sh" gemini \
+        --caller init-claude-config \
+        --timeout 120 \
+        --prompt "$prompt" 2>/dev/null) || {
+        warn "Gemini 분석 실패 → 정적 분석 폴백"
+        return 1
+    }
 
     if [[ -z "$gemini_output" || ${#gemini_output} -lt 100 ]]; then
         warn "Gemini 출력 부족 → 정적 분석 폴백"
@@ -1155,7 +1141,10 @@ validate_with_codex() {
 ${arch_content}"
 
     local codex_output
-    codex_output=$(cd "$dir" && codex exec --full-auto "$prompt" 2>/dev/null) || {
+    codex_output=$(cd "$dir" && "$HOME/.claude/scripts/llm-call.sh" codex \
+        --caller init-claude-config \
+        --timeout 120 \
+        --prompt "$prompt" 2>/dev/null) || {
         skip "Codex 검증 건너뜀"
         return 1
     }
@@ -1899,7 +1888,7 @@ feature 태스크 → qa(테스트 설계) → 사용자 확인 → developer(Gr
 1 태스크 = 1 세션. 태스크 완료 후 \`/session-handoff\` → 새 세션. Gemini 결과는 파일 저장 후 요약만 전달.
 
 ### 에스컬레이션 (글로벌)
-- developer→tester 3회 실패 → \`codex:codex-rescue\` **foreground** 에스컬레이션
+- developer→tester 3회 실패 → \`codex:rescue\` **foreground** 에스컬레이션
 - 보안/DB/인프라/API breaking change → \`codex:adversarial-review\` 격상
 - M/L 규모 → developer 구현 + \`codex:parallel-impl\` 대안 병렬 실행
 

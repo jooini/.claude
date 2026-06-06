@@ -1,0 +1,2434 @@
+{
+  "version": 1,
+  "generated_from": "registry/hooks-inventory.json",
+  "description": "Conservative hook consolidation candidates. This report does not imply automatic merging.",
+  "hook_count": 46,
+  "candidate_count": 19,
+  "low_risk_count": 0,
+  "medium_risk_count": 5,
+  "high_risk_count": 14,
+  "wrapper_ready_count": 3,
+  "order_review_count": 2,
+  "manual_review_count": 14,
+  "top_candidates": [
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 75,
+      "hook_count": 7,
+      "first_order": 36,
+      "last_order": 43,
+      "order_span": 8,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P1": 3,
+        "P2": 3
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "audio": 2,
+        "cache_write": 4,
+        "git": 2,
+        "metrics": 3,
+        "network": 1,
+        "notification": 3,
+        "outcome_log": 1,
+        "taskhub": 1,
+        "vault_write": 1
+      },
+      "reason": "Stop/* has 7 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "Stop:0:0",
+          "order": 36,
+          "script": "hooks/stop-notify.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:0:1",
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:0:2",
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ],
+          "timeout_seconds": 122
+        },
+        {
+          "id": "Stop:0:3",
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:4",
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:5",
+          "order": 41,
+          "script": "hooks/turn-finalize.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:2:0",
+          "order": 43,
+          "script": "hooks/taskhub-session-stop.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "network",
+            "taskhub"
+          ],
+          "timeout_seconds": 5
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 55,
+      "hook_count": 6,
+      "first_order": 14,
+      "last_order": 19,
+      "order_span": 6,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 2,
+        "P1": 4
+      },
+      "llm_hook_count": 4,
+      "side_effects": {
+        "cache_write": 2,
+        "git": 6,
+        "network": 1,
+        "outcome_log": 2
+      },
+      "reason": "PreToolUse/Bash(git commit*) has 6 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:1:0",
+          "order": 14,
+          "script": "hooks/gemma-commit-draft.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ],
+          "timeout_seconds": 20
+        },
+        {
+          "id": "PreToolUse:1:1",
+          "order": 15,
+          "script": "hooks/gemma-commit-convention.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "git"
+          ],
+          "timeout_seconds": 12
+        },
+        {
+          "id": "PreToolUse:1:2",
+          "order": 16,
+          "script": "hooks/commit-korean-check.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PreToolUse:1:3",
+          "order": 17,
+          "script": "hooks/commit-no-coauthor.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PreToolUse:1:4",
+          "order": 18,
+          "script": "hooks/gemini-large-diff-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "PreToolUse:1:5",
+          "order": 19,
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "git",
+            "network"
+          ],
+          "timeout_seconds": 12
+        }
+      ]
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:cache_write",
+      "risk": "medium",
+      "score": 55,
+      "hook_count": 4,
+      "first_order": 38,
+      "last_order": 41,
+      "order_span": 4,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 3,
+        "P2": 1
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "cache_write": 4,
+        "git": 1,
+        "metrics": 3,
+        "notification": 1,
+        "outcome_log": 1,
+        "vault_write": 1
+      },
+      "reason": "Stop/* has 4 hooks sharing side effect cache_write.",
+      "recommendation": "candidate-for-router-or-wrapper",
+      "hooks": [
+        {
+          "id": "Stop:0:2",
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ],
+          "timeout_seconds": 122
+        },
+        {
+          "id": "Stop:0:3",
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:4",
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:5",
+          "order": 41,
+          "script": "hooks/turn-finalize.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ],
+          "timeout_seconds": 10
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Agent",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 45,
+      "hook_count": 4,
+      "first_order": 26,
+      "last_order": 29,
+      "order_span": 4,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 4
+      },
+      "llm_hook_count": 2,
+      "side_effects": {
+        "audio": 1,
+        "cache_write": 2,
+        "git": 1
+      },
+      "reason": "PreToolUse/Agent has 4 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:4:0",
+          "order": 26,
+          "script": "hooks/agent-start-notify.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "audio"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PreToolUse:4:1",
+          "order": 27,
+          "script": "hooks/agent-context-inject.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:4:2",
+          "order": 28,
+          "script": "hooks/agent-knowledge-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:4:3",
+          "order": 29,
+          "script": "hooks/gemma-review-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ],
+          "timeout_seconds": 30
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "event_matcher",
+      "risk": "medium",
+      "score": 45,
+      "hook_count": 3,
+      "first_order": 1,
+      "last_order": 3,
+      "order_span": 3,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 1,
+        "P2": 2
+      },
+      "llm_hook_count": 2,
+      "side_effects": {
+        "agent_build": 1,
+        "audio": 1,
+        "cache_write": 2,
+        "git": 3,
+        "metrics": 2,
+        "network": 2,
+        "notification": 1,
+        "outcome_log": 2,
+        "taskhub": 1
+      },
+      "reason": "PostToolUse/Bash has 3 hooks with the same runtime trigger.",
+      "recommendation": "candidate-for-router-or-wrapper",
+      "hooks": [
+        {
+          "id": "PostToolUse:0:0",
+          "order": 1,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "agent_build",
+            "cache_write",
+            "git",
+            "metrics",
+            "network"
+          ],
+          "timeout_seconds": 92
+        },
+        {
+          "id": "PostToolUse:0:1",
+          "order": 2,
+          "script": "hooks/dangerous-command-detect.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PostToolUse:0:2",
+          "order": 3,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "network",
+            "outcome_log",
+            "taskhub"
+          ],
+          "timeout_seconds": 142
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 35,
+      "hook_count": 4,
+      "first_order": 22,
+      "last_order": 25,
+      "order_span": 4,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P1": 3
+      },
+      "llm_hook_count": 4,
+      "side_effects": {
+        "cache_write": 3,
+        "mcp": 1,
+        "metrics": 1,
+        "notification": 1,
+        "outcome_log": 1
+      },
+      "reason": "PreToolUse/Edit|Write has 4 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:3:0",
+          "order": 22,
+          "script": "hooks/code-edit-pipeline-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:3:1",
+          "order": 23,
+          "script": "hooks/delegation-enforcer.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "outcome_log",
+            "mcp"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:3:2",
+          "order": 24,
+          "script": "hooks/dependency-change-detect.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:3:3",
+          "order": 25,
+          "script": "hooks/gemini-prescan-enforcer.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        }
+      ]
+    },
+    {
+      "event": "SessionStart",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 35,
+      "hook_count": 3,
+      "first_order": 33,
+      "last_order": 35,
+      "order_span": 3,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P2": 2
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "agent_build": 1,
+        "badge": 1,
+        "cache_write": 1,
+        "mcp": 1,
+        "network": 1,
+        "taskhub": 1,
+        "vault_write": 1
+      },
+      "reason": "SessionStart/* has 3 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "SessionStart:0:0",
+          "order": 33,
+          "script": "hooks/session-start-router.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "vault_write",
+            "mcp",
+            "agent_build"
+          ],
+          "timeout_seconds": 120
+        },
+        {
+          "id": "SessionStart:1:0",
+          "order": 34,
+          "script": "hooks/taskhub-session-start.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "network",
+            "taskhub"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "SessionStart:2:0",
+          "order": 35,
+          "script": "hooks/iterm-badge-set.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "badge"
+          ],
+          "timeout_seconds": 3
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "side_effect:outcome_log",
+      "risk": "medium",
+      "score": 35,
+      "hook_count": 2,
+      "first_order": 2,
+      "last_order": 3,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 1,
+        "P2": 1
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "audio": 1,
+        "cache_write": 1,
+        "git": 2,
+        "metrics": 1,
+        "network": 1,
+        "notification": 1,
+        "outcome_log": 2,
+        "taskhub": 1
+      },
+      "reason": "PostToolUse/Bash has 2 hooks sharing side effect outcome_log.",
+      "recommendation": "candidate-for-router-or-wrapper",
+      "hooks": [
+        {
+          "id": "PostToolUse:0:1",
+          "order": 2,
+          "script": "hooks/dangerous-command-detect.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PostToolUse:0:2",
+          "order": 3,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "network",
+            "outcome_log",
+            "taskhub"
+          ],
+          "timeout_seconds": 142
+        }
+      ]
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:audio",
+      "risk": "high",
+      "score": 30,
+      "hook_count": 2,
+      "first_order": 36,
+      "last_order": 37,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P2": 1
+      },
+      "llm_hook_count": 0,
+      "side_effects": {
+        "audio": 2,
+        "git": 1,
+        "notification": 2
+      },
+      "reason": "Stop/* has 2 hooks sharing side effect audio.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "Stop:0:0",
+          "order": 36,
+          "script": "hooks/stop-notify.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:0:1",
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 10
+        }
+      ]
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:metrics",
+      "risk": "medium",
+      "score": 30,
+      "hook_count": 3,
+      "first_order": 38,
+      "last_order": 41,
+      "order_span": 4,
+      "contiguous_within_trigger": false,
+      "interleaved_hook_count": 1,
+      "interleaved_hooks": [
+        {
+          "id": "Stop:0:3",
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        }
+      ],
+      "priority_counts": {
+        "P1": 2,
+        "P2": 1
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "cache_write": 3,
+        "git": 1,
+        "metrics": 3,
+        "notification": 1,
+        "outcome_log": 1,
+        "vault_write": 1
+      },
+      "reason": "Stop/* has 3 hooks sharing side effect metrics.",
+      "recommendation": "order-review-before-wrapper",
+      "hooks": [
+        {
+          "id": "Stop:0:2",
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ],
+          "timeout_seconds": 122
+        },
+        {
+          "id": "Stop:0:4",
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:5",
+          "order": 41,
+          "script": "hooks/turn-finalize.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ],
+          "timeout_seconds": 10
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash(gh pr*)",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 25,
+      "hook_count": 2,
+      "first_order": 20,
+      "last_order": 21,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 2
+      },
+      "llm_hook_count": 2,
+      "side_effects": {
+        "cache_write": 1,
+        "git": 2,
+        "network": 2
+      },
+      "reason": "PreToolUse/Bash(gh pr*) has 2 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:2:0",
+          "order": 20,
+          "script": "hooks/pr-create-codex-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "network"
+          ],
+          "timeout_seconds": 90
+        },
+        {
+          "id": "PreToolUse:2:1",
+          "order": 21,
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "git",
+            "network"
+          ],
+          "timeout_seconds": 12
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "bucket": "side_effect:outcome_log",
+      "risk": "high",
+      "score": 25,
+      "hook_count": 2,
+      "first_order": 16,
+      "last_order": 17,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 2
+      },
+      "llm_hook_count": 0,
+      "side_effects": {
+        "git": 2,
+        "outcome_log": 2
+      },
+      "reason": "PreToolUse/Bash(git commit*) has 2 hooks sharing side effect outcome_log.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:1:2",
+          "order": 16,
+          "script": "hooks/commit-korean-check.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PreToolUse:1:3",
+          "order": 17,
+          "script": "hooks/commit-no-coauthor.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 75,
+      "hook_count": 7,
+      "first_order": 36,
+      "last_order": 43,
+      "order_span": 8,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P1": 3,
+        "P2": 3
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "audio": 2,
+        "cache_write": 4,
+        "git": 2,
+        "metrics": 3,
+        "network": 1,
+        "notification": 3,
+        "outcome_log": 1,
+        "taskhub": 1,
+        "vault_write": 1
+      },
+      "reason": "Stop/* has 7 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "Stop:0:0",
+          "order": 36,
+          "script": "hooks/stop-notify.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:0:1",
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:0:2",
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ],
+          "timeout_seconds": 122
+        },
+        {
+          "id": "Stop:0:3",
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:4",
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:5",
+          "order": 41,
+          "script": "hooks/turn-finalize.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:2:0",
+          "order": 43,
+          "script": "hooks/taskhub-session-stop.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "network",
+            "taskhub"
+          ],
+          "timeout_seconds": 5
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 55,
+      "hook_count": 6,
+      "first_order": 14,
+      "last_order": 19,
+      "order_span": 6,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 2,
+        "P1": 4
+      },
+      "llm_hook_count": 4,
+      "side_effects": {
+        "cache_write": 2,
+        "git": 6,
+        "network": 1,
+        "outcome_log": 2
+      },
+      "reason": "PreToolUse/Bash(git commit*) has 6 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:1:0",
+          "order": 14,
+          "script": "hooks/gemma-commit-draft.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ],
+          "timeout_seconds": 20
+        },
+        {
+          "id": "PreToolUse:1:1",
+          "order": 15,
+          "script": "hooks/gemma-commit-convention.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "git"
+          ],
+          "timeout_seconds": 12
+        },
+        {
+          "id": "PreToolUse:1:2",
+          "order": 16,
+          "script": "hooks/commit-korean-check.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PreToolUse:1:3",
+          "order": 17,
+          "script": "hooks/commit-no-coauthor.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PreToolUse:1:4",
+          "order": 18,
+          "script": "hooks/gemini-large-diff-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "PreToolUse:1:5",
+          "order": 19,
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "git",
+            "network"
+          ],
+          "timeout_seconds": 12
+        }
+      ]
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:cache_write",
+      "risk": "medium",
+      "score": 55,
+      "hook_count": 4,
+      "first_order": 38,
+      "last_order": 41,
+      "order_span": 4,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 3,
+        "P2": 1
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "cache_write": 4,
+        "git": 1,
+        "metrics": 3,
+        "notification": 1,
+        "outcome_log": 1,
+        "vault_write": 1
+      },
+      "reason": "Stop/* has 4 hooks sharing side effect cache_write.",
+      "recommendation": "candidate-for-router-or-wrapper",
+      "hooks": [
+        {
+          "id": "Stop:0:2",
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ],
+          "timeout_seconds": 122
+        },
+        {
+          "id": "Stop:0:3",
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:4",
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:5",
+          "order": 41,
+          "script": "hooks/turn-finalize.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ],
+          "timeout_seconds": 10
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Agent",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 45,
+      "hook_count": 4,
+      "first_order": 26,
+      "last_order": 29,
+      "order_span": 4,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 4
+      },
+      "llm_hook_count": 2,
+      "side_effects": {
+        "audio": 1,
+        "cache_write": 2,
+        "git": 1
+      },
+      "reason": "PreToolUse/Agent has 4 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:4:0",
+          "order": 26,
+          "script": "hooks/agent-start-notify.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "audio"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PreToolUse:4:1",
+          "order": 27,
+          "script": "hooks/agent-context-inject.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:4:2",
+          "order": 28,
+          "script": "hooks/agent-knowledge-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:4:3",
+          "order": 29,
+          "script": "hooks/gemma-review-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ],
+          "timeout_seconds": 30
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "event_matcher",
+      "risk": "medium",
+      "score": 45,
+      "hook_count": 3,
+      "first_order": 1,
+      "last_order": 3,
+      "order_span": 3,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 1,
+        "P2": 2
+      },
+      "llm_hook_count": 2,
+      "side_effects": {
+        "agent_build": 1,
+        "audio": 1,
+        "cache_write": 2,
+        "git": 3,
+        "metrics": 2,
+        "network": 2,
+        "notification": 1,
+        "outcome_log": 2,
+        "taskhub": 1
+      },
+      "reason": "PostToolUse/Bash has 3 hooks with the same runtime trigger.",
+      "recommendation": "candidate-for-router-or-wrapper",
+      "hooks": [
+        {
+          "id": "PostToolUse:0:0",
+          "order": 1,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "agent_build",
+            "cache_write",
+            "git",
+            "metrics",
+            "network"
+          ],
+          "timeout_seconds": 92
+        },
+        {
+          "id": "PostToolUse:0:1",
+          "order": 2,
+          "script": "hooks/dangerous-command-detect.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PostToolUse:0:2",
+          "order": 3,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "network",
+            "outcome_log",
+            "taskhub"
+          ],
+          "timeout_seconds": 142
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 35,
+      "hook_count": 4,
+      "first_order": 22,
+      "last_order": 25,
+      "order_span": 4,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P1": 3
+      },
+      "llm_hook_count": 4,
+      "side_effects": {
+        "cache_write": 3,
+        "mcp": 1,
+        "metrics": 1,
+        "notification": 1,
+        "outcome_log": 1
+      },
+      "reason": "PreToolUse/Edit|Write has 4 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:3:0",
+          "order": 22,
+          "script": "hooks/code-edit-pipeline-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:3:1",
+          "order": 23,
+          "script": "hooks/delegation-enforcer.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "outcome_log",
+            "mcp"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:3:2",
+          "order": 24,
+          "script": "hooks/dependency-change-detect.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:3:3",
+          "order": 25,
+          "script": "hooks/gemini-prescan-enforcer.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        }
+      ]
+    },
+    {
+      "event": "SessionStart",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 35,
+      "hook_count": 3,
+      "first_order": 33,
+      "last_order": 35,
+      "order_span": 3,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P2": 2
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "agent_build": 1,
+        "badge": 1,
+        "cache_write": 1,
+        "mcp": 1,
+        "network": 1,
+        "taskhub": 1,
+        "vault_write": 1
+      },
+      "reason": "SessionStart/* has 3 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "SessionStart:0:0",
+          "order": 33,
+          "script": "hooks/session-start-router.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "vault_write",
+            "mcp",
+            "agent_build"
+          ],
+          "timeout_seconds": 120
+        },
+        {
+          "id": "SessionStart:1:0",
+          "order": 34,
+          "script": "hooks/taskhub-session-start.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "network",
+            "taskhub"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "SessionStart:2:0",
+          "order": 35,
+          "script": "hooks/iterm-badge-set.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "badge"
+          ],
+          "timeout_seconds": 3
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "side_effect:outcome_log",
+      "risk": "medium",
+      "score": 35,
+      "hook_count": 2,
+      "first_order": 2,
+      "last_order": 3,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 1,
+        "P2": 1
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "audio": 1,
+        "cache_write": 1,
+        "git": 2,
+        "metrics": 1,
+        "network": 1,
+        "notification": 1,
+        "outcome_log": 2,
+        "taskhub": 1
+      },
+      "reason": "PostToolUse/Bash has 2 hooks sharing side effect outcome_log.",
+      "recommendation": "candidate-for-router-or-wrapper",
+      "hooks": [
+        {
+          "id": "PostToolUse:0:1",
+          "order": 2,
+          "script": "hooks/dangerous-command-detect.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PostToolUse:0:2",
+          "order": 3,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "network",
+            "outcome_log",
+            "taskhub"
+          ],
+          "timeout_seconds": 142
+        }
+      ]
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:audio",
+      "risk": "high",
+      "score": 30,
+      "hook_count": 2,
+      "first_order": 36,
+      "last_order": 37,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P2": 1
+      },
+      "llm_hook_count": 0,
+      "side_effects": {
+        "audio": 2,
+        "git": 1,
+        "notification": 2
+      },
+      "reason": "Stop/* has 2 hooks sharing side effect audio.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "Stop:0:0",
+          "order": 36,
+          "script": "hooks/stop-notify.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:0:1",
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 10
+        }
+      ]
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:metrics",
+      "risk": "medium",
+      "score": 30,
+      "hook_count": 3,
+      "first_order": 38,
+      "last_order": 41,
+      "order_span": 4,
+      "contiguous_within_trigger": false,
+      "interleaved_hook_count": 1,
+      "interleaved_hooks": [
+        {
+          "id": "Stop:0:3",
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        }
+      ],
+      "priority_counts": {
+        "P1": 2,
+        "P2": 1
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "cache_write": 3,
+        "git": 1,
+        "metrics": 3,
+        "notification": 1,
+        "outcome_log": 1,
+        "vault_write": 1
+      },
+      "reason": "Stop/* has 3 hooks sharing side effect metrics.",
+      "recommendation": "order-review-before-wrapper",
+      "hooks": [
+        {
+          "id": "Stop:0:2",
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ],
+          "timeout_seconds": 122
+        },
+        {
+          "id": "Stop:0:4",
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "Stop:0:5",
+          "order": 41,
+          "script": "hooks/turn-finalize.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ],
+          "timeout_seconds": 10
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash(gh pr*)",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 25,
+      "hook_count": 2,
+      "first_order": 20,
+      "last_order": 21,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P1": 2
+      },
+      "llm_hook_count": 2,
+      "side_effects": {
+        "cache_write": 1,
+        "git": 2,
+        "network": 2
+      },
+      "reason": "PreToolUse/Bash(gh pr*) has 2 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:2:0",
+          "order": 20,
+          "script": "hooks/pr-create-codex-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "network"
+          ],
+          "timeout_seconds": 90
+        },
+        {
+          "id": "PreToolUse:2:1",
+          "order": 21,
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "git",
+            "network"
+          ],
+          "timeout_seconds": 12
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "bucket": "side_effect:outcome_log",
+      "risk": "high",
+      "score": 25,
+      "hook_count": 2,
+      "first_order": 16,
+      "last_order": 17,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 2
+      },
+      "llm_hook_count": 0,
+      "side_effects": {
+        "git": 2,
+        "outcome_log": 2
+      },
+      "reason": "PreToolUse/Bash(git commit*) has 2 hooks sharing side effect outcome_log.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:1:2",
+          "order": 16,
+          "script": "hooks/commit-korean-check.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PreToolUse:1:3",
+          "order": 17,
+          "script": "hooks/commit-no-coauthor.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        }
+      ]
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:notification",
+      "risk": "high",
+      "score": 25,
+      "hook_count": 3,
+      "first_order": 36,
+      "last_order": 40,
+      "order_span": 5,
+      "contiguous_within_trigger": false,
+      "interleaved_hook_count": 2,
+      "interleaved_hooks": [
+        {
+          "id": "Stop:0:2",
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ],
+          "timeout_seconds": 122
+        },
+        {
+          "id": "Stop:0:3",
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        }
+      ],
+      "priority_counts": {
+        "P0": 1,
+        "P1": 1,
+        "P2": 1
+      },
+      "llm_hook_count": 0,
+      "side_effects": {
+        "audio": 2,
+        "cache_write": 1,
+        "git": 1,
+        "metrics": 1,
+        "notification": 3
+      },
+      "reason": "Stop/* has 3 hooks sharing side effect notification.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "Stop:0:0",
+          "order": 36,
+          "script": "hooks/stop-notify.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:0:1",
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:0:4",
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        }
+      ]
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:git",
+      "risk": "high",
+      "score": 25,
+      "hook_count": 2,
+      "first_order": 37,
+      "last_order": 38,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P1": 1
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "audio": 1,
+        "cache_write": 1,
+        "git": 2,
+        "metrics": 1,
+        "notification": 1,
+        "outcome_log": 1,
+        "vault_write": 1
+      },
+      "reason": "Stop/* has 2 hooks sharing side effect git.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "Stop:0:1",
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "Stop:0:2",
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ],
+          "timeout_seconds": 122
+        }
+      ]
+    },
+    {
+      "event": "UserPromptSubmit",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "score": 25,
+      "hook_count": 2,
+      "first_order": 44,
+      "last_order": 45,
+      "order_span": 2,
+      "contiguous_within_trigger": true,
+      "interleaved_hook_count": 0,
+      "interleaved_hooks": [],
+      "priority_counts": {
+        "P0": 1,
+        "P2": 1
+      },
+      "llm_hook_count": 1,
+      "side_effects": {
+        "cache_write": 1,
+        "network": 1,
+        "taskhub": 1
+      },
+      "reason": "UserPromptSubmit/* has 2 hooks with the same runtime trigger.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "UserPromptSubmit:0:0",
+          "order": 44,
+          "script": "hooks/user-prompt-router.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 10
+        },
+        {
+          "id": "UserPromptSubmit:1:0",
+          "order": 45,
+          "script": "hooks/taskhub-utterance.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "network",
+            "taskhub"
+          ],
+          "timeout_seconds": 5
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "bucket": "side_effect:cache_write",
+      "risk": "high",
+      "score": 20,
+      "hook_count": 3,
+      "first_order": 22,
+      "last_order": 25,
+      "order_span": 4,
+      "contiguous_within_trigger": false,
+      "interleaved_hook_count": 1,
+      "interleaved_hooks": [
+        {
+          "id": "PreToolUse:3:1",
+          "order": 23,
+          "script": "hooks/delegation-enforcer.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "outcome_log",
+            "mcp"
+          ],
+          "timeout_seconds": 5
+        }
+      ],
+      "priority_counts": {
+        "P1": 3
+      },
+      "llm_hook_count": 3,
+      "side_effects": {
+        "cache_write": 3,
+        "metrics": 1,
+        "notification": 1
+      },
+      "reason": "PreToolUse/Edit|Write has 3 hooks sharing side effect cache_write.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:3:0",
+          "order": 22,
+          "script": "hooks/code-edit-pipeline-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:3:2",
+          "order": 24,
+          "script": "hooks/dependency-change-detect.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:3:3",
+          "order": 25,
+          "script": "hooks/gemini-prescan-enforcer.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        }
+      ]
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "side_effect:cache_write",
+      "risk": "medium",
+      "score": 20,
+      "hook_count": 2,
+      "first_order": 1,
+      "last_order": 3,
+      "order_span": 3,
+      "contiguous_within_trigger": false,
+      "interleaved_hook_count": 1,
+      "interleaved_hooks": [
+        {
+          "id": "PostToolUse:0:1",
+          "order": 2,
+          "script": "hooks/dangerous-command-detect.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "notification",
+            "audio",
+            "git"
+          ],
+          "timeout_seconds": 3
+        }
+      ],
+      "priority_counts": {
+        "P1": 1,
+        "P2": 1
+      },
+      "llm_hook_count": 2,
+      "side_effects": {
+        "agent_build": 1,
+        "cache_write": 2,
+        "git": 2,
+        "metrics": 2,
+        "network": 2,
+        "outcome_log": 1,
+        "taskhub": 1
+      },
+      "reason": "PostToolUse/Bash has 2 hooks sharing side effect cache_write.",
+      "recommendation": "order-review-before-wrapper",
+      "hooks": [
+        {
+          "id": "PostToolUse:0:0",
+          "order": 1,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "agent_build",
+            "cache_write",
+            "git",
+            "metrics",
+            "network"
+          ],
+          "timeout_seconds": 92
+        },
+        {
+          "id": "PostToolUse:0:2",
+          "order": 3,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "network",
+            "outcome_log",
+            "taskhub"
+          ],
+          "timeout_seconds": 142
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "bucket": "side_effect:cache_write",
+      "risk": "high",
+      "score": 15,
+      "hook_count": 2,
+      "first_order": 14,
+      "last_order": 18,
+      "order_span": 5,
+      "contiguous_within_trigger": false,
+      "interleaved_hook_count": 3,
+      "interleaved_hooks": [
+        {
+          "id": "PreToolUse:1:1",
+          "order": 15,
+          "script": "hooks/gemma-commit-convention.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "git"
+          ],
+          "timeout_seconds": 12
+        },
+        {
+          "id": "PreToolUse:1:2",
+          "order": 16,
+          "script": "hooks/commit-korean-check.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        },
+        {
+          "id": "PreToolUse:1:3",
+          "order": 17,
+          "script": "hooks/commit-no-coauthor.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ],
+          "timeout_seconds": 3
+        }
+      ],
+      "priority_counts": {
+        "P1": 2
+      },
+      "llm_hook_count": 2,
+      "side_effects": {
+        "cache_write": 2,
+        "git": 2
+      },
+      "reason": "PreToolUse/Bash(git commit*) has 2 hooks sharing side effect cache_write.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:1:0",
+          "order": 14,
+          "script": "hooks/gemma-commit-draft.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ],
+          "timeout_seconds": 20
+        },
+        {
+          "id": "PreToolUse:1:4",
+          "order": 18,
+          "script": "hooks/gemini-large-diff-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ],
+          "timeout_seconds": 10
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Agent",
+      "bucket": "side_effect:cache_write",
+      "risk": "high",
+      "score": 10,
+      "hook_count": 2,
+      "first_order": 27,
+      "last_order": 29,
+      "order_span": 3,
+      "contiguous_within_trigger": false,
+      "interleaved_hook_count": 1,
+      "interleaved_hooks": [
+        {
+          "id": "PreToolUse:4:2",
+          "order": 28,
+          "script": "hooks/agent-knowledge-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": false,
+          "side_effects": [],
+          "timeout_seconds": 5
+        }
+      ],
+      "priority_counts": {
+        "P1": 2
+      },
+      "llm_hook_count": 2,
+      "side_effects": {
+        "cache_write": 2,
+        "git": 1
+      },
+      "reason": "PreToolUse/Agent has 2 hooks sharing side effect cache_write.",
+      "recommendation": "manual-review-only",
+      "hooks": [
+        {
+          "id": "PreToolUse:4:1",
+          "order": 27,
+          "script": "hooks/agent-context-inject.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ],
+          "timeout_seconds": 5
+        },
+        {
+          "id": "PreToolUse:4:3",
+          "order": 29,
+          "script": "hooks/gemma-review-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ],
+          "timeout_seconds": 30
+        }
+      ]
+    }
+  ]
+}

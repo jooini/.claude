@@ -4,13 +4,12 @@
 
 setopt NULL_GLOB
 
-QWEN="$HOME/.local/bin/ini"
 SUMMARY_DIR="$HOME/.claude/cache/session-summary"
 INTENT_DIR="$HOME/.claude/intent"
 DECISIONS_DIR="$HOME/Workspace/weaversbrain/weaversbrain/Decisions"
 LEARNING_DIR="$HOME/Workspace/weaversbrain/weaversbrain/Learning"
 
-[ -x "$QWEN" ] || exit 0
+[ -x "$HOME/.claude/scripts/llm-call.sh" ] || exit 0
 
 source "$HOME/.claude/hooks/_lib/ollama-available.sh"
 ollama_available || exit 0
@@ -229,7 +228,13 @@ fi
 
 PROMPT=$(printf '다음은 방금 끝난 Claude Code 세션의 핵심 기록이다. 네 개의 구분된 블록을 정확히 그대로 출력해라.\n\n=== 블록 A: 세션 요약 ===\n## 한 줄 요약\n<세션 전체를 한 줄로 (70자 이내)>\n\n## 주요 작업\n- <작업 1>\n- <작업 2>\n- <작업 3>\n\n## 수정 파일\n- <경로> — <변경 의도 한 줄>\n\n## 미완료/후속 조치\n- <끝까지 마무리 안 된 것, 없으면 "없음">\n\n=== 블록 B: 다음 세션 의도 ===\n마지막 목표: <이 세션에서 하려던 최종 목표 한 줄>\n마지막 시도: <실제 마지막으로 시도한 구체 작업 한 줄>\n중단 이유: <완료? 막힘? 사용자 중단? 한 줄 추정>\n다음 작업: <바로 이어서 할 구체 행동 한 줄>\n주의점: <이어서 할 때 놓치면 안 되는 맥락 한 줄>\n\n=== 블록 C: 결정 ===\ndecisions:\n  - topic: <한 줄 주제>\n    decision: <무엇을 결정했나, 1줄>\n    rationale: <왜 그렇게 결정했나, 1줄>\n    alternatives_rejected: <기각한 대안, 1줄 또는 "none">\n\n=== 블록 D: 학습 ===\nlearnings:\n  - topic: <한 줄 주제>\n    insight: <무엇을 배웠나, 1-2줄>\n    context: <어떤 상황에서 배웠나, 1줄>\n    follow_up: <후속 학습 필요한 것, 1줄 또는 "none">\n\n=== 끝 ===\n\n규칙:\n- 세션 기록 근거만 사용. 추측 금지.\n- 완결된 세션이면 블록 B 모든 줄을 "없음"으로 표시.\n- 결정이 없으면 블록 C는 정확히 "decisions: []" 만 출력.\n- 학습 거리가 없으면 블록 D는 정확히 "learnings: []" 만 출력.\n- 블록 C와 D에는 마크다운 코드펜스나 설명을 넣지 말고 YAML만 출력.\n- 최대 결정 5개, 학습 5개.\n- 장식/이모지/인사/설명 금지. 위 네 블록만 출력.\n- 블록 구분선 "=== 블록 A: 세션 요약 ===", "=== 블록 B: 다음 세션 의도 ===", "=== 블록 C: 결정 ===", "=== 블록 D: 학습 ===", "=== 끝 ===" 그대로 포함.\n\n세션 기록:\n%s' "$EXTRACTED")
 
-RESULT=$(printf '%s\n' "$PROMPT" | "$QWEN" -p - --profile writer --num-ctx 8192 --quiet 2>/dev/null)
+RESULT=$(printf '%s\n' "$PROMPT" | "$HOME/.claude/scripts/llm-call.sh" ini \
+    --caller gemma-session-stop-unified \
+    --timeout 90 \
+    --profile writer \
+    --num-ctx 8192 \
+    --prompt - \
+    2>/dev/null)
 INI_EXIT=$?
 
 if [ "$INI_EXIT" -ne 0 ] || [ -z "$RESULT" ]; then

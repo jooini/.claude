@@ -5,8 +5,7 @@
 
 : "${HOME:?}"
 
-QWEN="$HOME/.local/bin/ini"
-[ -x "$QWEN" ] || exit 0
+[ -x "$HOME/.claude/scripts/llm-call.sh" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
 source "$HOME/.claude/hooks/_lib/ollama-available.sh"
@@ -73,7 +72,13 @@ fi
 # ini — korean 페르소나가 자동 적용 (qwen3.5:9b)
 PROMPT=$(printf '다음 영문 커밋/PR 메시지를 한국어로 번역.\n\n규칙:\n- Conventional Commits 타입 접두어(feat/fix/refactor 등)는 유지\n- 70자 이내 간결하게\n- 번역 결과만 출력. 설명/따옴표/인사 금지\n\n영문 원본:\n%s' "$MSG")
 
-RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile korean --num-ctx 8192 2>/dev/null)
+RESULT=$(echo "$PROMPT" | "$HOME/.claude/scripts/llm-call.sh" ini \
+    --caller gemma-korean-translate-gate \
+    --timeout 12 \
+    --profile korean \
+    --num-ctx 8192 \
+    --prompt - \
+    2>/dev/null)
 EXIT=$?
 
 if [ "$EXIT" -eq 0 ] && [ -n "$RESULT" ]; then

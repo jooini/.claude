@@ -5,7 +5,6 @@
 
 : "${HOME:?}"
 
-OLLAMA_HOST="${OLLAMA_HOST_LAN:-leonard.local:11434}"
 CACHE_DIR="$HOME/.claude/cache/morning-brief"
 mkdir -p "$CACHE_DIR"
 
@@ -27,9 +26,8 @@ if [ "$CURRENT_HOUR" -lt 5 ]; then
     exit 0
 fi
 
-# ini 확인 (Ollama 백엔드도 우회 헬스체크)
-QWEN_CLI="$HOME/.local/bin/ini"
-if [ ! -x "$QWEN_CLI" ]; then
+# LLM 어댑터 확인
+if [ ! -x "$HOME/.claude/scripts/llm-call.sh" ]; then
     exit 0
 fi
 
@@ -148,9 +146,21 @@ if [ -z "$PROMPT" ]; then
 fi
 
 # 1차 시도. 빈 응답 시 재시도 (qwen3.5:9b가 thinking에 토큰 소진하는 케이스 대응)
-BRIEF=$(printf '%s' "$PROMPT" | "$QWEN_CLI" -p - --profile writer --num-ctx 8192 2>/dev/null)
+BRIEF=$(printf '%s' "$PROMPT" | "$HOME/.claude/scripts/llm-call.sh" ini \
+    --caller gemma-morning-brief \
+    --timeout 20 \
+    --profile writer \
+    --num-ctx 8192 \
+    --prompt - \
+    2>/dev/null)
 if [ -z "$BRIEF" ]; then
-    BRIEF=$(printf '%s' "$PROMPT" | "$QWEN_CLI" -p - --profile writer --num-ctx 8192 2>/dev/null)
+    BRIEF=$(printf '%s' "$PROMPT" | "$HOME/.claude/scripts/llm-call.sh" ini \
+        --caller gemma-morning-brief \
+        --timeout 20 \
+        --profile writer \
+        --num-ctx 8192 \
+        --prompt - \
+        2>/dev/null)
 fi
 
 if [ -z "$BRIEF" ]; then

@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "status": "transitional",
+  "description": "Policy for direct LLM CLI usage in hooks/scripts. Runtime generation calls should go through scripts/llm-call.sh unless explicitly allowed here.",
+  "adapter_entrypoint": "scripts/llm-call.sh",
+  "python_adapter_entrypoint": "scripts/_lib_ini_call.py",
+  "disallowed_runtime_patterns": [
+    "\\$GEM_CLI\\b",
+    "\\bGEM_CLI=",
+    "\\$QWEN_CLI\\b",
+    "\\$QWEN\\b",
+    "codex exec --skip-git-repo-check",
+    "codex exec --full-auto",
+    "\\.local/bin/ini"
+  ],
+  "allowed_direct_paths": [
+    {
+      "path": "scripts/llm-call.sh",
+      "reason": "Shell adapter owns direct provider execution."
+    },
+    {
+      "path": "scripts/_lib_ini_call.py",
+      "reason": "Python adapter owns urllib/ini fallback for Python reports."
+    },
+    {
+      "path": "hooks/qwen-weekly-retro.sh",
+      "allowed_line_contains": [
+        "INI_BIN=",
+        "stats --tail"
+      ],
+      "reason": "Direct ini usage is limited to stats collection; text generation uses scripts/llm-call.sh."
+    }
+  ],
+  "excluded_meta_paths": [
+    "scripts/audit-claude-config.py",
+    "scripts/generate-architecture-diagrams.py",
+    "scripts/generate-hook-consolidation-candidates.py",
+    "scripts/generate-hook-consolidation-plan.py",
+    "scripts/generate-hook-manifest.py",
+    "scripts/generate-hook-inventory.py",
+    "scripts/generate-llm-call-inventory.py",
+    "scripts/ini-migration-livetest.py",
+    "scripts/project-settings-from-registry.py"
+  ]
+}

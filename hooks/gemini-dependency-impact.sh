@@ -5,17 +5,7 @@
 
 : "${HOME:?}"
 
-. "$HOME/.claude/scripts/_nvm-path.sh"  # nvm PATH 보강
 source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
-
-GEM_CLI="${GEMINI_CLI:-}"
-if [ -z "$GEM_CLI" ]; then
-    if command -v agy >/dev/null 2>&1; then GEM_CLI=agy
-    elif command -v gemini >/dev/null 2>&1; then GEM_CLI=gemini
-    else exit 0
-    fi
-fi
-command -v "$GEM_CLI" >/dev/null 2>&1 || exit 0
 
 INPUT=$(cat)
 
@@ -83,7 +73,11 @@ PROMPT=$(printf '의존성 파일 변경 영향 분석. 프로젝트 루트: %s\
 
 # agy는 $(cat)이 stdin 선소비 → EOF만 받는 이중 stdin 패턴 사용 금지.
 # 프롬프트를 단일 -p 인자로 직접 전달.
-RESULT=$("$GEM_CLI" -p "$PROMPT" 2>/dev/null | tail -50)
+RESULT=$("$HOME/.claude/scripts/llm-call.sh" gemini \
+    --caller gemini-dependency-impact \
+    --timeout 45 \
+    --prompt "$PROMPT" \
+    2>/dev/null | tail -50)
 
 if [ -z "$RESULT" ]; then
     outcome_log "gemini-dependency-impact" "warn" "${PROJECT_NAME}:${FILE_PATH##*/}:empty" "gemini-impact-noresult"
@@ -92,7 +86,7 @@ fi
 
 echo "$RESULT" > "$OUTPUT_FILE"
 echo "$DIFF_HASH" > "$HASH_FILE"
-outcome_log "gemini-dependency-impact" "trigger" "${PROJECT_NAME}:${FILE_PATH##*/}:${GEM_CLI}" "gemini-impact-fired"
+outcome_log "gemini-dependency-impact" "trigger" "${PROJECT_NAME}:${FILE_PATH##*/}:llm-call" "gemini-impact-fired"
 
 export GEMINI_RESULT="$RESULT" PROJECT_NAME
 python3 -c "

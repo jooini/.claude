@@ -45,7 +45,7 @@
 ```
 1. /debug → 재현/수집/가설/검증 자동
 2. 2회 실패 시 접근 재검토
-3. 3회 실패 시 codex:codex-rescue foreground
+3. 3회 실패 시 codex:rescue foreground
 4. 수정 후 회귀 테스트 추가
 5. code-reviewer 단독 리뷰 (속도 우선)
 6. tester

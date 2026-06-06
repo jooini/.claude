@@ -43,10 +43,9 @@ if [ -f "$OUTPUT_FILE" ]; then
     fi
 fi
 
-# ini 바이너리 확인
-QWEN_CLI="$HOME/.local/bin/ini"
-if [ ! -x "$QWEN_CLI" ]; then
-    echo "[ini 프리스캔 스킵] $QWEN_CLI 미설치 — code-reviewer 단독 진행"
+# LLM 어댑터 확인
+if [ ! -x "$HOME/.claude/scripts/llm-call.sh" ]; then
+    echo "[ini 프리스캔 스킵] llm-call.sh 미설치 — code-reviewer 단독 진행"
     exit 0
 fi
 
@@ -74,7 +73,13 @@ $DIFF_TRUNCATED
 EOF
 )
 
-RESULT=$(printf '%s' "$PROMPT" | "$QWEN_CLI" -p - --profile reviewer --num-ctx 8192 --quiet 2>/dev/null)
+RESULT=$(printf '%s' "$PROMPT" | "$HOME/.claude/scripts/llm-call.sh" ini \
+    --caller gemma-review-prescan \
+    --timeout 30 \
+    --profile reviewer \
+    --num-ctx 8192 \
+    --prompt - \
+    2>/dev/null)
 
 if [ -n "$RESULT" ]; then
     echo "$RESULT" > "$OUTPUT_FILE"

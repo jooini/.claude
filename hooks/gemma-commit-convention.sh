@@ -52,9 +52,7 @@ if echo "$FIRST_LINE" | grep -qE '^(feat|fix|refactor|chore|docs|test|style|perf
     exit 0
 fi
 
-# ini 확인
-QWEN="$HOME/.local/bin/ini"
-[ -x "$QWEN" ] || exit 0
+[ -x "$HOME/.claude/scripts/llm-call.sh" ] || exit 0
 
 # 회사 LAN 외부에서 호출 시 즉시 skip (TCP 1초 캐시 5분)
 source "$HOME/.claude/hooks/_lib/ollama-available.sh"
@@ -84,7 +82,13 @@ type 후보: feat / fix / refactor / chore / docs / test / style / perf / build 
 - 70자 이내.
 ' "$MSG" "$DIFF_STAT")
 
-RESULT=$(echo "$PROMPT" | "$QWEN" -p - --profile reviewer --num-ctx 8192 2>/dev/null)
+RESULT=$(echo "$PROMPT" | "$HOME/.claude/scripts/llm-call.sh" ini \
+    --caller gemma-commit-convention \
+    --timeout 12 \
+    --profile reviewer \
+    --num-ctx 8192 \
+    --prompt - \
+    2>/dev/null)
 EXIT=$?
 
 if [ $EXIT -eq 0 ] && [ -n "$RESULT" ]; then

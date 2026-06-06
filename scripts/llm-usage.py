@@ -6,6 +6,7 @@ llm-usage — LLM 사용량 집계 (Claude Code + Codex)
 - Claude Code: ~/.claude/projects/**/*.jsonl (message.usage)
 - Codex (GPT):  ~/.codex/state_5.sqlite (threads.tokens_used)
 - Ollama:       ~/.claude/cache/gemma-calls.jsonl (현재 부분 기록만)
+- LLM Adapter:  ~/.claude/cache/llm-adapter-calls.jsonl (shell adapter 공통 telemetry)
 
 사용:
   python3 ~/.claude/scripts/llm-usage.py           # 전체 + 최근 7일
@@ -55,6 +56,30 @@ PRICING = {
 # Codex tokens_used는 input+output 합산 — 평균 비율로 추정 (검증 필요)
 # 통상 input:output = 7:3 정도 (cache 비중 높을수록 비용 ↓)
 CODEX_INPUT_RATIO = 0.7
+
+
+def as_int(value, default=0):
+    try:
+        return int(value or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def iter_jsonl(path):
+    """Yield valid JSON objects from a JSONL file."""
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path) as f:
+            for line in f:
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                if isinstance(obj, dict):
+                    yield obj
+    except Exception:
+        return
 
 
 def cost_for(model, in_tokens=0, out_tokens=0, cache_r=0, cache_c=0):
@@ -376,6 +401,111 @@ def collect_ollama():
     }
 
 
+def collect_llm_adapter():
+    """Common shell adapter telemetry from ~/.claude/cache/llm-adapter-calls.jsonl."""
+    path = os.path.expanduser("~/.claude/cache/llm-adapter-calls.jsonl")
+    daily = defaultdict(lambda: {
+        'calls': 0,
+        'ok': 0,
+        'error': 0,
+        'duration_ms': 0,
+        'timeout_seconds': 0,
+        'prompt_length': 0,
+        'response_length': 0,
+        'output_bytes': 0,
+    })
+    by_provider = defaultdict(lambda: {
+        'calls': 0,
+        'ok': 0,
+        'error': 0,
+        'duration_ms': 0,
+        'prompt_length': 0,
+        'response_length': 0,
+        'output_bytes': 0,
+    })
+    by_caller = defaultdict(lambda: {
+        'calls': 0,
+        'ok': 0,
+        'error': 0,
+        'duration_ms': 0,
+    })
+    by_adapter = defaultdict(lambda: {'calls': 0, 'ok': 0, 'error': 0})
+    total = {
+        'calls': 0,
+        'ok': 0,
+        'error': 0,
+        'duration_ms': 0,
+        'timeout_seconds': 0,
+        'prompt_length': 0,
+        'response_length': 0,
+        'output_bytes': 0,
+    }
+    schema_versions = set()
+
+    for d in iter_jsonl(path) or []:
+        ts = d.get('timestamp', '')
+        if not ts or len(ts) < 10:
+            continue
+        day = ts[:10]
+        schema_versions.add(d.get('schema_version'))
+        provider = d.get('provider') or 'unknown'
+        adapter = d.get('adapter') or 'unknown'
+        caller = d.get('caller') or 'unknown'
+        exit_code = as_int(d.get('exit_code'))
+        status = d.get('status') or ('ok' if exit_code == 0 else 'error')
+        ok = status == 'ok' and exit_code == 0
+        duration_ms = as_int(d.get('duration_ms'))
+        timeout_seconds = as_int(d.get('timeout_seconds'))
+        prompt_length = as_int(d.get('prompt_length'))
+        response_length = as_int(d.get('response_length'))
+        output_bytes = as_int(d.get('output_bytes'))
+
+        for bucket in (daily[day], by_provider[provider], total):
+            bucket['calls'] += 1
+            bucket['ok'] += 1 if ok else 0
+            bucket['error'] += 0 if ok else 1
+            bucket['duration_ms'] += duration_ms
+            bucket['prompt_length'] += prompt_length
+            bucket['response_length'] += response_length
+            bucket['output_bytes'] += output_bytes
+        daily[day]['timeout_seconds'] += timeout_seconds
+        total['timeout_seconds'] += timeout_seconds
+        by_caller[caller]['calls'] += 1
+        by_caller[caller]['ok'] += 1 if ok else 0
+        by_caller[caller]['error'] += 0 if ok else 1
+        by_caller[caller]['duration_ms'] += duration_ms
+        by_adapter[adapter]['calls'] += 1
+        by_adapter[adapter]['ok'] += 1 if ok else 0
+        by_adapter[adapter]['error'] += 0 if ok else 1
+
+    if total['calls']:
+        total['success_rate'] = total['ok'] / total['calls']
+        total['avg_duration_ms'] = total['duration_ms'] / total['calls']
+        for bucket in by_provider.values():
+            bucket['success_rate'] = bucket['ok'] / bucket['calls'] if bucket['calls'] else 0.0
+            bucket['avg_duration_ms'] = bucket['duration_ms'] / bucket['calls'] if bucket['calls'] else 0.0
+        note = f"{path} ({total['calls']} calls)"
+    elif os.path.exists(path):
+        total['success_rate'] = 0.0
+        total['avg_duration_ms'] = 0.0
+        note = f"{path} exists but has no valid records"
+    else:
+        total['success_rate'] = 0.0
+        total['avg_duration_ms'] = 0.0
+        note = f"{path} not created yet"
+
+    return {
+        'total': total,
+        'daily': dict(daily),
+        'by_provider': dict(by_provider),
+        'by_caller': dict(by_caller),
+        'by_adapter': dict(by_adapter),
+        'schema_versions': sorted(v for v in schema_versions if v is not None),
+        'available': total['calls'] > 0,
+        'note': note,
+    }
+
+
 def fmt_tokens(n):
     if n >= 1_000_000_000:
         return f"{n/1_000_000_000:.2f}B"
@@ -390,6 +520,7 @@ def print_human(data, days):
     cc = data['claude_code']
     cx = data['codex']
     ol = data['ollama']
+    ad = data['llm_adapter']
 
     today = datetime.now().date()
     cutoff = today - timedelta(days=days)
@@ -452,10 +583,34 @@ def print_human(data, days):
     else:
         print(f"   ⚠️  부분 기록만 — gemma-calls.jsonl 비어있음")
 
+    # LLM adapter telemetry
+    print(f"\n🔌 LLM Adapter Telemetry")
+    at = ad['total']
+    if ad.get('available'):
+        print(
+            f"   호출 {at['calls']:,} / 성공 {at['ok']:,} / 실패 {at['error']:,} "
+            f"/ 성공률 {at.get('success_rate', 0.0) * 100:.1f}% "
+            f"/ 평균 {at.get('avg_duration_ms', 0.0):.0f}ms"
+        )
+        print("   Provider별:")
+        for provider, p in sorted(ad['by_provider'].items(), key=lambda x: -x[1].get('calls', 0)):
+            print(
+                f"     {provider:12s} {p['calls']:>4}회 / "
+                f"성공률 {p.get('success_rate', 0.0) * 100:>5.1f}% / "
+                f"평균 {p.get('avg_duration_ms', 0.0):>7.0f}ms"
+            )
+        callers = sorted(ad['by_caller'].items(), key=lambda x: -x[1].get('calls', 0))[:5]
+        if callers:
+            print("   Caller TOP 5:")
+            for caller, c in callers:
+                print(f"     {caller[:36]:36s} {c['calls']:>4}회 / 실패 {c['error']:>3}")
+    else:
+        print(f"   ⚠️  {ad.get('note','adapter 로그 없음')}")
+
     # 일별 요약
     print(f"\n📊 최근 {days}일 일별 사용량")
     all_days = set()
-    for src in [cc['daily'], cx.get('daily', {}), ol.get('daily', {})]:
+    for src in [cc['daily'], cx.get('daily', {}), data['gemini'].get('daily', {}), ol.get('daily', {}), ad.get('daily', {})]:
         for d in src.keys():
             try:
                 if datetime.strptime(d, "%Y-%m-%d").date() >= cutoff:
@@ -463,12 +618,13 @@ def print_human(data, days):
             except Exception:
                 pass
 
-    print(f"   {'날짜':12s} {'Claude턴':>8s} {'Claude $':>9s} {'Codex세션':>9s} {'Codex $':>9s} {'Gemini':>7s} {'합계 $':>8s}")
+    print(f"   {'날짜':12s} {'Claude턴':>8s} {'Claude $':>9s} {'Codex세션':>9s} {'Codex $':>9s} {'Gemini':>7s} {'Adapter':>8s} {'실패':>5s} {'합계 $':>8s}")
     grand_total = 0.0
     for day in sorted(all_days, reverse=True)[:days]:
         cc_d = cc['daily'].get(day, {})
         cx_d = cx.get('daily', {}).get(day, {})
         gm_d = data['gemini'].get('daily', {}).get(day, {})
+        ad_d = ad.get('daily', {}).get(day, {})
         cc_turns = cc_d.get('turns', 0)
         cc_cost = cc_d.get('cost', 0.0)
         cx_cost = cx_d.get('cost', 0.0)
@@ -477,7 +633,8 @@ def print_human(data, days):
         grand_total += day_total
         print(f"   {day:12s} {cc_turns:>8,} {'$'+f'{cc_cost:.2f}':>9s} "
               f"{cx_d.get('sessions',0):>9,} {'$'+f'{cx_cost:.2f}':>9s} "
-              f"{'$'+f'{gm_cost:.4f}':>7s} {'$'+f'{day_total:.2f}':>8s}")
+              f"{'$'+f'{gm_cost:.4f}':>7s} {ad_d.get('calls',0):>8,} "
+              f"{ad_d.get('error',0):>5,} {'$'+f'{day_total:.2f}':>8s}")
     print(f"   {'─'*70}")
     print(f"   {'기간 합계':12s} {'':>8s} {'':>9s} {'':>9s} {'':>9s} {'':>7s} {'$'+f'{grand_total:.2f}':>8s}")
 
@@ -489,6 +646,7 @@ def print_human(data, days):
     print("                + ~/.claude/cache/gemini-calls.jsonl    (gemini-wrapped.sh, caller 식별용)")
     print("                + ~/.claude/cache/agy-calls.jsonl       (Antigravity CLI, 2026-06-18부터 기본)")
     print("   Ollama:      ~/.claude/cache/gemma-calls.jsonl       (부분 기록)")
+    print("   Adapter:     ~/.claude/cache/llm-adapter-calls.jsonl (provider/caller/status/duration)")
     print("❌ GPT 직접:    별도 인증 안 됨 — Codex가 곧 GPT 사용량")
 
 
@@ -503,6 +661,7 @@ def main():
         'codex': collect_codex(),
         'gemini': collect_gemini(),
         'ollama': collect_ollama(),
+        'llm_adapter': collect_llm_adapter(),
         'generated_at': datetime.now().isoformat()
     }
 

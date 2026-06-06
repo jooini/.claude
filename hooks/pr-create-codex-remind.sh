@@ -29,11 +29,10 @@ fi
 
 echo "[Codex PR 요약 생성 중] 완료까지 대기..."
 
-# Codex 동기 실행 (타임아웃 90초)
-# codex exec 사용 — 'codex -a' 는 --ask-for-approval 오해석 버그. PATH 폴백 + git-repo-check 스킵.
-CODEX_BIN="codex"
-command -v codex >/dev/null 2>&1 || CODEX_BIN="$HOME/.nvm/versions/node/v22.22.0/bin/codex"
-RESULT=$(timeout 90 "$CODEX_BIN" exec --skip-git-repo-check "이 브랜치의 PR 설명을 작성해줘.
+RESULT=$("$HOME/.claude/scripts/llm-call.sh" codex \
+  --caller pr-create-codex-remind \
+  --timeout 90 \
+  --prompt "이 브랜치의 PR 설명을 작성해줘.
 
 커밋 로그:
 ${COMMIT_LOG}
@@ -41,7 +40,8 @@ ${COMMIT_LOG}
 변경 통계:
 ${DIFF_STAT}
 
-## Summary 형식으로 주요 변경사항 3줄 이내 요약, ## Test plan으로 테스트 체크리스트 작성. 한글로." 2>/dev/null)
+## Summary 형식으로 주요 변경사항 3줄 이내 요약, ## Test plan으로 테스트 체크리스트 작성. 한글로." \
+  2>/dev/null)
 
 if [ -n "$RESULT" ]; then
   echo "$RESULT" > "$OUTPUT_FILE"

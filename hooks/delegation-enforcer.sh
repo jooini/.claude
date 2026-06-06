@@ -1,6 +1,6 @@
 #!/bin/zsh
 # PreToolUse: Edit/Write로 코드 파일 수정 시 Codex/Gemini 위임 강제 안내
-# 직접 구현 시 토큰 비효율 → 가능하면 Codex MCP에 위임
+# 직접 구현 시 토큰 비효율 → 가능하면 Codex CLI/Plugin에 위임
 # stdout 비차단 경고 (사용자가 명시적으로 "직접 구현" 요청 시 무시)
 
 : "${HOME:?}"

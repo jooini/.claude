@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "description": "Isolated execute validation for selected planned hook wrapper activation scenarios.",
+  "generated_from": [
+    "scripts/hook-wrapper-runner.py",
+    "registry/hook-wrapper-plan.json",
+    "registry/hook-wrapper-activation-gates.json"
+  ],
+  "runner": "scripts/hook-wrapper-runner.py",
+  "scenario_count": 5,
+  "failed_scenario_count": 0,
+  "status": "pass",
+  "side_effect_boundary": {
+    "home": "temporary",
+    "cwd": "temporary git repository under temporary Workspace",
+    "path": "stub say/osascript before system PATH",
+    "llm": "temporary HOME stub llm-call.sh; ollama_available returns false"
+  },
+  "scenarios": [
+    {
+      "id": "git-commit-non-korean-block",
+      "plan_id": "pretooluse-git-commit-pipeline",
+      "status": "pass",
+      "expected_exit_code": 2,
+      "actual_exit_code": 2,
+      "runner_returncode": 2,
+      "expected_executed_step_count": 3,
+      "actual_executed_step_count": 3,
+      "expected_blocked_hook_id": "PreToolUse:1:2",
+      "actual_blocked_hook_id": "PreToolUse:1:2",
+      "stdout_bytes": 0,
+      "stderr_bytes": 85,
+      "steps": [
+        {
+          "order": 14,
+          "hook_id": "PreToolUse:1:0",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 15,
+          "hook_id": "PreToolUse:1:1",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 16,
+          "hook_id": "PreToolUse:1:2",
+          "exit_code": 2,
+          "blocked": true,
+          "timed_out": false
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "git-commit-coauthor-block",
+      "plan_id": "pretooluse-git-commit-pipeline",
+      "status": "pass",
+      "expected_exit_code": 2,
+      "actual_exit_code": 2,
+      "runner_returncode": 2,
+      "expected_executed_step_count": 4,
+      "actual_executed_step_count": 4,
+      "expected_blocked_hook_id": "PreToolUse:1:3",
+      "actual_blocked_hook_id": "PreToolUse:1:3",
+      "stdout_bytes": 0,
+      "stderr_bytes": 87,
+      "steps": [
+        {
+          "order": 14,
+          "hook_id": "PreToolUse:1:0",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 15,
+          "hook_id": "PreToolUse:1:1",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 16,
+          "hook_id": "PreToolUse:1:2",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 17,
+          "hook_id": "PreToolUse:1:3",
+          "exit_code": 2,
+          "blocked": true,
+          "timed_out": false
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "gh-pr-create-safe-skip",
+      "plan_id": "pretooluse-gh-pr-pipeline",
+      "status": "pass",
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "runner_returncode": 0,
+      "expected_executed_step_count": 2,
+      "actual_executed_step_count": 2,
+      "expected_blocked_hook_id": null,
+      "actual_blocked_hook_id": null,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "steps": [
+        {
+          "order": 20,
+          "hook_id": "PreToolUse:2:0",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 21,
+          "hook_id": "PreToolUse:2:1",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "edit-write-large-direct-block",
+      "plan_id": "pretooluse-edit-write-event-matcher",
+      "status": "pass",
+      "expected_exit_code": 2,
+      "actual_exit_code": 2,
+      "runner_returncode": 2,
+      "expected_executed_step_count": 2,
+      "actual_executed_step_count": 2,
+      "expected_blocked_hook_id": "PreToolUse:3:1",
+      "actual_blocked_hook_id": "PreToolUse:3:1",
+      "stdout_bytes": 255,
+      "stderr_bytes": 680,
+      "steps": [
+        {
+          "order": 22,
+          "hook_id": "PreToolUse:3:0",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 23,
+          "hook_id": "PreToolUse:3:1",
+          "exit_code": 2,
+          "blocked": true,
+          "timed_out": false
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "agent-reviewer-safe-stubbed",
+      "plan_id": "pretooluse-agent-event-matcher",
+      "status": "pass",
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "runner_returncode": 0,
+      "expected_executed_step_count": 4,
+      "actual_executed_step_count": 4,
+      "expected_blocked_hook_id": null,
+      "actual_blocked_hook_id": null,
+      "stdout_bytes": 234,
+      "stderr_bytes": 95,
+      "steps": [
+        {
+          "order": 26,
+          "hook_id": "PreToolUse:4:0",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 27,
+          "hook_id": "PreToolUse:4:1",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 28,
+          "hook_id": "PreToolUse:4:2",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 29,
+          "hook_id": "PreToolUse:4:3",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        }
+      ],
+      "failures": []
+    }
+  ]
+}

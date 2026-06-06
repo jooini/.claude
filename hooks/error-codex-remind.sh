@@ -55,19 +55,18 @@ OUTPUT_FILE="$HOME/.claude/cache/codex/${PROJECT_NAME}-rescue.md"
 if [ "$CURRENT_COUNT" -ge 3 ]; then
   echo "[Codex rescue 실행 중] ${CMD_TYPE} ${CURRENT_COUNT}회 연속 실패 — Codex가 분석 중..."
 
-  # Codex 동기 실행 (타임아웃 120초)
-  # codex exec 사용 — 'codex -a' 는 --ask-for-approval 로 오해석되는 버그였음.
-  # PATH 에 codex 없을 수 있어 절대경로 폴백. 비-git 디렉토리 대비 --skip-git-repo-check.
   cd "${CWD:-.}"
   ERROR_CONTEXT=$(cat "$ERROR_LOG" 2>/dev/null | head -50)
-  CODEX_BIN="codex"
-  command -v codex >/dev/null 2>&1 || CODEX_BIN="$HOME/.nvm/versions/node/v22.22.0/bin/codex"
-  RESULT=$(timeout 120 "$CODEX_BIN" exec --skip-git-repo-check "다음 ${CMD_TYPE} 명령이 3회 연속 실패했다: ${COMMAND}
+  RESULT=$("$HOME/.claude/scripts/llm-call.sh" codex \
+    --caller error-codex-remind \
+    --timeout 120 \
+    --prompt "다음 ${CMD_TYPE} 명령이 3회 연속 실패했다: ${COMMAND}
 
 에러:
 ${ERROR_CONTEXT}
 
-근본 원인을 분석하고 수정 방안을 제시해줘." 2>/dev/null)
+근본 원인을 분석하고 수정 방안을 제시해줘." \
+    2>/dev/null)
 
   if [ -n "$RESULT" ]; then
     echo "$RESULT" > "$OUTPUT_FILE"
@@ -76,7 +75,7 @@ ${ERROR_CONTEXT}
     echo "$RESULT"
     outcome_log "error-codex-remind" "trigger" "${PROJECT_NAME}:${CMD_TYPE}:${CURRENT_COUNT}fail" "codex-rescue-fired"
   else
-    echo "[Codex rescue 실패/타임아웃] — codex:codex-rescue 스킬을 수동 실행하세요"
+    echo "[Codex rescue 실패/타임아웃] — codex:rescue 스킬을 수동 실행하세요"
     outcome_log "error-codex-remind" "warn" "${PROJECT_NAME}:${CMD_TYPE}:timeout" "codex-rescue-failed"
   fi
   echo "0" > "$STATE_FILE"

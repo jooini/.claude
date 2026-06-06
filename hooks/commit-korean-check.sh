@@ -7,7 +7,13 @@ source "$HOME/.claude/hooks/_lib/outcome-log.sh" 2>/dev/null
 INPUT=$(cat)
 
 # git commit 명령인지 확인
-COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p')
+COMMAND=$(echo "$INPUT" | python3 -c "
+import json, sys
+try:
+    print(json.load(sys.stdin).get('tool_input', {}).get('command', ''))
+except Exception:
+    pass
+" 2>/dev/null)
 
 # git commit이 아니면 패스
 if ! echo "$COMMAND" | grep -q 'git commit'; then
@@ -16,7 +22,21 @@ if ! echo "$COMMAND" | grep -q 'git commit'; then
 fi
 
 # 커밋 메시지 추출 (-m 뒤의 내용)
-COMMIT_MSG=$(echo "$COMMAND" | sed -n 's/.*-m[[:space:]]*["'"'"']\([^"'"'"']*\)["'"'"'].*/\1/p')
+COMMIT_MSG=$(echo "$COMMAND" | python3 -c "
+import shlex, sys
+command = sys.stdin.read()
+try:
+    args = shlex.split(command)
+except Exception:
+    args = []
+for index, arg in enumerate(args):
+    if arg == '-m' and index + 1 < len(args):
+        print(args[index + 1])
+        break
+    if arg.startswith('-m') and len(arg) > 2:
+        print(arg[2:])
+        break
+" 2>/dev/null | head -1)
 
 # heredoc 패턴도 처리 (cat <<'EOF' ... EOF)
 if [ -z "$COMMIT_MSG" ]; then

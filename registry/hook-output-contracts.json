@@ -1,0 +1,701 @@
+{
+  "version": 1,
+  "description": "User-visible output and wrapper migration contracts for hooks whose stdout/stderr semantics matter.",
+  "contracts": [
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "description": "Stop hooks are async but can still surface user-visible stderr, audio, notifications, or status messages. Wrapper migration must preserve that contract.",
+      "rules": {
+        "default_stdout": "none",
+        "default_stderr": "none",
+        "blocking_exit": "not-allowed",
+        "wrapper_migration_gate": "Every current Stop hook must be listed here before Stop wrapper migration.",
+        "required_wrapper_behaviors": [
+          "stdin-replay-once-per-child",
+          "per-child-timeout",
+          "stdout-stderr-passthrough",
+          "fail-open-unless-explicitly-documented",
+          "status-message-policy-for-status-hooks"
+        ]
+      },
+      "hooks": [
+        {
+          "script": "hooks/stop-notify.sh",
+          "stdout": "none",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "audio"
+          ],
+          "migration_policy": "notification-router-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Always plays fanfare and speaks completion; no text output."
+        },
+        {
+          "script": "hooks/stop-pipeline-check.sh",
+          "stdout": "none",
+          "stderr": "conditional-user-warning",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr",
+            "audio"
+          ],
+          "migration_policy": "keep-direct-until-notification-router",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Warns when code changes exist without an obvious completed pipeline."
+        },
+        {
+          "script": "hooks/gemma-session-stop-unified.sh",
+          "stdout": "none",
+          "stderr": "none",
+          "status_message": "세션 요약+의도 통합 생성 중...",
+          "user_visible": true,
+          "visible_channels": [
+            "statusMessage"
+          ],
+          "migration_policy": "status-aware-background-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry",
+            "status-message-policy-for-status-hooks",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Writes session summary, intent, decisions, and learning records to cache/vault paths through the ini adapter."
+        },
+        {
+          "script": "hooks/qwen-handoff-suggest.sh",
+          "stdout": "none",
+          "stderr": "conditional-handoff-suggestion",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Suggests handoff when long sessions contain unfinished-work signals."
+        },
+        {
+          "script": "hooks/daily-learning-capture.sh",
+          "stdout": "conditional-capture-path",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stdout"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Appends learning queue entries and prints the capture path when it records a note."
+        },
+        {
+          "script": "hooks/llm-wiki-session-lint.sh",
+          "stdout": "none",
+          "stderr": "conditional-lint-report",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Reports broken wiki links or orphan pages at session end."
+        },
+        {
+          "script": "hooks/turn-summary.sh",
+          "stdout": "none",
+          "stderr": "conditional-turn-summary",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Prints recent hook timing only when enough hook timing entries exist."
+        },
+        {
+          "script": "hooks/budget-alert.sh",
+          "stdout": "none",
+          "stderr": "conditional-budget-warning",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr",
+            "notification"
+          ],
+          "migration_policy": "keep-direct-until-notification-router",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Warns only when daily LLM spend crosses configured thresholds."
+        },
+        {
+          "script": "hooks/turn-finalize.sh",
+          "stdout": "none",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": false,
+          "visible_channels": [],
+          "migration_policy": "background-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Finalizes turn-level cache and metrics without user-facing output."
+        },
+        {
+          "script": "hooks/closure-gate-stop.sh",
+          "stdout": "none",
+          "stderr": "conditional-closure-warning",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "keep-direct-until-output-router",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Warns only after daily closure violation threshold is exceeded."
+        },
+        {
+          "script": "hooks/taskhub-session-stop.sh",
+          "stdout": "none",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": false,
+          "visible_channels": [],
+          "migration_policy": "background-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "fail-open-unless-explicitly-documented"
+          ],
+          "notes": "Posts session-stop metadata to TaskHub and suppresses network output."
+        }
+      ]
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "*",
+      "description": "PreToolUse hooks run before a tool executes. Some are hard policy gates that may return exit 2; others are exit-0 reminders or context injectors. Wrapper migration must preserve first-failing gate semantics and stdout/stderr passthrough.",
+      "rules": {
+        "default_stdout": "none",
+        "default_stderr": "none",
+        "blocking_exit": "allowed-only-when-documented",
+        "wrapper_migration_gate": "Every current PreToolUse hook must be listed by matcher and script before any blocking wrapper migration.",
+        "required_wrapper_behaviors": [
+          "stdin-replay-once-per-child",
+          "per-child-timeout",
+          "stdout-stderr-passthrough",
+          "preserve-first-nonzero-exit",
+          "stop-after-blocking-exit",
+          "status-message-policy-for-status-hooks"
+        ]
+      },
+      "hooks": [
+        {
+          "matcher": "Bash",
+          "script": "hooks/bash-codegen-block.sh",
+          "blocks_tool": true,
+          "exit_contract": "exit-2-on-code-file-redirection",
+          "stdout": "none",
+          "stderr": "blocking-policy-message",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "blocking-router-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "preserve-first-nonzero-exit",
+            "stop-after-blocking-exit"
+          ],
+          "notes": "Blocks Bash heredoc/echo/printf attempts that write code files."
+        },
+        {
+          "matcher": "Bash",
+          "script": "hooks/danger-keyword-detect.sh",
+          "blocks_tool": true,
+          "exit_contract": "exit-2-on-destructive-command",
+          "stdout": "none",
+          "stderr": "blocking-policy-message",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "blocking-router-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "preserve-first-nonzero-exit",
+            "stop-after-blocking-exit",
+            "adapter-telemetry"
+          ],
+          "notes": "Warns or blocks dangerous destructive commands depending on severity."
+        },
+        {
+          "matcher": "Bash",
+          "script": "hooks/git-worktree-internal-block.sh",
+          "blocks_tool": true,
+          "exit_contract": "exit-2-on-internal-worktree",
+          "stdout": "none",
+          "stderr": "blocking-policy-message",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "blocking-router-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "preserve-first-nonzero-exit",
+            "stop-after-blocking-exit"
+          ],
+          "notes": "Blocks unsafe git worktree add targets under internal Claude paths."
+        },
+        {
+          "matcher": "Bash(git commit*)",
+          "script": "hooks/gemma-commit-draft.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-commit-draft-hint",
+          "stdout": "conditional-commit-draft",
+          "stderr": "none",
+          "status_message": "Gemma 커밋 초안 생성 중...",
+          "user_visible": true,
+          "visible_channels": [
+            "stdout",
+            "statusMessage"
+          ],
+          "migration_policy": "status-aware-output-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "status-message-policy-for-status-hooks",
+            "adapter-telemetry"
+          ],
+          "notes": "Provides a non-blocking Korean commit draft."
+        },
+        {
+          "matcher": "Bash(git commit*)",
+          "script": "hooks/gemma-commit-convention.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-commit-convention-hint",
+          "stdout": "conditional-convention-hint",
+          "stderr": "none",
+          "status_message": "Gemma 커밋 규약 검사 중...",
+          "user_visible": true,
+          "visible_channels": [
+            "stdout",
+            "statusMessage"
+          ],
+          "migration_policy": "status-aware-output-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "status-message-policy-for-status-hooks",
+            "adapter-telemetry"
+          ],
+          "notes": "Provides non-blocking commit convention feedback."
+        },
+        {
+          "matcher": "Bash(git commit*)",
+          "script": "hooks/commit-korean-check.sh",
+          "blocks_tool": true,
+          "exit_contract": "exit-2-on-non-korean-commit-message",
+          "stdout": "none",
+          "stderr": "blocking-json-error",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "blocking-router-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "preserve-first-nonzero-exit",
+            "stop-after-blocking-exit"
+          ],
+          "notes": "Blocks commit messages without Korean text."
+        },
+        {
+          "matcher": "Bash(git commit*)",
+          "script": "hooks/commit-no-coauthor.sh",
+          "blocks_tool": true,
+          "exit_contract": "exit-2-on-coauthored-by",
+          "stdout": "none",
+          "stderr": "blocking-json-error",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "blocking-router-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "preserve-first-nonzero-exit",
+            "stop-after-blocking-exit"
+          ],
+          "notes": "Blocks Co-Authored-By trailers."
+        },
+        {
+          "matcher": "Bash(git commit*)",
+          "script": "hooks/gemini-large-diff-prescan.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-background-prescan",
+          "stdout": "conditional-prescan-note",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stdout"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry"
+          ],
+          "notes": "Starts Gemini large-diff prescan before large commits."
+        },
+        {
+          "matcher": "Bash(git commit*)",
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-translation-hint",
+          "stdout": "conditional-translation-hint",
+          "stderr": "none",
+          "status_message": "Gemma 한글 번역 검사 중...",
+          "user_visible": true,
+          "visible_channels": [
+            "stdout",
+            "statusMessage"
+          ],
+          "migration_policy": "status-aware-output-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "status-message-policy-for-status-hooks",
+            "adapter-telemetry"
+          ],
+          "notes": "Provides non-blocking Korean translation feedback."
+        },
+        {
+          "matcher": "Bash(gh pr*)",
+          "script": "hooks/pr-create-codex-remind.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-pr-summary-hint",
+          "stdout": "conditional-pr-summary",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stdout"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry"
+          ],
+          "notes": "Generates a non-blocking Codex PR summary before gh pr create."
+        },
+        {
+          "matcher": "Bash(gh pr*)",
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-translation-hint",
+          "stdout": "conditional-translation-hint",
+          "stderr": "none",
+          "status_message": "Gemma 한글 번역 검사 중...",
+          "user_visible": true,
+          "visible_channels": [
+            "stdout",
+            "statusMessage"
+          ],
+          "migration_policy": "status-aware-output-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "status-message-policy-for-status-hooks",
+            "adapter-telemetry"
+          ],
+          "notes": "Reuses the non-blocking Korean translation feedback gate for PR text."
+        },
+        {
+          "matcher": "Edit|Write",
+          "script": "hooks/code-edit-pipeline-remind.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-pipeline-reminder",
+          "stdout": "conditional-pipeline-reminder",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stdout"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry"
+          ],
+          "notes": "Reminds that code edits require the implementation-review-test pipeline."
+        },
+        {
+          "matcher": "Edit|Write",
+          "script": "hooks/delegation-enforcer.sh",
+          "blocks_tool": true,
+          "exit_contract": "exit-2-on-large-direct-edit",
+          "stdout": "none",
+          "stderr": "blocking-policy-message",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "blocking-router-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "preserve-first-nonzero-exit",
+            "stop-after-blocking-exit",
+            "adapter-telemetry"
+          ],
+          "notes": "Blocks direct 50+ line edits unless the user explicitly requested direct implementation."
+        },
+        {
+          "matcher": "Edit|Write",
+          "script": "hooks/dependency-change-detect.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-dependency-prescan",
+          "stdout": "conditional-dependency-note",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stdout",
+            "notification"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry"
+          ],
+          "notes": "Detects dependency-sensitive file edits and may start Gemini analysis."
+        },
+        {
+          "matcher": "Edit|Write",
+          "script": "hooks/gemini-prescan-enforcer.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-prescan-reminder",
+          "stdout": "conditional-prescan-reminder",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stdout"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry"
+          ],
+          "notes": "Encourages Gemini prescan for broad edit sets."
+        },
+        {
+          "matcher": "Agent",
+          "script": "hooks/agent-start-notify.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-audio-notification",
+          "stdout": "none",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "audio"
+          ],
+          "migration_policy": "notification-router-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout"
+          ],
+          "notes": "Audio notification for agent start."
+        },
+        {
+          "matcher": "Agent",
+          "script": "hooks/agent-context-inject.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-context-injection",
+          "stdout": "conditional-context",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stdout"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry"
+          ],
+          "notes": "Injects agent-specific context before agent execution."
+        },
+        {
+          "matcher": "Agent",
+          "script": "hooks/agent-knowledge-remind.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-knowledge-reminder",
+          "stdout": "conditional-knowledge-reminder",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stdout"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough"
+          ],
+          "notes": "Reminds agent invocations about relevant knowledge files."
+        },
+        {
+          "matcher": "Agent",
+          "script": "hooks/gemma-review-prescan.sh",
+          "blocks_tool": false,
+          "exit_contract": "exit-0-review-prescan",
+          "stdout": "conditional-review-prescan",
+          "stderr": "none",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stdout"
+          ],
+          "migration_policy": "output-preserving-wrapper-candidate",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "adapter-telemetry"
+          ],
+          "notes": "Provides local ini review prescan context for reviewer agents."
+        },
+        {
+          "matcher": "mcp__",
+          "script": "hooks/mcp-deferred-guard.sh",
+          "blocks_tool": true,
+          "exit_contract": "exit-2-on-unloaded-deferred-mcp-tool",
+          "stdout": "none",
+          "stderr": "blocking-policy-message",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "keep-direct-until-mcp-router",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "preserve-first-nonzero-exit",
+            "stop-after-blocking-exit"
+          ],
+          "notes": "Blocks direct deferred MCP tool calls until ToolSearch has loaded the schema."
+        },
+        {
+          "matcher": "AskUserQuestion",
+          "script": "hooks/askuserquestion-korean-block.sh",
+          "blocks_tool": true,
+          "exit_contract": "exit-2-on-non-ascii-askuserquestion-payload",
+          "stdout": "none",
+          "stderr": "blocking-policy-message",
+          "status_message": null,
+          "user_visible": true,
+          "visible_channels": [
+            "stderr"
+          ],
+          "migration_policy": "keep-direct-hardware-bug-guard",
+          "wrapper_requirements": [
+            "stdin-replay-once-per-child",
+            "per-child-timeout",
+            "stdout-stderr-passthrough",
+            "preserve-first-nonzero-exit",
+            "stop-after-blocking-exit"
+          ],
+          "notes": "Physically blocks non-ASCII AskUserQuestion payloads to avoid the known serialization bug."
+        }
+      ]
+    }
+  ]
+}

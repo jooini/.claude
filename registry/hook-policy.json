@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "status": "transitional",
+  "description": "Operational policy for Claude Code hooks. settings.json remains the runtime source of truth until generation is introduced.",
+  "required_events": [
+    "SessionStart",
+    "UserPromptSubmit",
+    "PreToolUse",
+    "PostToolUse",
+    "Stop",
+    "SessionEnd"
+  ],
+  "required_hooks": [
+    {
+      "event": "SessionStart",
+      "matcher": "*",
+      "command_contains": "session-start-router.sh",
+      "priority": "P0",
+      "blocking": false,
+      "failure_mode": "fail-open",
+      "reason": "Compresses startup context and preserves startup side effects."
+    },
+    {
+      "event": "UserPromptSubmit",
+      "matcher": "*",
+      "command_contains": "user-prompt-router.sh",
+      "priority": "P0",
+      "blocking": false,
+      "failure_mode": "fail-open",
+      "reason": "Runs prompt guards and workflow context injection before model judgment."
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "AskUserQuestion",
+      "command_contains": "askuserquestion-korean-block.sh",
+      "priority": "P0",
+      "blocking": true,
+      "failure_mode": "fail-closed",
+      "reason": "Blocks non-ASCII AskUserQuestion payloads that can break serialization."
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "command_contains": "delegation-enforcer.sh",
+      "priority": "P0",
+      "blocking": true,
+      "failure_mode": "fail-closed-over-50-lines",
+      "reason": "Prevents high-volume direct code generation without explicit delegation path."
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "command_contains": "gemini-prescan-enforcer.sh",
+      "priority": "P1",
+      "blocking": true,
+      "failure_mode": "fail-closed-when-prescan-required",
+      "reason": "Keeps larger code changes aligned with Gemini/agy Phase 0 scan policy."
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "command_contains": "rag-auto-index.sh",
+      "priority": "P2",
+      "blocking": false,
+      "failure_mode": "fail-open",
+      "reason": "Keeps local RAG index fresh after content changes."
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "command_contains": "gemini-dependency-impact.sh",
+      "priority": "P1",
+      "blocking": false,
+      "failure_mode": "fail-open",
+      "reason": "Captures dependency impact context without blocking edits."
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "command_contains": "stop-pipeline-check.sh",
+      "priority": "P0",
+      "blocking": false,
+      "failure_mode": "warn-only",
+      "reason": "Warns when code changes exist without completed verification."
+    },
+    {
+      "event": "SessionEnd",
+      "matcher": "*",
+      "command_contains": "iterm-badge-clear.sh",
+      "priority": "P2",
+      "blocking": false,
+      "failure_mode": "fail-open",
+      "reason": "Cleans local UI session state."
+    }
+  ],
+  "event_policy": {
+    "SessionStart": "Startup routers may inject compressed context and run silent cache/build/health side effects.",
+    "UserPromptSubmit": "Prompt routers run before Claude model judgment; high-priority guards suppress lower-priority reminders.",
+    "PreToolUse": "Safety and delegation gates run before each tool invocation.",
+    "PostToolUse": "Telemetry, cache updates, indexing, and async analysis run after each tool invocation.",
+    "Stop": "End-of-turn checks summarize, warn, and persist session state.",
+    "SessionEnd": "Final local cleanup only."
+  }
+}

@@ -1,0 +1,1723 @@
+{
+  "version": 1,
+  "generated_from": [
+    "registry/hook-consolidation-candidates.json",
+    "registry/hook-wrapper-plan.json"
+  ],
+  "description": "Review guide for hook candidates that should not be migrated automatically.",
+  "active_wrapper_count": 6,
+  "wrapper_review_count": 3,
+  "order_review_count": 2,
+  "manual_review_count": 14,
+  "review_item_count": 19,
+  "blocker_counts": {
+    "contains_blocking_hook": 8,
+    "contains_llm_backed_hook": 16,
+    "high_risk_manual_review": 14,
+    "medium_risk_candidate": 5,
+    "mixed_async_semantics": 2,
+    "non_contiguous_interleaved_hooks": 6,
+    "status_message_semantics": 3
+  },
+  "strategy_counts": {
+    "manual-review-only": 14,
+    "order-preserving-router-required": 2,
+    "split-sync-guard-before-async-router": 2,
+    "stop-router-output-contract-required": 1
+  },
+  "active_wrappers": [
+    {
+      "id": "posttooluse-agent-event-matcher",
+      "source": "wrapper-plan",
+      "event": "PostToolUse",
+      "matcher": "Agent",
+      "bucket": "event_matcher",
+      "state": "active",
+      "blockers": [
+        "medium_risk_candidate"
+      ],
+      "strategy": "candidate-for-wrapper-after-review",
+      "next_action": "Contiguous event/matcher group; run fixture replay and compare side effects before migration.",
+      "hook_count": 7,
+      "execution": [
+        {
+          "order": 7,
+          "script": "hooks/agent-usage-log.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        },
+        {
+          "order": 8,
+          "script": "hooks/agent-complete-notify.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "audio"
+          ]
+        },
+        {
+          "order": 9,
+          "script": "hooks/pipeline-metrics-log.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        },
+        {
+          "order": 10,
+          "script": "hooks/decision-capture.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 8,
+          "side_effects": [
+            "vault_write"
+          ]
+        },
+        {
+          "order": 11,
+          "script": "hooks/agent-trace.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        },
+        {
+          "order": 12,
+          "script": "hooks/agent-build-verify.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "cache_write",
+            "metrics",
+            "agent_build"
+          ]
+        },
+        {
+          "order": 13,
+          "script": "hooks/agent-quality-incremental.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "posttooluse-edit-write-event-matcher",
+      "source": "wrapper-plan",
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "bucket": "event_matcher",
+      "state": "active",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "medium_risk_candidate",
+        "status_message_semantics"
+      ],
+      "strategy": "status-aware-wrapper-required",
+      "next_action": "A single settings hook can expose only one statusMessage, so document whether the wrapper-level message is acceptable before migration.",
+      "hook_count": 7,
+      "execution": [
+        {
+          "order": 8,
+          "script": "hooks/knowledge-change-rebuild.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "agent_build"
+          ]
+        },
+        {
+          "order": 9,
+          "script": "hooks/task-progress-tracker.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "vault_write"
+          ]
+        },
+        {
+          "order": 10,
+          "script": "hooks/claudemd-change-broadcast.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "order": 11,
+          "script": "hooks/rag-auto-index.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "rag_index",
+            "mcp"
+          ]
+        },
+        {
+          "order": 12,
+          "script": "hooks/gemini-dependency-impact.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 45,
+          "side_effects": [
+            "cache_write",
+            "outcome_log",
+            "git"
+          ]
+        },
+        {
+          "order": 13,
+          "script": "hooks/learning-note-auto-ingest.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "network",
+            "rag_index",
+            "vault_write",
+            "mcp"
+          ]
+        },
+        {
+          "order": 14,
+          "script": "hooks/vault-new-file-suggest.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "outcome_log",
+            "vault_write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "posttooluse-bash-pre-guard-async",
+      "source": "wrapper-plan",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "split-sync:pre-guard-async",
+      "state": "active",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "medium_risk_candidate"
+      ],
+      "strategy": "llm-timeout-and-telemetry-review",
+      "next_action": "Require per-child timeout, stdout/stderr passthrough, and adapter telemetry checks before migration.",
+      "hook_count": 2,
+      "execution": [
+        {
+          "order": 1,
+          "script": "hooks/bash-postproc-async.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 45,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        },
+        {
+          "order": 2,
+          "script": "hooks/bash-postproc-sync.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 45,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "network",
+            "agent_build"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "posttooluse-bash-post-guard-async",
+      "source": "wrapper-plan",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "split-sync:post-guard-async",
+      "state": "active",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "medium_risk_candidate",
+        "status_message_semantics"
+      ],
+      "strategy": "status-aware-wrapper-required",
+      "next_action": "A single settings hook can expose only one statusMessage, so document whether the wrapper-level message is acceptable before migration.",
+      "hook_count": 3,
+      "execution": [
+        {
+          "order": 4,
+          "script": "hooks/error-codex-remind.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 120,
+          "side_effects": [
+            "cache_write",
+            "outcome_log",
+            "network"
+          ]
+        },
+        {
+          "order": 5,
+          "script": "hooks/gemma-error-summarize.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 15,
+          "side_effects": [
+            "outcome_log",
+            "network",
+            "metrics"
+          ]
+        },
+        {
+          "order": 6,
+          "script": "hooks/git-commit-taskhub.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "git",
+            "network",
+            "taskhub"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stop-all-side-effect-vault-write",
+      "source": "wrapper-plan",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:vault_write",
+      "state": "active",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "medium_risk_candidate",
+        "status_message_semantics"
+      ],
+      "strategy": "stop-router-output-contract-required",
+      "next_action": "Define which Stop hook output is user-visible, which work is background-only, and how long-running LLM calls are capped.",
+      "hook_count": 4,
+      "execution": [
+        {
+          "order": 40,
+          "script": "hooks/gemma-session-stop-unified.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 90,
+          "side_effects": [
+            "cache_write",
+            "vault_write",
+            "metrics"
+          ]
+        },
+        {
+          "order": 41,
+          "script": "hooks/qwen-handoff-suggest.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "vault_write",
+            "metrics"
+          ]
+        },
+        {
+          "order": 42,
+          "script": "hooks/daily-learning-capture.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 15,
+          "side_effects": [
+            "vault_write",
+            "metrics"
+          ]
+        },
+        {
+          "order": 43,
+          "script": "hooks/llm-wiki-session-lint.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "outcome_log",
+            "vault_write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pretooluse-bash-safety-gates",
+      "source": "wrapper-plan",
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "bucket": "blocking-router:safety-gates",
+      "state": "active",
+      "blockers": [
+        "candidate_risk_is_high",
+        "contains_blocking_hook",
+        "contains_llm_backed_hook"
+      ],
+      "strategy": "llm-timeout-and-telemetry-review",
+      "next_action": "Require per-child timeout, stdout/stderr passthrough, and adapter telemetry checks before migration.",
+      "hook_count": 3,
+      "execution": [
+        {
+          "order": 13,
+          "script": "hooks/bash-codegen-block.sh",
+          "priority": null,
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log"
+          ]
+        },
+        {
+          "order": 14,
+          "script": "hooks/danger-keyword-detect.sh",
+          "priority": null,
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "outcome_log",
+            "git",
+            "network"
+          ]
+        },
+        {
+          "order": 15,
+          "script": "hooks/git-worktree-internal-block.sh",
+          "priority": null,
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "cache_write",
+            "outcome_log",
+            "git"
+          ]
+        }
+      ]
+    }
+  ],
+  "wrapper_review_items": [
+    {
+      "id": "stop-all-side-effect-cache-write",
+      "source": "wrapper-plan",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:cache_write",
+      "state": "candidate",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "medium_risk_candidate",
+        "status_message_semantics"
+      ],
+      "strategy": "stop-router-output-contract-required",
+      "next_action": "Define which Stop hook output is user-visible, which work is background-only, and how long-running LLM calls are capped.",
+      "hook_count": 4,
+      "execution": [
+        {
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 122,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ]
+        },
+        {
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ]
+        },
+        {
+          "order": 41,
+          "script": "hooks/turn-finalize.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "posttooluse-bash-event-matcher",
+      "source": "wrapper-plan",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "event_matcher",
+      "state": "candidate",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "medium_risk_candidate",
+        "mixed_async_semantics",
+        "status_message_semantics"
+      ],
+      "strategy": "split-sync-guard-before-async-router",
+      "next_action": "Keep synchronous guard behavior separate, then consider an async background router for the remaining non-blocking hooks.",
+      "hook_count": 3,
+      "execution": [
+        {
+          "order": 1,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 92,
+          "side_effects": [
+            "agent_build",
+            "cache_write",
+            "git",
+            "metrics",
+            "network"
+          ]
+        },
+        {
+          "order": 2,
+          "script": "hooks/dangerous-command-detect.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log",
+            "notification",
+            "audio",
+            "git"
+          ]
+        },
+        {
+          "order": 3,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 142,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "network",
+            "outcome_log",
+            "taskhub"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "posttooluse-bash-side-effect-outcome-log",
+      "source": "wrapper-plan",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "side_effect:outcome_log",
+      "state": "candidate",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "medium_risk_candidate",
+        "mixed_async_semantics",
+        "status_message_semantics"
+      ],
+      "strategy": "split-sync-guard-before-async-router",
+      "next_action": "Keep synchronous guard behavior separate, then consider an async background router for the remaining non-blocking hooks.",
+      "hook_count": 2,
+      "execution": [
+        {
+          "order": 2,
+          "script": "hooks/dangerous-command-detect.sh",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log",
+            "notification",
+            "audio",
+            "git"
+          ]
+        },
+        {
+          "order": 3,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": null,
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 142,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "network",
+            "outcome_log",
+            "taskhub"
+          ]
+        }
+      ]
+    }
+  ],
+  "order_review_items": [
+    {
+      "id": "Stop::*::side_effect:metrics",
+      "source": "consolidation-candidate",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:metrics",
+      "risk": "medium",
+      "recommendation": "order-review-before-wrapper",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "medium_risk_candidate",
+        "non_contiguous_interleaved_hooks"
+      ],
+      "strategy": "order-preserving-router-required",
+      "next_action": "Do not wrap only this side-effect subset. Either keep the current order or design a router that includes every interleaved hook in sequence.",
+      "hook_count": 3,
+      "first_order": 38,
+      "last_order": 41,
+      "interleaved_hook_count": 1,
+      "hooks": [
+        {
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 122,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ]
+        },
+        {
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ]
+        },
+        {
+          "order": 41,
+          "script": "hooks/turn-finalize.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        }
+      ],
+      "interleaved_hooks": [
+        {
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PostToolUse::Bash::side_effect:cache_write",
+      "source": "consolidation-candidate",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "side_effect:cache_write",
+      "risk": "medium",
+      "recommendation": "order-review-before-wrapper",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "medium_risk_candidate",
+        "non_contiguous_interleaved_hooks"
+      ],
+      "strategy": "order-preserving-router-required",
+      "next_action": "Do not wrap only this side-effect subset. Either keep the current order or design a router that includes every interleaved hook in sequence.",
+      "hook_count": 2,
+      "first_order": 1,
+      "last_order": 3,
+      "interleaved_hook_count": 1,
+      "hooks": [
+        {
+          "order": 1,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 92,
+          "side_effects": [
+            "agent_build",
+            "cache_write",
+            "git",
+            "metrics",
+            "network"
+          ]
+        },
+        {
+          "order": 3,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 142,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "network",
+            "outcome_log",
+            "taskhub"
+          ]
+        }
+      ],
+      "interleaved_hooks": [
+        {
+          "order": 2,
+          "script": "hooks/dangerous-command-detect.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log",
+            "notification",
+            "audio",
+            "git"
+          ]
+        }
+      ]
+    }
+  ],
+  "manual_review_items": [
+    {
+      "id": "Stop::*::event_matcher",
+      "source": "consolidation-candidate",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 7,
+      "first_order": 36,
+      "last_order": 43,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 36,
+          "script": "hooks/stop-notify.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "notification",
+            "audio"
+          ]
+        },
+        {
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ]
+        },
+        {
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 122,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ]
+        },
+        {
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ]
+        },
+        {
+          "order": 41,
+          "script": "hooks/turn-finalize.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        },
+        {
+          "order": 43,
+          "script": "hooks/taskhub-session-stop.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "network",
+            "taskhub"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "PreToolUse::Bash(git commit*)::event_matcher",
+      "source": "consolidation-candidate",
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_blocking_hook",
+        "contains_llm_backed_hook",
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 6,
+      "first_order": 14,
+      "last_order": 19,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 14,
+          "script": "hooks/gemma-commit-draft.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 20,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ]
+        },
+        {
+          "order": 15,
+          "script": "hooks/gemma-commit-convention.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 12,
+          "side_effects": [
+            "git"
+          ]
+        },
+        {
+          "order": 16,
+          "script": "hooks/commit-korean-check.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ]
+        },
+        {
+          "order": 17,
+          "script": "hooks/commit-no-coauthor.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ]
+        },
+        {
+          "order": 18,
+          "script": "hooks/gemini-large-diff-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ]
+        },
+        {
+          "order": 19,
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 12,
+          "side_effects": [
+            "git",
+            "network"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "PreToolUse::Agent::event_matcher",
+      "source": "consolidation-candidate",
+      "event": "PreToolUse",
+      "matcher": "Agent",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_blocking_hook",
+        "contains_llm_backed_hook",
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 4,
+      "first_order": 26,
+      "last_order": 29,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 26,
+          "script": "hooks/agent-start-notify.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "audio"
+          ]
+        },
+        {
+          "order": 27,
+          "script": "hooks/agent-context-inject.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "order": 28,
+          "script": "hooks/agent-knowledge-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": []
+        },
+        {
+          "order": 29,
+          "script": "hooks/gemma-review-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 30,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "PreToolUse::Edit|Write::event_matcher",
+      "source": "consolidation-candidate",
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_blocking_hook",
+        "contains_llm_backed_hook",
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 4,
+      "first_order": 22,
+      "last_order": 25,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 22,
+          "script": "hooks/code-edit-pipeline-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "order": 23,
+          "script": "hooks/delegation-enforcer.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "outcome_log",
+            "mcp"
+          ]
+        },
+        {
+          "order": 24,
+          "script": "hooks/dependency-change-detect.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ]
+        },
+        {
+          "order": 25,
+          "script": "hooks/gemini-prescan-enforcer.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "SessionStart::*::event_matcher",
+      "source": "consolidation-candidate",
+      "event": "SessionStart",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 3,
+      "first_order": 33,
+      "last_order": 35,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 33,
+          "script": "hooks/session-start-router.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 120,
+          "side_effects": [
+            "cache_write",
+            "vault_write",
+            "mcp",
+            "agent_build"
+          ]
+        },
+        {
+          "order": 34,
+          "script": "hooks/taskhub-session-start.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "network",
+            "taskhub"
+          ]
+        },
+        {
+          "order": 35,
+          "script": "hooks/iterm-badge-set.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "badge"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "Stop::*::side_effect:audio",
+      "source": "consolidation-candidate",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:audio",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 2,
+      "first_order": 36,
+      "last_order": 37,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 36,
+          "script": "hooks/stop-notify.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "notification",
+            "audio"
+          ]
+        },
+        {
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "PreToolUse::Bash(gh pr*)::event_matcher",
+      "source": "consolidation-candidate",
+      "event": "PreToolUse",
+      "matcher": "Bash(gh pr*)",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_blocking_hook",
+        "contains_llm_backed_hook",
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 2,
+      "first_order": 20,
+      "last_order": 21,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 20,
+          "script": "hooks/pr-create-codex-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 90,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "network"
+          ]
+        },
+        {
+          "order": 21,
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 12,
+          "side_effects": [
+            "git",
+            "network"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "PreToolUse::Bash(git commit*)::side_effect:outcome_log",
+      "source": "consolidation-candidate",
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "bucket": "side_effect:outcome_log",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_blocking_hook",
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 2,
+      "first_order": 16,
+      "last_order": 17,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 16,
+          "script": "hooks/commit-korean-check.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ]
+        },
+        {
+          "order": 17,
+          "script": "hooks/commit-no-coauthor.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "Stop::*::side_effect:notification",
+      "source": "consolidation-candidate",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:notification",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "high_risk_manual_review",
+        "non_contiguous_interleaved_hooks"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 3,
+      "first_order": 36,
+      "last_order": 40,
+      "interleaved_hook_count": 2,
+      "hooks": [
+        {
+          "order": 36,
+          "script": "hooks/stop-notify.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "notification",
+            "audio"
+          ]
+        },
+        {
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ]
+        },
+        {
+          "order": 40,
+          "script": "hooks/budget-alert.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ]
+        }
+      ],
+      "interleaved_hooks": [
+        {
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 122,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ]
+        },
+        {
+          "order": 39,
+          "script": "hooks/turn-summary.sh",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Stop::*::side_effect:git",
+      "source": "consolidation-candidate",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:git",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 2,
+      "first_order": 37,
+      "last_order": 38,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 37,
+          "script": "hooks/stop-pipeline-check.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ]
+        },
+        {
+          "order": 38,
+          "script": "scripts/hook-wrapper-runner.py",
+          "priority": "P1",
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 122,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "metrics",
+            "outcome_log",
+            "vault_write"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "UserPromptSubmit::*::event_matcher",
+      "source": "consolidation-candidate",
+      "event": "UserPromptSubmit",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_llm_backed_hook",
+        "high_risk_manual_review"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 2,
+      "first_order": 44,
+      "last_order": 45,
+      "interleaved_hook_count": 0,
+      "hooks": [
+        {
+          "order": 44,
+          "script": "hooks/user-prompt-router.sh",
+          "priority": "P0",
+          "blocking": false,
+          "calls_llm": true,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "order": 45,
+          "script": "hooks/taskhub-utterance.sh",
+          "priority": "P2",
+          "blocking": false,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "network",
+            "taskhub"
+          ]
+        }
+      ],
+      "interleaved_hooks": []
+    },
+    {
+      "id": "PreToolUse::Edit|Write::side_effect:cache_write",
+      "source": "consolidation-candidate",
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "bucket": "side_effect:cache_write",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_blocking_hook",
+        "contains_llm_backed_hook",
+        "high_risk_manual_review",
+        "non_contiguous_interleaved_hooks"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 3,
+      "first_order": 22,
+      "last_order": 25,
+      "interleaved_hook_count": 1,
+      "hooks": [
+        {
+          "order": 22,
+          "script": "hooks/code-edit-pipeline-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "order": 24,
+          "script": "hooks/dependency-change-detect.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ]
+        },
+        {
+          "order": 25,
+          "script": "hooks/gemini-prescan-enforcer.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        }
+      ],
+      "interleaved_hooks": [
+        {
+          "order": 23,
+          "script": "hooks/delegation-enforcer.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "outcome_log",
+            "mcp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PreToolUse::Bash(git commit*)::side_effect:cache_write",
+      "source": "consolidation-candidate",
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "bucket": "side_effect:cache_write",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_blocking_hook",
+        "contains_llm_backed_hook",
+        "high_risk_manual_review",
+        "non_contiguous_interleaved_hooks"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 2,
+      "first_order": 14,
+      "last_order": 18,
+      "interleaved_hook_count": 3,
+      "hooks": [
+        {
+          "order": 14,
+          "script": "hooks/gemma-commit-draft.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 20,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ]
+        },
+        {
+          "order": 18,
+          "script": "hooks/gemini-large-diff-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 10,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ]
+        }
+      ],
+      "interleaved_hooks": [
+        {
+          "order": 15,
+          "script": "hooks/gemma-commit-convention.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 12,
+          "side_effects": [
+            "git"
+          ]
+        },
+        {
+          "order": 16,
+          "script": "hooks/commit-korean-check.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ]
+        },
+        {
+          "order": 17,
+          "script": "hooks/commit-no-coauthor.sh",
+          "priority": "P0",
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 3,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PreToolUse::Agent::side_effect:cache_write",
+      "source": "consolidation-candidate",
+      "event": "PreToolUse",
+      "matcher": "Agent",
+      "bucket": "side_effect:cache_write",
+      "risk": "high",
+      "recommendation": "manual-review-only",
+      "blockers": [
+        "contains_blocking_hook",
+        "contains_llm_backed_hook",
+        "high_risk_manual_review",
+        "non_contiguous_interleaved_hooks"
+      ],
+      "strategy": "manual-review-only",
+      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
+      "hook_count": 2,
+      "first_order": 27,
+      "last_order": 29,
+      "interleaved_hook_count": 1,
+      "hooks": [
+        {
+          "order": 27,
+          "script": "hooks/agent-context-inject.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 5,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "order": 29,
+          "script": "hooks/gemma-review-prescan.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 30,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ]
+        }
+      ],
+      "interleaved_hooks": [
+        {
+          "order": 28,
+          "script": "hooks/agent-knowledge-remind.sh",
+          "priority": "P1",
+          "blocking": true,
+          "calls_llm": false,
+          "timeout_seconds": 5,
+          "side_effects": []
+        }
+      ]
+    }
+  ]
+}

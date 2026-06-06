@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "status": "active",
+  "description": "Common JSONL telemetry fields for shell and Python LLM adapters.",
+  "log_paths": [
+    "cache/llm-adapter-calls.jsonl",
+    "cache/gemma-calls.jsonl",
+    "cache/agy-calls.jsonl",
+    "cache/gemini-calls.jsonl"
+  ],
+  "required_common_fields": [
+    "schema_version",
+    "timestamp",
+    "adapter",
+    "provider",
+    "caller",
+    "status",
+    "exit_code",
+    "duration_ms",
+    "timeout_seconds",
+    "prompt_length",
+    "response_length",
+    "output_bytes"
+  ],
+  "optional_fields": [
+    "model",
+    "transport",
+    "temperature",
+    "num_predict",
+    "input_tokens",
+    "output_tokens",
+    "done_reason",
+    "stderr_bytes",
+    "messages_count",
+    "format",
+    "prompt_preview",
+    "response_preview",
+    "ini_stderr_preview",
+    "urllib_error"
+  ],
+  "sources": [
+    {
+      "path": "scripts/llm-call.sh",
+      "adapter": "shell"
+    },
+    {
+      "path": "scripts/_lib_ini_call.py",
+      "adapter": "python_ini"
+    }
+  ]
+}

@@ -16,7 +16,7 @@
 
 - "이거 아닐까?" 추측 수정 금지
 - 2회 실패 시 접근 방식 재검토
-- 3회 실패 시 `codex:codex-rescue` foreground
+- 3회 실패 시 `codex:rescue` foreground
 
 ## 관련 도구
 

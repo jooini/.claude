@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "description": "Manual decisions for residual wrapper candidate plans that should not be promoted directly to planned/active definitions.",
+  "generated_context": "registry/hook-wrapper-plan.json source=candidate entries",
+  "decision_count": 3,
+  "decisions": [
+    {
+      "plan_id": "stop-all-side-effect-cache-write",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:cache_write",
+      "decision": "defer",
+      "status": "requires-composite-stop-router",
+      "reviewed_at": "2026-06-06",
+      "blockers": [
+        "wraps-active-wrapper",
+        "status-message-policy-required",
+        "contains-llm-backed-step",
+        "overlaps-vault-write-wrapper"
+      ],
+      "reason": "This candidate starts with the active stop-all-side-effect-vault-write wrapper and then adds cache_write/notification/finalize hooks. Promoting it directly would create a wrapper-over-wrapper Stop router without first deciding the user-visible status/output policy.",
+      "next_action": "Design a composite Stop router that explicitly separates vault-write, notification, output, and finalize phases before any settings migration."
+    },
+    {
+      "plan_id": "posttooluse-bash-event-matcher",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "event_matcher",
+      "decision": "defer",
+      "status": "requires-bash-router-design",
+      "reviewed_at": "2026-06-06",
+      "blockers": [
+        "wraps-active-wrapper",
+        "mixed-async-semantics",
+        "status-message-policy-required",
+        "contains-llm-backed-step"
+      ],
+      "reason": "This candidate wraps the already-active posttooluse-bash-pre-guard-async and posttooluse-bash-post-guard-async wrappers around the direct dangerous-command-detect hook. A direct promotion would hide the intentional split-sync boundary.",
+      "next_action": "Keep the current split-sync Bash layout until a dedicated Bash router can preserve sync dangerous-command detection and async post-processing separately."
+    },
+    {
+      "plan_id": "posttooluse-bash-side-effect-outcome-log",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "side_effect:outcome_log",
+      "decision": "defer",
+      "status": "covered-by-bash-router-decision",
+      "reviewed_at": "2026-06-06",
+      "blockers": [
+        "wraps-active-wrapper",
+        "mixed-async-semantics",
+        "status-message-policy-required",
+        "contains-llm-backed-step"
+      ],
+      "reason": "This is a narrower side-effect view of the same PostToolUse/Bash router problem. It overlaps the active posttooluse-bash-post-guard-async wrapper and the direct dangerous-command-detect hook.",
+      "next_action": "Resolve together with posttooluse-bash-event-matcher; do not migrate this side-effect subset independently."
+    }
+  ]
+}

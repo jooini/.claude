@@ -1,0 +1,908 @@
+{
+  "version": 1,
+  "description": "Stable planned/active hook wrapper definitions. These definitions outlive candidate discovery so migrated wrappers keep runnable execution plans.",
+  "definitions": [
+    {
+      "id": "posttooluse-agent-event-matcher",
+      "state": "active",
+      "description": "Order-preserving wrapper for the contiguous PostToolUse/Agent hook group.",
+      "event": "PostToolUse",
+      "matcher": "Agent",
+      "bucket": "event_matcher",
+      "safe_initial_migration": true,
+      "risk_notes": [
+        "candidate risk is medium"
+      ],
+      "execution": [
+        {
+          "hook_id": "PostToolUse:1:0",
+          "order": 7,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-usage-log.sh",
+          "script": "hooks/agent-usage-log.sh",
+          "async": true,
+          "timeout_seconds": 3,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:1:1",
+          "order": 8,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-complete-notify.sh",
+          "script": "hooks/agent-complete-notify.sh",
+          "async": true,
+          "timeout_seconds": 3,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "audio"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:1:2",
+          "order": 9,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/pipeline-metrics-log.sh",
+          "script": "hooks/pipeline-metrics-log.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:1:3",
+          "order": 10,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/decision-capture.sh",
+          "script": "hooks/decision-capture.sh",
+          "async": true,
+          "timeout_seconds": 8,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "vault_write"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:1:4",
+          "order": 11,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-trace.sh",
+          "script": "hooks/agent-trace.sh",
+          "async": true,
+          "timeout_seconds": 3,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:1:5",
+          "order": 12,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-build-verify.sh",
+          "script": "hooks/agent-build-verify.sh",
+          "async": true,
+          "timeout_seconds": 3,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics",
+            "agent_build"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:1:6",
+          "order": 13,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-quality-incremental.sh",
+          "script": "hooks/agent-quality-incremental.sh",
+          "async": true,
+          "timeout_seconds": 3,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "posttooluse-edit-write-event-matcher",
+      "state": "active",
+      "description": "Status-aware wrapper for the contiguous PostToolUse/Edit|Write post-processing group.",
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "bucket": "event_matcher",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is medium",
+        "statusMessage cannot be represented one-for-one in a single settings hook",
+        "contains LLM-backed hook"
+      ],
+      "status_message_policy": {
+        "mode": "wrapper-level-existing-long-running-child",
+        "wrapper_status_message": "Gemini 의존성 영향 분석 중...",
+        "replaces_child_status_messages": [
+          "Gemini 의존성 영향 분석 중..."
+        ],
+        "reason": "Claude settings exposes one statusMessage per hook entry. This wrapper preserves the only existing child statusMessage at wrapper level while child stdout/stderr and per-hook timeouts remain preserved by the runner."
+      },
+      "execution": [
+        {
+          "hook_id": "PostToolUse:2:0",
+          "order": 8,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/knowledge-change-rebuild.sh",
+          "script": "hooks/knowledge-change-rebuild.sh",
+          "async": true,
+          "timeout_seconds": 10,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "agent_build"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:2:1",
+          "order": 9,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/task-progress-tracker.sh",
+          "script": "hooks/task-progress-tracker.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "vault_write"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:2:2",
+          "order": 10,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/claudemd-change-broadcast.sh",
+          "script": "hooks/claudemd-change-broadcast.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:2:3",
+          "order": 11,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/rag-auto-index.sh",
+          "script": "hooks/rag-auto-index.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "rag_index",
+            "mcp"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:2:4",
+          "order": 12,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-dependency-impact.sh",
+          "script": "hooks/gemini-dependency-impact.sh",
+          "async": true,
+          "timeout_seconds": 45,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": "Gemini 의존성 영향 분석 중...",
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "outcome_log",
+            "git"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:2:5",
+          "order": 13,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/learning-note-auto-ingest.sh",
+          "script": "hooks/learning-note-auto-ingest.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "network",
+            "rag_index",
+            "vault_write",
+            "mcp"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:2:6",
+          "order": 14,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/vault-new-file-suggest.sh",
+          "script": "hooks/vault-new-file-suggest.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "vault_write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "posttooluse-bash-pre-guard-async",
+      "state": "active",
+      "description": "Order-preserving pre-guard wrapper for the first two PostToolUse/Bash async hooks. The synchronous dangerous-command-detect hook remains registered separately after this wrapper.",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "split-sync:pre-guard-async",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is medium",
+        "contains LLM-backed hook"
+      ],
+      "execution": [
+        {
+          "hook_id": "PostToolUse:0:0",
+          "order": 1,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/bash-postproc-async.sh",
+          "script": "hooks/bash-postproc-async.sh",
+          "async": true,
+          "timeout_seconds": 45,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:0:1",
+          "order": 2,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/bash-postproc-sync.sh",
+          "script": "hooks/bash-postproc-sync.sh",
+          "async": true,
+          "timeout_seconds": 45,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "network",
+            "agent_build"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "posttooluse-bash-post-guard-async",
+      "state": "active",
+      "description": "Status-aware post-guard wrapper for the remaining PostToolUse/Bash async hooks after dangerous-command-detect.",
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "bucket": "split-sync:post-guard-async",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is medium",
+        "statusMessage cannot be represented one-for-one in a single settings hook",
+        "contains LLM-backed hook"
+      ],
+      "status_message_policy": {
+        "mode": "wrapper-level-existing-long-running-child",
+        "wrapper_status_message": "Gemma 에러 요약 중...",
+        "replaces_child_status_messages": [
+          "Gemma 에러 요약 중..."
+        ],
+        "reason": "Claude settings exposes one statusMessage per hook entry. This wrapper preserves the only existing child statusMessage at wrapper level while child stdout/stderr and per-hook timeouts remain preserved by the runner."
+      },
+      "execution": [
+        {
+          "hook_id": "PostToolUse:0:3",
+          "order": 4,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/error-codex-remind.sh",
+          "script": "hooks/error-codex-remind.sh",
+          "async": true,
+          "timeout_seconds": 120,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "outcome_log",
+            "network"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:0:4",
+          "order": 5,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-error-summarize.sh",
+          "script": "hooks/gemma-error-summarize.sh",
+          "async": true,
+          "timeout_seconds": 15,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": "Gemma 에러 요약 중...",
+          "calls_llm": true,
+          "side_effects": [
+            "outcome_log",
+            "network",
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "PostToolUse:0:5",
+          "order": 6,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/git-commit-taskhub.sh",
+          "script": "hooks/git-commit-taskhub.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "git",
+            "network",
+            "taskhub"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stop-all-side-effect-vault-write",
+      "state": "active",
+      "description": "Status-aware Stop wrapper for the contiguous vault-writing Stop hook group.",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "side_effect:vault_write",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is medium",
+        "statusMessage cannot be represented one-for-one in a single settings hook",
+        "contains LLM-backed hook"
+      ],
+      "status_message_policy": {
+        "mode": "wrapper-level-existing-long-running-child",
+        "wrapper_status_message": "세션 요약+의도 통합 생성 중...",
+        "replaces_child_status_messages": [
+          "세션 요약+의도 통합 생성 중..."
+        ],
+        "reason": "Claude settings exposes one statusMessage per hook entry. This wrapper preserves the only existing child statusMessage at wrapper level while child stdout/stderr and per-hook timeouts remain preserved by the runner."
+      },
+      "execution": [
+        {
+          "hook_id": "Stop:0:2",
+          "order": 40,
+          "command": "/Users/leonard/.claude/hooks/gemma-session-stop-unified.sh",
+          "script": "hooks/gemma-session-stop-unified.sh",
+          "async": true,
+          "timeout_seconds": 90,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": "세션 요약+의도 통합 생성 중...",
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "vault_write",
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "Stop:0:3",
+          "order": 41,
+          "command": "/Users/leonard/.claude/hooks/qwen-handoff-suggest.sh",
+          "script": "hooks/qwen-handoff-suggest.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "vault_write",
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "Stop:0:4",
+          "order": 42,
+          "command": "/Users/leonard/.claude/hooks/daily-learning-capture.sh",
+          "script": "hooks/daily-learning-capture.sh",
+          "async": true,
+          "timeout_seconds": 15,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "vault_write",
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "Stop:0:5",
+          "order": 43,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/llm-wiki-session-lint.sh",
+          "script": "hooks/llm-wiki-session-lint.sh",
+          "async": true,
+          "timeout_seconds": 10,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "vault_write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pretooluse-bash-safety-gates",
+      "state": "active",
+      "description": "Blocking-aware wrapper for the three PreToolUse/Bash safety gates.",
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "bucket": "blocking-router:safety-gates",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is high",
+        "contains blocking hook",
+        "contains LLM-backed hook"
+      ],
+      "execution_contract": {
+        "preserve_first_nonzero_exit": true,
+        "stop_after_blocking_exit": true,
+        "reason": "PreToolUse gates can block the original tool call. A wrapper must return the first blocking child exit code and must not run later child gates after a blocking decision."
+      },
+      "execution": [
+        {
+          "hook_id": "PreToolUse:0:0",
+          "order": 13,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/bash-codegen-block.sh",
+          "script": "hooks/bash-codegen-block.sh",
+          "async": false,
+          "timeout_seconds": 3,
+          "blocking": true,
+          "failure_mode": "fail-closed-or-blocking-warning",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "outcome_log"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:0:1",
+          "order": 14,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/danger-keyword-detect.sh",
+          "script": "hooks/danger-keyword-detect.sh",
+          "async": false,
+          "timeout_seconds": 5,
+          "blocking": true,
+          "failure_mode": "fail-closed-or-blocking-warning",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "outcome_log",
+            "git",
+            "network"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:0:2",
+          "order": 15,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/git-worktree-internal-block.sh",
+          "script": "hooks/git-worktree-internal-block.sh",
+          "async": false,
+          "timeout_seconds": 3,
+          "blocking": true,
+          "failure_mode": "fail-closed-or-blocking-warning",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "outcome_log",
+            "git"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pretooluse-git-commit-pipeline",
+      "state": "planned",
+      "description": "Blocking-aware planned wrapper for the PreToolUse/Bash(git commit*) commit advisory and policy gate group.",
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "bucket": "blocking-router:git-commit",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is high",
+        "contains blocking hook",
+        "contains LLM-backed hook",
+        "statusMessage cannot be represented one-for-one in a single settings hook"
+      ],
+      "execution_contract": {
+        "preserve_first_nonzero_exit": true,
+        "stop_after_blocking_exit": true,
+        "reason": "PreToolUse commit hooks can block the original git commit. A wrapper must return the first nonzero child exit code and must not run later child hooks after a blocking decision."
+      },
+      "status_message_policy": {
+        "mode": "wrapper-level-composite-status",
+        "wrapper_status_message": "커밋 사전 검사 중...",
+        "replaces_child_status_messages": [
+          "Gemma 커밋 초안 생성 중...",
+          "Gemma 커밋 규약 검사 중...",
+          "Gemma 한글 번역 검사 중..."
+        ],
+        "reason": "Claude settings exposes one statusMessage per hook entry. This planned wrapper documents the composite replacement before activation while child stdout/stderr and per-hook timeouts remain preserved by the runner."
+      },
+      "execution": [
+        {
+          "hook_id": "PreToolUse:1:0",
+          "order": 14,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-commit-draft.sh",
+          "script": "hooks/gemma-commit-draft.sh",
+          "async": false,
+          "timeout_seconds": 20,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": "Gemma 커밋 초안 생성 중...",
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:1:1",
+          "order": 15,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-commit-convention.sh",
+          "script": "hooks/gemma-commit-convention.sh",
+          "async": false,
+          "timeout_seconds": 12,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": "Gemma 커밋 규약 검사 중...",
+          "calls_llm": true,
+          "side_effects": [
+            "git"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:1:2",
+          "order": 16,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/commit-korean-check.sh",
+          "script": "hooks/commit-korean-check.sh",
+          "async": false,
+          "timeout_seconds": 3,
+          "blocking": true,
+          "failure_mode": "fail-closed-or-blocking-warning",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:1:3",
+          "order": 17,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/commit-no-coauthor.sh",
+          "script": "hooks/commit-no-coauthor.sh",
+          "async": false,
+          "timeout_seconds": 3,
+          "blocking": true,
+          "failure_mode": "fail-closed-or-blocking-warning",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "git"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:1:4",
+          "order": 18,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-large-diff-prescan.sh",
+          "script": "hooks/gemini-large-diff-prescan.sh",
+          "async": false,
+          "timeout_seconds": 10,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:1:5",
+          "order": 19,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "async": false,
+          "timeout_seconds": 12,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": "Gemma 한글 번역 검사 중...",
+          "calls_llm": true,
+          "side_effects": [
+            "git",
+            "network"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pretooluse-gh-pr-pipeline",
+      "state": "planned",
+      "description": "Blocking-aware planned wrapper for the PreToolUse/Bash(gh pr*) PR advisory group.",
+      "event": "PreToolUse",
+      "matcher": "Bash(gh pr*)",
+      "bucket": "blocking-router:gh-pr",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is high",
+        "contains blocking hook",
+        "contains LLM-backed hook",
+        "statusMessage cannot be represented one-for-one in a single settings hook"
+      ],
+      "execution_contract": {
+        "preserve_first_nonzero_exit": true,
+        "stop_after_blocking_exit": true,
+        "reason": "PreToolUse PR hooks run before gh pr commands. A wrapper must preserve any nonzero child exit and must not run later child hooks after a blocking decision."
+      },
+      "status_message_policy": {
+        "mode": "wrapper-level-existing-long-running-child",
+        "wrapper_status_message": "Gemma 한글 번역 검사 중...",
+        "replaces_child_status_messages": [
+          "Gemma 한글 번역 검사 중..."
+        ],
+        "reason": "Claude settings exposes one statusMessage per hook entry. This planned wrapper preserves the only existing child statusMessage at wrapper level while child stdout/stderr and per-hook timeouts remain preserved by the runner."
+      },
+      "execution": [
+        {
+          "hook_id": "PreToolUse:2:0",
+          "order": 20,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/pr-create-codex-remind.sh",
+          "script": "hooks/pr-create-codex-remind.sh",
+          "async": false,
+          "timeout_seconds": 90,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "network"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:2:1",
+          "order": 21,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "async": false,
+          "timeout_seconds": 12,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": "Gemma 한글 번역 검사 중...",
+          "calls_llm": true,
+          "side_effects": [
+            "git",
+            "network"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pretooluse-edit-write-event-matcher",
+      "state": "planned",
+      "description": "Blocking-aware planned wrapper for the PreToolUse/Edit|Write pipeline reminder, delegation, dependency, and prescan gates.",
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "bucket": "event_matcher",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is high",
+        "contains blocking hook",
+        "contains LLM-backed hook"
+      ],
+      "execution_contract": {
+        "preserve_first_nonzero_exit": true,
+        "stop_after_blocking_exit": true,
+        "reason": "PreToolUse edit/write hooks run before file mutation. A wrapper must preserve the first nonzero child exit code and must not run later child hooks after a blocking decision."
+      },
+      "execution": [
+        {
+          "hook_id": "PreToolUse:3:0",
+          "order": 22,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh",
+          "script": "hooks/code-edit-pipeline-remind.sh",
+          "async": false,
+          "timeout_seconds": 5,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:3:1",
+          "order": 23,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/delegation-enforcer.sh",
+          "script": "hooks/delegation-enforcer.sh",
+          "async": false,
+          "timeout_seconds": 5,
+          "blocking": true,
+          "failure_mode": "fail-closed-over-50-lines",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "outcome_log",
+            "mcp"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:3:2",
+          "order": 24,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/dependency-change-detect.sh",
+          "script": "hooks/dependency-change-detect.sh",
+          "async": false,
+          "timeout_seconds": 5,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:3:3",
+          "order": 25,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-prescan-enforcer.sh",
+          "script": "hooks/gemini-prescan-enforcer.sh",
+          "async": false,
+          "timeout_seconds": 5,
+          "blocking": true,
+          "failure_mode": "fail-closed-when-prescan-required",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pretooluse-agent-event-matcher",
+      "state": "planned",
+      "description": "Blocking-aware planned wrapper for the PreToolUse/Agent notification, context, knowledge, and review prescan group.",
+      "event": "PreToolUse",
+      "matcher": "Agent",
+      "bucket": "event_matcher",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is high",
+        "contains blocking hook",
+        "contains LLM-backed hook"
+      ],
+      "execution_contract": {
+        "preserve_first_nonzero_exit": true,
+        "stop_after_blocking_exit": true,
+        "reason": "PreToolUse Agent hooks run before subagent execution. A wrapper must preserve any nonzero child exit and must not run later child hooks after a blocking decision."
+      },
+      "execution": [
+        {
+          "hook_id": "PreToolUse:4:0",
+          "order": 26,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-start-notify.sh",
+          "script": "hooks/agent-start-notify.sh",
+          "async": false,
+          "timeout_seconds": 3,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "audio"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:4:1",
+          "order": 27,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-context-inject.sh",
+          "script": "hooks/agent-context-inject.sh",
+          "async": false,
+          "timeout_seconds": 5,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write"
+          ]
+        },
+        {
+          "hook_id": "PreToolUse:4:2",
+          "order": 28,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-knowledge-remind.sh",
+          "script": "hooks/agent-knowledge-remind.sh",
+          "async": false,
+          "timeout_seconds": 5,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": []
+        },
+        {
+          "hook_id": "PreToolUse:4:3",
+          "order": 29,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-review-prescan.sh",
+          "script": "hooks/gemma-review-prescan.sh",
+          "async": false,
+          "timeout_seconds": 30,
+          "blocking": true,
+          "failure_mode": "may-block",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git"
+          ]
+        }
+      ]
+    }
+  ]
+}

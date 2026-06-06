@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "status": "active",
+  "providers": {
+    "claude": {
+      "role": "primary_orchestrator",
+      "entrypoints": [
+        "Claude Code main session",
+        "agents-src/*",
+        "agents/moai/*"
+      ],
+      "responsibilities": [
+        "intent interpretation",
+        "final implementation judgment",
+        "result synthesis",
+        "user-facing response"
+      ],
+      "privacy_tier": "workspace"
+    },
+    "gemini": {
+      "role": "large_context_scanner",
+      "entrypoints": [
+        "GEMINI_CLI=agy",
+        "Skill(ask-gemini)",
+        "scripts/llm-call.sh gemini",
+        "scripts/gemini-wrapped.sh"
+      ],
+      "responsibilities": [
+        "Phase 0 codebase scan",
+        "dependency impact analysis",
+        "broad review prescan",
+        "final integration verification"
+      ],
+      "privacy_tier": "external",
+      "cache_paths": [
+        "cache/gemini/*-scan.md",
+        "cache/gemini/*-deps.md",
+        "cache/gemini/*-review-prescan.md"
+      ]
+    },
+    "codex": {
+      "role": "code_specialist_second_brain",
+      "entrypoints": [
+        "codex exec",
+        "scripts/llm-call.sh codex",
+        "codex:* plugin commands",
+        "Skill(ask-codex)"
+      ],
+      "forbidden_entrypoints": [
+        "mcp__codex-cli__*"
+      ],
+      "responsibilities": [
+        "implementation alternative",
+        "patch review",
+        "adversarial review",
+        "rescue after repeated debug/test failure"
+      ],
+      "privacy_tier": "external"
+    },
+    "gemma": {
+      "role": "local_private_second_opinion",
+      "entrypoints": [
+        "Ollama leonard.local:11434",
+        "Skill(ask-ollama)",
+        "scripts/llm-call.sh ini",
+        "Gemma hooks"
+      ],
+      "responsibilities": [
+        "private review prescan",
+        "error summary",
+        "commit draft",
+        "session summary"
+      ],
+      "privacy_tier": "local",
+      "cache_paths": [
+        "cache/gemma/*-review-prescan.md"
+      ]
+    },
+    "antigravity": {
+      "role": "manager_surface_and_gemini_cli_path",
+      "entrypoints": [
+        "agy",
+        "antigravity-workspace.json"
+      ],
+      "responsibilities": [
+        "Gemini-compatible large-context CLI calls",
+        "workspace-level parallel dispatch surface"
+      ],
+      "privacy_tier": "external"
+    }
+  },
+  "routing_principles": [
+    "Claude remains the final decision maker.",
+    "Gemini/agy handles broad context and integration checks.",
+    "Codex uses CLI/plugin/skill paths, not MCP.",
+    "Gemma/Ollama is preferred for sensitive or local-only review.",
+    "Shell hooks should prefer scripts/llm-call.sh for provider/caller/timeout telemetry.",
+    "LLM outputs are evidence, not final authority."
+  ]
+}

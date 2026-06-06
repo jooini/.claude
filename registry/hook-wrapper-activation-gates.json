@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "description": "Activation gates for planned hook wrappers. A planned wrapper must pass these gates before it can be moved into settings.json as an active wrapper.",
+  "gate_count": 4,
+  "gates": [
+    {
+      "plan_id": "pretooluse-git-commit-pipeline",
+      "event": "PreToolUse",
+      "matcher": "Bash(git commit*)",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "dry-run-only",
+      "dry_run_fixtures": [
+        "pretooluse-git-commit-basic",
+        "pretooluse-git-commit-non-korean",
+        "pretooluse-git-commit-coauthor"
+      ],
+      "risk_reasons": [
+        "contains-llm-backed-step",
+        "contains-network-step",
+        "contains-git-side-effect",
+        "contains-status-message-replacement",
+        "contains-blocking-step"
+      ],
+      "forbidden_execution": [
+        "no-live-repo-execute",
+        "no-live-network-execute",
+        "no-unstubbed-llm-execute"
+      ],
+      "required_before_activation": [
+        "run wrapper in an isolated temporary git repository",
+        "stub or explicitly allow LLM adapter calls",
+        "verify non-Korean commit fixture preserves first nonzero exit",
+        "verify Co-Authored-By fixture preserves first nonzero exit",
+        "review composite statusMessage replacement"
+      ],
+      "current_evidence": [
+        "dry-run order and timeout verified with safe fixtures on 2026-06-06"
+      ]
+    },
+    {
+      "plan_id": "pretooluse-gh-pr-pipeline",
+      "event": "PreToolUse",
+      "matcher": "Bash(gh pr*)",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "dry-run-only",
+      "dry_run_fixtures": [
+        "pretooluse-gh-pr-create-basic",
+        "pretooluse-gh-pr-create-english"
+      ],
+      "risk_reasons": [
+        "contains-llm-backed-step",
+        "contains-network-step",
+        "contains-git-side-effect",
+        "contains-status-message-replacement",
+        "contains-blocking-step"
+      ],
+      "forbidden_execution": [
+        "no-live-github-execute",
+        "no-live-network-execute",
+        "no-unstubbed-llm-execute"
+      ],
+      "required_before_activation": [
+        "run wrapper with GitHub CLI/network calls stubbed",
+        "stub or explicitly allow LLM adapter calls",
+        "verify English PR fixture preserves first nonzero exit when translation gate blocks",
+        "review statusMessage preservation"
+      ],
+      "current_evidence": [
+        "dry-run order and timeout verified with safe fixtures on 2026-06-06"
+      ]
+    },
+    {
+      "plan_id": "pretooluse-edit-write-event-matcher",
+      "event": "PreToolUse",
+      "matcher": "Edit|Write",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "dry-run-only",
+      "dry_run_fixtures": [
+        "pretooluse-edit-write-basic",
+        "pretooluse-edit-write-large-direct"
+      ],
+      "risk_reasons": [
+        "contains-llm-backed-step",
+        "contains-mcp-side-effect",
+        "contains-cache-write",
+        "contains-notification-side-effect",
+        "contains-blocking-step"
+      ],
+      "forbidden_execution": [
+        "no-live-file-mutation-execute",
+        "no-unstubbed-llm-execute",
+        "no-unstubbed-mcp-execute"
+      ],
+      "required_before_activation": [
+        "run wrapper against isolated temporary files",
+        "stub or explicitly allow LLM adapter calls",
+        "stub MCP/delegation side effects",
+        "verify large direct write fixture preserves first nonzero exit",
+        "verify dependency and prescan reminders keep stdout/stderr passthrough"
+      ],
+      "current_evidence": [
+        "dry-run order and timeout verified with safe fixtures on 2026-06-06"
+      ]
+    },
+    {
+      "plan_id": "pretooluse-agent-event-matcher",
+      "event": "PreToolUse",
+      "matcher": "Agent",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "dry-run-only",
+      "dry_run_fixtures": [
+        "pretooluse-agent-reviewer-basic"
+      ],
+      "risk_reasons": [
+        "contains-llm-backed-step",
+        "contains-audio-side-effect",
+        "contains-cache-write",
+        "contains-git-side-effect",
+        "contains-blocking-step"
+      ],
+      "forbidden_execution": [
+        "no-live-agent-execute",
+        "no-live-audio-execute",
+        "no-unstubbed-llm-execute"
+      ],
+      "required_before_activation": [
+        "run wrapper with audio disabled or stubbed",
+        "stub or explicitly allow LLM adapter calls",
+        "verify context and knowledge stdout passthrough",
+        "verify reviewer prescan does not mask agent invocation failures"
+      ],
+      "current_evidence": [
+        "dry-run order and timeout verified with safe fixtures on 2026-06-06"
+      ]
+    }
+  ]
+}
