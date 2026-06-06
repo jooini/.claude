@@ -1,0 +1,13 @@
+{
+  "task_id": "task-mock-codex-003",
+  "runner": "codex",
+  "phase": "implement",
+  "input": "implement a tiny helper script under /Users/leonard/.claude that prints current date",
+  "task": "implement helper utility in moai bridge folder",
+  "retry": 1,
+  "dry_run": true,
+  "timeout_ms": 120000,
+  "labels": ["codex", "implement"],
+  "preferred_runners": ["codex", "agy"],
+  "next_action": "handoff"
+}

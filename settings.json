@@ -20,7 +20,7 @@
     "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "3",
     "CLAUDE_DISABLE_PATH_WARNING": "1",
     "GEMINI_CLI": "agy",
-    "PATH": "/Users/leonard/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    "PATH": "/Users/leonard/.nvm/versions/node/v22.22.0/bin:/Users/leonard/.claude/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   },
   "extraKnownMarketplaces": {
     "claude-code-plugins": {
@@ -89,6 +89,16 @@
           }
         ],
         "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/moai-update-post-hook.sh",
+            "timeout": 20,
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash(moai update*)"
       },
       {
         "hooks": [
@@ -204,38 +214,9 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-commit-draft.sh",
-            "if": "Bash(git commit*)",
-            "statusMessage": "Gemma 커밋 초안 생성 중...",
-            "timeout": 20,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-commit-convention.sh",
-            "if": "Bash(git commit*)",
-            "statusMessage": "Gemma 커밋 규약 검사 중...",
-            "timeout": 12,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/commit-korean-check.sh",
-            "timeout": 3,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/commit-no-coauthor.sh",
-            "timeout": 3,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-large-diff-prescan.sh",
-            "timeout": 10,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
-            "statusMessage": "Gemma 한글 번역 검사 중...",
-            "timeout": 12,
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-git-commit-pipeline --execute --allow-side-effects",
+            "statusMessage": "커밋 사전 검사 중...",
+            "timeout": 102,
             "type": "command"
           }
         ],
@@ -255,23 +236,8 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh",
-            "timeout": 5,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/delegation-enforcer.sh",
-            "timeout": 5,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/dependency-change-detect.sh",
-            "timeout": 5,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-prescan-enforcer.sh",
-            "timeout": 5,
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-edit-write-event-matcher --execute --allow-side-effects",
+            "timeout": 22,
             "type": "command"
           }
         ],
@@ -280,23 +246,8 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-start-notify.sh",
-            "timeout": 3,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-context-inject.sh",
-            "timeout": 5,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-knowledge-remind.sh",
-            "timeout": 5,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-review-prescan.sh",
-            "timeout": 30,
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-agent-event-matcher --execute --allow-side-effects",
+            "timeout": 45,
             "type": "command"
           }
         ],
@@ -326,6 +277,11 @@
     "SessionEnd": [
       {
         "hooks": [
+          {
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/llm-adapter-health-notify.sh",
+            "timeout": 12,
+            "type": "command"
+          },
           {
             "command": "$HOME/.claude/hooks/iterm-badge-clear.sh",
             "timeout": 3,
@@ -372,60 +328,9 @@
         "hooks": [
           {
             "async": true,
-            "command": "/Users/leonard/.claude/hooks/stop-notify.sh",
-            "timeout": 10,
-            "type": "command"
-          },
-          {
-            "async": true,
-            "command": "/Users/leonard/.claude/hooks/stop-pipeline-check.sh",
-            "timeout": 10,
-            "type": "command"
-          },
-          {
-            "async": true,
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py stop-all-side-effect-vault-write --execute --allow-side-effects",
-            "statusMessage": "세션 요약+의도 통합 생성 중...",
-            "timeout": 122,
-            "type": "command"
-          },
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-summary.sh",
-            "timeout": 5,
-            "type": "command"
-          },
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/budget-alert.sh",
-            "timeout": 5,
-            "type": "command"
-          },
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-finalize.sh",
-            "timeout": 10,
-            "type": "command"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/closure-gate-stop.sh",
-            "timeout": 10,
-            "type": "command"
-          }
-        ],
-        "matcher": ""
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "$HOME/.claude/hooks/taskhub-session-stop.sh",
-            "timeout": 5,
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py stop-composite-notification-output-router --execute --allow-side-effects",
+            "statusMessage": "세션 종료 훅 통합 실행 중...",
+            "timeout": 177,
             "type": "command"
           }
         ],

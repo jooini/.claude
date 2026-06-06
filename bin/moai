@@ -1,0 +1,44 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+set -- "$@"
+
+resolve_real_moai() {
+  local candidates=(
+    /Users/leonard/go/bin/moai
+    "$HOME/go/bin/moai"
+    "$HOME/.local/bin/moai"
+    /usr/local/go/bin/moai
+  )
+
+  for candidate in "$${candidates[@]}"; do
+    if [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  if command -v moai >/dev/null 2>&1; then
+    command -v moai
+    return 0
+  fi
+
+  return 1
+}
+
+REAL_MOAI="$(resolve_real_moai || true)"
+if [ -z "$REAL_MOAI" ]; then
+  echo "moai: binary not found" >&2
+  exit 127
+fi
+
+"$REAL_MOAI" "$@"
+RC=$?
+
+if (( $# >= 1 )) && [ "$1" = "update" ]; then
+  if [ -x "$HOME/.claude/hooks/moai-update-post-hook.sh" ]; then
+    "$HOME/.claude/hooks/moai-update-post-hook.sh" || true
+  fi
+fi
+
+exit "$RC"

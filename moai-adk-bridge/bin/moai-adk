@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  moai-adk <task.json
+  cat task.json | moai-adk
+  moai-adk --task /path/to/task.json
+
+Description:
+  Read task JSON from stdin or --task path, run through translate + run pipeline.
+  Supports raw moai-adk input and normalized bridge payloads.
+EOF
+  exit 0
+fi
+
+if [[ "${1:-}" == "--task" ]]; then
+  if [[ -z "${2:-}" ]]; then
+    echo "moai-adk: --task requires a file path" >&2
+    exit 1
+  fi
+  node "$SCRIPT_DIR/translate.js" --input "$2" | node "$SCRIPT_DIR/run.js"
+  exit 0
+fi
+
+node "$SCRIPT_DIR/translate.js" | node "$SCRIPT_DIR/run.js"

@@ -1,0 +1,12 @@
+{
+  "task_id": "task-mock-scan-001",
+  "phase": "scan",
+  "input": "search for TODO and FIXME markers in repository",
+  "cwd": "/Users/leonard/.claude",
+  "retry": 1,
+  "timeout_ms": 120000,
+  "dry_run": true,
+  "labels": ["agi", "scan", "read-only"],
+  "preferred_runners": ["agy", "codex"],
+  "next_action": "handoff"
+}

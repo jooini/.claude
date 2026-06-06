@@ -1,0 +1,14 @@
+{
+  "task_id": "task-mock-agy-002",
+  "runner": "agy",
+  "phase": "investigate",
+  "input": "investigate AGY run mode and summarize likely constraints",
+  "cwd": "/Users/leonard/.claude",
+  "retry": 1,
+  "retry_count": 0,
+  "dry_run": true,
+  "timeout": 120000,
+  "labels": ["agy", "investigate"],
+  "preferred_runners": ["agy", "codex"],
+  "next_action": "run"
+}

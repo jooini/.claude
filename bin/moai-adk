@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec /Users/leonard/.claude/moai-adk-bridge/bin/moai-adk "$@"

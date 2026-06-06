@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/moai-adk/task-envelope.schema.json",
+  "title": "MoAI ADK Task Envelope",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "phase",
+    "metadata",
+    "context",
+    "payload",
+    "state",
+    "runner"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "scan",
+        "analyze",
+        "investigate",
+        "edit",
+        "refactor",
+        "implement",
+        "review",
+        "handoff",
+        "validate",
+        "test",
+        "rollback"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin_task": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runner": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "agy",
+        "auto"
+      ],
+      "default": "auto"
+    },
+    "preferred_runners": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "codex",
+          "agy"
+        ]
+      },
+      "minItems": 1
+    },
+    "context": {
+      "type": "object",
+      "required": ["cwd", "timeout_ms"],
+      "properties": {
+        "cwd": {
+          "type": "string"
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1000
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": false
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "retry": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "default": 1
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "required": ["input"],
+      "properties": {
+        "input": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "command": {
+          "type": ["string", "null"]
+        },
+        "command_argv": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "string"
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "task_id",
+        "phase",
+        "last_step",
+        "timestamp",
+        "next_action",
+        "artifacts",
+        "retry_count"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "last_step": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "next_action": {
+          "type": "string"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
