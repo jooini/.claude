@@ -174,7 +174,7 @@
       "expected_blocked_hook_id": null,
       "actual_blocked_hook_id": null,
       "stdout_bytes": 234,
-      "stderr_bytes": 95,
+      "stderr_bytes": 0,
       "steps": [
         {
           "order": 26,
@@ -219,7 +219,7 @@
       "expected_blocked_hook_id": null,
       "actual_blocked_hook_id": null,
       "stdout_bytes": 0,
-      "stderr_bytes": 930,
+      "stderr_bytes": 666,
       "steps": [
         {
           "order": 36,
