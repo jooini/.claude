@@ -5,7 +5,7 @@ set +e
 
 HOOK_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 HOOK_EPOCH="$(date +%s)"
-MARKER_DIR="$HOME/.claude/.cache"
+MARKER_DIR="$HOME/.claude/cache/moai-update"
 EPOCH_FILE="$MARKER_DIR/moai-update.last_epoch"
 mkdir -p "$MARKER_DIR"
 
