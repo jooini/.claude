@@ -4,7 +4,7 @@
 # Usage:
 #   llm-call.sh gemini --caller hook-name --timeout 30 --prompt "question"
 #   llm-call.sh codex  --caller hook-name --timeout 90 --prompt "question"
-#   printf '%s' "$PROMPT" | llm-call.sh ini --caller hook-name --timeout 30 --profile reviewer --num-ctx 8192 --prompt -
+#   printf '%s' "$PROMPT" | llm-call.sh ini --caller hook-name --timeout 30 --model gemma4:e4b --prompt -
 #
 # The provider output is written to stdout. Adapter telemetry is appended to:
 #   ~/.claude/cache/llm-adapter-calls.jsonl
@@ -23,9 +23,9 @@ Options:
   --caller NAME       Logical caller name for telemetry.
   --timeout SECONDS   Hard timeout for the provider command.
   --prompt TEXT       Prompt text. Use "-" to read prompt from stdin.
-  --profile NAME      ini profile.
-  --num-ctx N         ini context window.
-  --model NAME        ini model override when supported.
+  --profile NAME      ini profile. Ignored by the Python Ollama fallback path.
+  --num-ctx N         ini context window. Ignored by the Python Ollama fallback path.
+  --model NAME        model override when supported.
 EOF
 }
 
@@ -139,19 +139,17 @@ case "$PROVIDER" in
         EXIT_CODE=$?
         ;;
     ini|ollama|gemma|qwen)
-        INI_BIN="$HOME/.local/bin/ini"
-        if [ ! -x "$INI_BIN" ]; then
-            echo "llm-call: missing executable $INI_BIN" >&2
+        INI_HELPER="$ROOT/scripts/_lib_ini_call.py"
+        if [ ! -f "$INI_HELPER" ]; then
+            echo "llm-call: missing helper $INI_HELPER" >&2
             exit 127
         fi
-        INI_ARGS=(-p - --quiet)
-        [ -n "$PROFILE" ] && INI_ARGS+=(--profile "$PROFILE")
-        [ -n "$NUM_CTX" ] && INI_ARGS+=(--num-ctx "$NUM_CTX")
+        INI_ARGS=(--caller "$CALLER" --timeout "$CALL_TIMEOUT" --prompt -)
         [ -n "$MODEL" ] && INI_ARGS+=(--model "$MODEL")
         if command -v timeout >/dev/null 2>&1; then
-            timeout "$CALL_TIMEOUT" "$INI_BIN" "${INI_ARGS[@]}" < "$PROMPT_FILE" > "$OUT_FILE" 2> "$ERR_FILE"
+            timeout "$CALL_TIMEOUT" /usr/bin/python3 "$INI_HELPER" "${INI_ARGS[@]}" < "$PROMPT_FILE" > "$OUT_FILE" 2> "$ERR_FILE"
         else
-            "$INI_BIN" "${INI_ARGS[@]}" < "$PROMPT_FILE" > "$OUT_FILE" 2> "$ERR_FILE"
+            /usr/bin/python3 "$INI_HELPER" "${INI_ARGS[@]}" < "$PROMPT_FILE" > "$OUT_FILE" 2> "$ERR_FILE"
         fi
         EXIT_CODE=$?
         ;;

@@ -29,6 +29,7 @@ tags:
 - `stop-composite-notification-output-router` planned definition 추가
 - `pretooluse-gh-pr-pipeline` active 승격 및 settings 반영 완료
 - `presentation-pipeline.json`으로 generated Mermaid 발표 입력 연결 완료
+- `scripts/generate-presentation-pipeline.py`로 PPTX deck 자동 생성 파이프라인 실행화
 - `settings-policy.json:projection_scope`와 projection script env/MCP/permissions 일부 확대 완료
 
 ## 다음 작업 우선순위
@@ -100,6 +101,5 @@ tags:
 | 우선순위 | 작업 | 기준 |
 |---|---|---|
 | P1 | 남은 planned wrapper 4개 중 1개 재선정 | `pretooluse-git-commit-pipeline`, `pretooluse-edit-write-event-matcher`, `pretooluse-agent-event-matcher`, `stop-composite-notification-output-router` 중 하나만 선택하고 isolated evidence를 먼저 보강 |
-| P2 | presentation pipeline에서 실제 PPTX export 자동화 | `registry/presentation-pipeline.json`을 입력으로 쓰고, generated Mermaid를 수동 복사하지 않음 |
-| P2 | LLM adapter health 알림 연결 | `llm_adapter.health.overall`을 주간 리포트 또는 Stop/SessionEnd 요약에 연결 |
+| 완료 | P2: LLM adapter health 알림 연결 | `llm_adapter.health.overall`을 SessionEnd 요약에 연결 (`hooks/llm-adapter-health-notify.sh`) |
 | P3 | secret 없는 settings 영역 추가 projection | plugin marketplace payload와 secret 값은 제외하고 projection scope를 단계적으로 확대 |

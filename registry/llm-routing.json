@@ -1,21 +1,113 @@
 {
-  "version": 1,
+  "version": 2,
   "status": "active",
+  "description": "Provider-neutral LLM routing policy. Claude, Codex, Gemini/agy, and local Gemma use the same task routes and handoff cache when possible.",
+  "router": {
+    "entrypoint": "scripts/llm-router.sh",
+    "python_entrypoint": "scripts/llm-router.py",
+    "adapter_entrypoint": "scripts/llm-call.sh",
+    "handoff_path": "cache/llm-handoff/current.json",
+    "health_path": "cache/llm-provider-health.json",
+    "telemetry_path": "cache/llm-router-calls.jsonl",
+    "parent_provider_env": "LLM_PARENT_PROVIDER",
+    "active_provider_env": "LLM_ACTIVE_PROVIDER",
+    "call_depth_env": "LLM_CALL_DEPTH",
+    "max_call_depth": 2,
+    "self_recursion_policy": "skip_parent_provider_by_default"
+  },
+  "tasks": {
+    "default": {
+      "strategy": "first_success",
+      "providers": [
+        "codex",
+        "gemini",
+        "gemma"
+      ],
+      "timeout_seconds": 90,
+      "privacy_tier": "external_ok",
+      "purpose": "General fallback when the caller has no stronger task classification."
+    },
+    "scan": {
+      "strategy": "first_success",
+      "providers": [
+        "gemini",
+        "codex",
+        "gemma"
+      ],
+      "timeout_seconds": 120,
+      "privacy_tier": "external_ok",
+      "purpose": "Large-context structure scan, impact analysis, migration review."
+    },
+    "implement": {
+      "strategy": "first_success",
+      "providers": [
+        "codex",
+        "gemini"
+      ],
+      "timeout_seconds": 120,
+      "privacy_tier": "external_ok",
+      "purpose": "Patch drafting or implementation alternative when the active provider needs handoff."
+    },
+    "review": {
+      "strategy": "parallel_best_effort",
+      "providers": [
+        "codex",
+        "gemini",
+        "gemma"
+      ],
+      "timeout_seconds": 120,
+      "minimum_successes": 1,
+      "max_parallel": 3,
+      "privacy_tier": "external_ok",
+      "purpose": "Multi-provider review or second opinion. Outputs are evidence, not automatic decisions."
+    },
+    "private": {
+      "strategy": "first_success",
+      "providers": [
+        "gemma"
+      ],
+      "timeout_seconds": 60,
+      "privacy_tier": "local_only",
+      "purpose": "Sensitive or local-only question. External providers are intentionally excluded."
+    },
+    "rescue": {
+      "strategy": "first_success",
+      "providers": [
+        "codex",
+        "gemini",
+        "gemma"
+      ],
+      "timeout_seconds": 150,
+      "privacy_tier": "external_ok",
+      "purpose": "Recovery after repeated debug/test failure or active-provider quota exhaustion."
+    },
+    "summarize": {
+      "strategy": "first_success",
+      "providers": [
+        "gemma",
+        "codex",
+        "gemini"
+      ],
+      "timeout_seconds": 60,
+      "privacy_tier": "local_preferred",
+      "purpose": "Short summary, Korean draft, session note, or low-risk text transform."
+    }
+  },
   "providers": {
     "claude": {
-      "role": "primary_orchestrator",
+      "role": "session_orchestrator_when_available",
       "entrypoints": [
         "Claude Code main session",
         "agents-src/*",
         "agents/moai/*"
       ],
       "responsibilities": [
-        "intent interpretation",
-        "final implementation judgment",
-        "result synthesis",
-        "user-facing response"
+        "intent interpretation when the active session is Claude",
+        "result synthesis when Claude is the active orchestrator",
+        "user-facing response when Claude is available"
       ],
-      "privacy_tier": "workspace"
+      "privacy_tier": "workspace",
+      "handoff_behavior": "writes and reads cache/llm-handoff/current.json through the shared router"
     },
     "gemini": {
       "role": "large_context_scanner",
@@ -23,6 +115,7 @@
         "GEMINI_CLI=agy",
         "Skill(ask-gemini)",
         "scripts/llm-call.sh gemini",
+        "scripts/llm-router.sh scan",
         "scripts/gemini-wrapped.sh"
       ],
       "responsibilities": [
@@ -39,10 +132,12 @@
       ]
     },
     "codex": {
-      "role": "code_specialist_second_brain",
+      "role": "code_specialist_orchestrator_fallback",
       "entrypoints": [
         "codex exec",
         "scripts/llm-call.sh codex",
+        "scripts/llm-router.sh implement",
+        "scripts/llm-router.sh rescue",
         "codex:* plugin commands",
         "Skill(ask-codex)"
       ],
@@ -53,23 +148,32 @@
         "implementation alternative",
         "patch review",
         "adversarial review",
-        "rescue after repeated debug/test failure"
+        "rescue after repeated debug/test failure",
+        "primary continuation path when Claude quota is exhausted"
       ],
       "privacy_tier": "external"
     },
     "gemma": {
       "role": "local_private_second_opinion",
+      "default_model": "gemma4:e4b",
+      "host_candidates": [
+        "leonard.local:11434",
+        "192.168.11.10:11434",
+        "localhost:11434"
+      ],
       "entrypoints": [
         "Ollama leonard.local:11434",
         "Skill(ask-ollama)",
         "scripts/llm-call.sh ini",
+        "scripts/llm-router.sh private",
         "Gemma hooks"
       ],
       "responsibilities": [
         "private review prescan",
         "error summary",
         "commit draft",
-        "session summary"
+        "session summary",
+        "external-provider fallback for sensitive tasks"
       ],
       "privacy_tier": "local",
       "cache_paths": [
@@ -90,11 +194,13 @@
     }
   },
   "routing_principles": [
-    "Claude remains the final decision maker.",
+    "The active orchestrator synthesizes results; Claude is not assumed to be available.",
+    "All provider calls from hooks/scripts should go through scripts/llm-router.sh or scripts/llm-call.sh.",
+    "scripts/llm-router.sh owns task fallback, parent-provider skipping, and handoff cache updates.",
+    "scripts/llm-call.sh owns provider execution and adapter telemetry.",
     "Gemini/agy handles broad context and integration checks.",
-    "Codex uses CLI/plugin/skill paths, not MCP.",
+    "Codex is the preferred implementation and rescue fallback when Claude quota is exhausted.",
     "Gemma/Ollama is preferred for sensitive or local-only review.",
-    "Shell hooks should prefer scripts/llm-call.sh for provider/caller/timeout telemetry.",
     "LLM outputs are evidence, not final authority."
   ]
 }

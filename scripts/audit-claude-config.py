@@ -1591,6 +1591,66 @@ def main() -> int:
     if env.get("GEMINI_CLI") != "agy":
         fail("settings.json env.GEMINI_CLI must be 'agy'")
 
+    if llm_routing.get("version") != 2:
+        fail("registry/llm-routing.json version must be 2")
+    if llm_routing.get("status") != "active":
+        fail("registry/llm-routing.json status must be active")
+    router_policy = llm_routing.get("router", {})
+    if router_policy.get("entrypoint") != "scripts/llm-router.sh":
+        fail("registry/llm-routing.json must declare scripts/llm-router.sh as router entrypoint")
+    if router_policy.get("python_entrypoint") != "scripts/llm-router.py":
+        fail("registry/llm-routing.json must declare scripts/llm-router.py as python entrypoint")
+    if router_policy.get("adapter_entrypoint") != "scripts/llm-call.sh":
+        fail("registry/llm-routing.json must route through scripts/llm-call.sh")
+    for router_script in ["scripts/llm-router.sh", "scripts/llm-router.py"]:
+        if not is_executable(router_script):
+            fail(f"{router_script} must exist and be executable")
+    if not isinstance(router_policy.get("max_call_depth"), int) or router_policy["max_call_depth"] < 1:
+        fail("registry/llm-routing.json router.max_call_depth must be positive")
+    for key in ["handoff_path", "health_path", "telemetry_path"]:
+        value = router_policy.get(key, "")
+        if not isinstance(value, str) or not value.startswith("cache/"):
+            fail(f"registry/llm-routing.json router.{key} must point under cache/")
+    tasks = llm_routing.get("tasks", {})
+    required_tasks = ["default", "scan", "implement", "review", "private", "rescue", "summarize"]
+    for task in required_tasks:
+        if task not in tasks:
+            fail(f"registry/llm-routing.json missing task route: {task}")
+    provider_names = set(llm_routing.get("providers", {}))
+    for task_name, task_policy in tasks.items():
+        strategy = task_policy.get("strategy")
+        if strategy not in {"first_success", "parallel_best_effort"}:
+            fail(f"registry/llm-routing.json task {task_name} has invalid strategy")
+        task_providers = task_policy.get("providers")
+        if not isinstance(task_providers, list) or not task_providers:
+            fail(f"registry/llm-routing.json task {task_name} must list providers")
+        unknown_task_providers = [
+            provider for provider in task_providers if provider not in provider_names
+        ]
+        if unknown_task_providers:
+            fail(
+                f"registry/llm-routing.json task {task_name} has unknown providers: "
+                + ", ".join(unknown_task_providers)
+            )
+        timeout = task_policy.get("timeout_seconds")
+        if not isinstance(timeout, int) or timeout <= 0:
+            fail(f"registry/llm-routing.json task {task_name} timeout_seconds must be positive")
+    if tasks["private"].get("providers") != ["gemma"]:
+        fail("registry/llm-routing.json private route must use only gemma")
+    if tasks["review"].get("strategy") != "parallel_best_effort":
+        fail("registry/llm-routing.json review route must use parallel_best_effort")
+    routing_principles = "\n".join(llm_routing.get("routing_principles", []))
+    if "Claude is not assumed to be available" not in routing_principles:
+        fail("registry/llm-routing.json must not assume Claude availability")
+    gemma_policy = llm_routing.get("providers", {}).get("gemma", {})
+    if not gemma_policy.get("default_model"):
+        fail("registry/llm-routing.json gemma provider must declare default_model")
+    host_candidates = gemma_policy.get("host_candidates", [])
+    if not isinstance(host_candidates, list) or not host_candidates:
+        fail("registry/llm-routing.json gemma provider must declare host_candidates")
+    if not any("11434" in str(candidate) for candidate in host_candidates):
+        fail("registry/llm-routing.json gemma host_candidates must include Ollama port 11434")
+
     codex_entrypoints = llm_routing["providers"]["codex"]["entrypoints"]
     if "codex exec" not in codex_entrypoints:
         fail("registry/llm-routing.json must document codex exec")
@@ -1607,6 +1667,8 @@ def main() -> int:
         entrypoints = llm_routing["providers"][provider]["entrypoints"]
         if entrypoint not in entrypoints:
             fail(f"registry/llm-routing.json must document {entrypoint}")
+    if llm_adapter_policy.get("router_entrypoint") != "scripts/llm-router.sh":
+        fail("registry/llm-adapter-policy.json must declare scripts/llm-router.sh as router_entrypoint")
     if llm_adapter_policy.get("adapter_entrypoint") != "scripts/llm-call.sh":
         fail("registry/llm-adapter-policy.json must declare scripts/llm-call.sh as adapter_entrypoint")
     for item in llm_adapter_policy.get("allowed_direct_paths", []):

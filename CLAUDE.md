@@ -116,6 +116,27 @@
 - **Jules**: 백그라운드(테스트/문서/PR)
 - **Deep Research**: 기술 조사/전략
 
+## LLM 공통 라우터
+
+Claude 토큰 소진이나 provider 장애 시에는 `~/.claude/scripts/llm-router.sh`를 공통 진입점으로 쓴다. 정책 정본은 `~/.claude/registry/llm-routing.json`이고, 실제 provider 실행은 항상 `~/.claude/scripts/llm-call.sh`가 담당한다.
+
+- active orchestrator가 결과를 통합한다. Claude가 항상 가능하다고 가정하지 않는다.
+- 이어받기 컨텍스트는 `~/.claude/cache/llm-handoff/current.json`에 기록한다.
+- provider 상태는 `~/.claude/scripts/llm-router.sh doctor`로 확인하고 `~/.claude/cache/llm-provider-health.json`에 기록한다. `doctor`는 핵심 외부 provider가 살아 있으면 degraded도 허용하고, `doctor --strict`는 모든 provider를 요구한다.
+- self-recursion 방지: `LLM_PARENT_PROVIDER`, `LLM_ACTIVE_PROVIDER`, `LLM_CALL_DEPTH`를 사용한다.
+- 로컬 Ollama/Gemma host는 `OLLAMA_HOST_LAN` 또는 `OLLAMA_HOST_URL`로 강제할 수 있고, 없으면 `~/.config/ini/config.toml`과 `registry/llm-routing.json`의 `host_candidates` 순서로 탐색한다.
+
+| task | fallback |
+|------|----------|
+| `scan` | Gemini/agy → Codex → Gemma |
+| `implement` | Codex → Gemini/agy |
+| `review` | Codex + Gemini/agy + Gemma 병렬 best-effort |
+| `private` | Gemma only |
+| `rescue` | Codex → Gemini/agy → Gemma |
+| `summarize` | Gemma → Codex → Gemini/agy |
+
+Claude quota가 떨어진 뒤 이어받을 때는 우선 `~/.claude/scripts/llm-router.sh rescue --caller <caller> --prompt <작업요약>` 또는 `implement`를 사용한다. 민감 데이터는 `private` route만 사용한다. 상세는 `workflows/llm-routing.md`.
+
 ## 자동 위임 트리거 (룰 — 명시 지시 없을 때 적용)
 
 > **실측 근거 (2026-05-25)**: 14일 사용량 Claude 99.5% / Codex 0.7% / Gemini 0.05%. 위임 hook이 권유만 하던 시기의 결과. **50줄+ Edit/Write는 hook이 차단형(exit 2)으로 동작 — 우회 키워드는 "직접 구현해"/"직접 작성해"**.

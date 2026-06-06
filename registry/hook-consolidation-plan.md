@@ -9,14 +9,14 @@ It is an execution aid, not an instruction to merge hooks automatically.
 
 | metric | value |
 | --- | ---: |
-| hooks analyzed | 45 |
-| candidates | 18 |
-| low risk | 0 |
-| medium risk | 5 |
-| high risk | 13 |
+| hooks analyzed | 29 |
+| candidates | 6 |
+| low risk | 1 |
+| medium risk | 3 |
+| high risk | 2 |
 | wrapper-ready recommendations | 3 |
-| order-review recommendations | 2 |
-| manual-review recommendations | 13 |
+| order-review recommendations | 1 |
+| manual-review recommendations | 2 |
 
 ## Execution Order
 
@@ -28,34 +28,25 @@ It is an execution aid, not an instruction to merge hooks automatically.
 
 ## Phase 1: Low Risk
 
-No low-risk candidates found.
+### SessionEnd / * / event_matcher
+
+- Risk: `low`
+- Score: `40`
+- Hooks: `2`
+- Order span: `21`-`22`
+- Contiguous within trigger: `True`
+- Interleaved hooks: `0`
+- LLM hooks: `0`
+- Recommendation: `candidate-for-router-or-wrapper`
+- Reason: SessionEnd/* has 2 hooks with the same runtime trigger.
+
+| order | priority | script | blocking | LLM | side effects |
+| --- | --- | --- | --- | --- | --- |
+| 21 | P2 | `hooks/llm-adapter-health-notify.sh` | False | False | metrics |
+| 22 | P2 | `hooks/iterm-badge-clear.sh` | False | False | badge |
+
 
 ## Phase 2: Order Review Before Wrapper
-
-### Stop / * / side_effect:metrics
-
-- Risk: `medium`
-- Score: `30`
-- Hooks: `3`
-- Order span: `37`-`40`
-- Contiguous within trigger: `False`
-- Interleaved hooks: `1`
-- LLM hooks: `1`
-- Recommendation: `order-review-before-wrapper`
-- Reason: Stop/* has 3 hooks sharing side effect metrics.
-
-| order | priority | script | blocking | LLM | side effects |
-| --- | --- | --- | --- | --- | --- |
-| 37 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, outcome_log, vault_write |
-| 39 | P1 | `hooks/budget-alert.sh` | False | False | cache_write, notification, metrics |
-| 40 | P2 | `hooks/turn-finalize.sh` | False | False | cache_write, metrics |
-
-Interleaved hooks that would change relative order if this group were wrapped directly:
-
-| order | priority | script | blocking | LLM | side effects |
-| --- | --- | --- | --- | --- | --- |
-| 38 | P1 | `hooks/turn-summary.sh` | False | False | cache_write |
-
 
 ### PostToolUse / Bash / side_effect:cache_write
 
@@ -83,26 +74,6 @@ Interleaved hooks that would change relative order if this group were wrapped di
 
 ## Phase 3: Wrapper-Ready Candidates
 
-### Stop / * / side_effect:cache_write
-
-- Risk: `medium`
-- Score: `55`
-- Hooks: `4`
-- Order span: `37`-`40`
-- Contiguous within trigger: `True`
-- Interleaved hooks: `0`
-- LLM hooks: `1`
-- Recommendation: `candidate-for-router-or-wrapper`
-- Reason: Stop/* has 4 hooks sharing side effect cache_write.
-
-| order | priority | script | blocking | LLM | side effects |
-| --- | --- | --- | --- | --- | --- |
-| 37 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, outcome_log, vault_write |
-| 38 | P1 | `hooks/turn-summary.sh` | False | False | cache_write |
-| 39 | P1 | `hooks/budget-alert.sh` | False | False | cache_write, notification, metrics |
-| 40 | P2 | `hooks/turn-finalize.sh` | False | False | cache_write, metrics |
-
-
 ### PostToolUse / Bash / event_matcher
 
 - Risk: `medium`
@@ -120,6 +91,24 @@ Interleaved hooks that would change relative order if this group were wrapped di
 | 1 | P2 | `scripts/hook-wrapper-runner.py` | False | True | agent_build, cache_write, git, metrics, network |
 | 2 | P2 | `hooks/dangerous-command-detect.sh` | False | False | outcome_log, notification, audio, git |
 | 3 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, network, outcome_log, taskhub |
+
+
+### SessionEnd / * / event_matcher
+
+- Risk: `low`
+- Score: `40`
+- Hooks: `2`
+- Order span: `21`-`22`
+- Contiguous within trigger: `True`
+- Interleaved hooks: `0`
+- LLM hooks: `0`
+- Recommendation: `candidate-for-router-or-wrapper`
+- Reason: SessionEnd/* has 2 hooks with the same runtime trigger.
+
+| order | priority | script | blocking | LLM | side effects |
+| --- | --- | --- | --- | --- | --- |
+| 21 | P2 | `hooks/llm-adapter-health-notify.sh` | False | False | metrics |
+| 22 | P2 | `hooks/iterm-badge-clear.sh` | False | False | badge |
 
 
 ### PostToolUse / Bash / side_effect:outcome_log
@@ -142,97 +131,12 @@ Interleaved hooks that would change relative order if this group were wrapped di
 
 ## Phase 4: Manual Review Only
 
-### Stop / * / event_matcher
-
-- Risk: `high`
-- Score: `75`
-- Hooks: `7`
-- Order span: `35`-`42`
-- Contiguous within trigger: `True`
-- Interleaved hooks: `0`
-- LLM hooks: `1`
-- Recommendation: `manual-review-only`
-- Reason: Stop/* has 7 hooks with the same runtime trigger.
-
-| order | priority | script | blocking | LLM | side effects |
-| --- | --- | --- | --- | --- | --- |
-| 35 | P2 | `hooks/stop-notify.sh` | False | False | notification, audio |
-| 36 | P0 | `hooks/stop-pipeline-check.sh` | False | False | notification, audio, git |
-| 37 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, outcome_log, vault_write |
-| 38 | P1 | `hooks/turn-summary.sh` | False | False | cache_write |
-| 39 | P1 | `hooks/budget-alert.sh` | False | False | cache_write, notification, metrics |
-| 40 | P2 | `hooks/turn-finalize.sh` | False | False | cache_write, metrics |
-| 42 | P2 | `hooks/taskhub-session-stop.sh` | False | False | network, taskhub |
-
-
-### PreToolUse / Bash(git commit*) / event_matcher
-
-- Risk: `high`
-- Score: `55`
-- Hooks: `6`
-- Order span: `14`-`19`
-- Contiguous within trigger: `True`
-- Interleaved hooks: `0`
-- LLM hooks: `4`
-- Recommendation: `manual-review-only`
-- Reason: PreToolUse/Bash(git commit*) has 6 hooks with the same runtime trigger.
-
-| order | priority | script | blocking | LLM | side effects |
-| --- | --- | --- | --- | --- | --- |
-| 14 | P1 | `hooks/gemma-commit-draft.sh` | True | True | cache_write, git |
-| 15 | P1 | `hooks/gemma-commit-convention.sh` | True | True | git |
-| 16 | P0 | `hooks/commit-korean-check.sh` | True | False | outcome_log, git |
-| 17 | P0 | `hooks/commit-no-coauthor.sh` | True | False | outcome_log, git |
-| 18 | P1 | `hooks/gemini-large-diff-prescan.sh` | True | True | cache_write, git |
-| 19 | P1 | `hooks/gemma-korean-translate-gate.sh` | True | True | git, network |
-
-
-### PreToolUse / Agent / event_matcher
-
-- Risk: `high`
-- Score: `45`
-- Hooks: `4`
-- Order span: `25`-`28`
-- Contiguous within trigger: `True`
-- Interleaved hooks: `0`
-- LLM hooks: `2`
-- Recommendation: `manual-review-only`
-- Reason: PreToolUse/Agent has 4 hooks with the same runtime trigger.
-
-| order | priority | script | blocking | LLM | side effects |
-| --- | --- | --- | --- | --- | --- |
-| 25 | P1 | `hooks/agent-start-notify.sh` | True | False | audio |
-| 26 | P1 | `hooks/agent-context-inject.sh` | True | True | cache_write |
-| 27 | P1 | `hooks/agent-knowledge-remind.sh` | True | False |  |
-| 28 | P1 | `hooks/gemma-review-prescan.sh` | True | True | cache_write, git |
-
-
-### PreToolUse / Edit|Write / event_matcher
-
-- Risk: `high`
-- Score: `35`
-- Hooks: `4`
-- Order span: `21`-`24`
-- Contiguous within trigger: `True`
-- Interleaved hooks: `0`
-- LLM hooks: `4`
-- Recommendation: `manual-review-only`
-- Reason: PreToolUse/Edit|Write has 4 hooks with the same runtime trigger.
-
-| order | priority | script | blocking | LLM | side effects |
-| --- | --- | --- | --- | --- | --- |
-| 21 | P1 | `hooks/code-edit-pipeline-remind.sh` | True | True | cache_write |
-| 22 | P0 | `hooks/delegation-enforcer.sh` | True | True | outcome_log, mcp |
-| 23 | P1 | `hooks/dependency-change-detect.sh` | True | True | cache_write, notification, metrics |
-| 24 | P1 | `hooks/gemini-prescan-enforcer.sh` | True | True | cache_write |
-
-
 ### SessionStart / * / event_matcher
 
 - Risk: `high`
 - Score: `35`
 - Hooks: `3`
-- Order span: `32`-`34`
+- Order span: `23`-`25`
 - Contiguous within trigger: `True`
 - Interleaved hooks: `0`
 - LLM hooks: `1`
@@ -241,27 +145,27 @@ Interleaved hooks that would change relative order if this group were wrapped di
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 32 | P0 | `hooks/session-start-router.sh` | False | True | cache_write, vault_write, mcp, agent_build |
-| 33 | P2 | `hooks/taskhub-session-start.sh` | False | False | network, taskhub |
-| 34 | P2 | `hooks/iterm-badge-set.sh` | False | False | badge |
+| 23 | P0 | `hooks/session-start-router.sh` | False | True | cache_write, vault_write, mcp, agent_build |
+| 24 | P2 | `hooks/taskhub-session-start.sh` | False | False | network, taskhub |
+| 25 | P2 | `hooks/iterm-badge-set.sh` | False | False | badge |
 
 
-### Stop / * / side_effect:audio
+### UserPromptSubmit / * / event_matcher
 
 - Risk: `high`
-- Score: `30`
+- Score: `25`
 - Hooks: `2`
-- Order span: `35`-`36`
+- Order span: `27`-`28`
 - Contiguous within trigger: `True`
 - Interleaved hooks: `0`
-- LLM hooks: `0`
+- LLM hooks: `1`
 - Recommendation: `manual-review-only`
-- Reason: Stop/* has 2 hooks sharing side effect audio.
+- Reason: UserPromptSubmit/* has 2 hooks with the same runtime trigger.
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 35 | P2 | `hooks/stop-notify.sh` | False | False | notification, audio |
-| 36 | P0 | `hooks/stop-pipeline-check.sh` | False | False | notification, audio, git |
+| 27 | P0 | `hooks/user-prompt-router.sh` | False | True | cache_write |
+| 28 | P2 | `hooks/taskhub-utterance.sh` | False | False | network, taskhub |
 
 
 ## Non-Negotiable Constraints

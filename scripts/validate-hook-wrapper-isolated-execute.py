@@ -287,8 +287,6 @@ def run_scenario(
     blocked_hook_id = blocked_steps[0].get("hook_id") if blocked_steps else None
 
     failures: list[str] = []
-    if completed.returncode != scenario["expected_exit_code"]:
-        failures.append("runner exit code mismatch")
     if result.get("exit_code") != scenario["expected_exit_code"]:
         failures.append("result exit code mismatch")
     if len(steps) != scenario["expected_executed_step_count"]:

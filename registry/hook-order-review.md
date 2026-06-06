@@ -8,61 +8,49 @@ This document classifies remaining hook consolidation candidates that should not
 
 | metric | value |
 | --- | --- |
-| active wrappers | 7 |
+| active wrappers | 10 |
 | wrapper review items | 3 |
-| order-review items | 2 |
-| manual-review items | 13 |
-| total review items | 18 |
+| order-review items | 1 |
+| manual-review items | 2 |
+| total review items | 6 |
 
 ## Blockers
 
 | blocker | count |
 | --- | --- |
-| contains_blocking_hook | 7 |
-| contains_llm_backed_hook | 15 |
-| high_risk_manual_review | 13 |
-| medium_risk_candidate | 5 |
+| contains_llm_backed_hook | 5 |
+| high_risk_manual_review | 2 |
+| medium_risk_candidate | 4 |
 | mixed_async_semantics | 2 |
-| non_contiguous_interleaved_hooks | 6 |
-| status_message_semantics | 3 |
+| non_contiguous_interleaved_hooks | 1 |
+| status_message_semantics | 2 |
 
 ## Strategies
 
 | strategy | count |
 | --- | --- |
-| manual-review-only | 13 |
-| order-preserving-router-required | 2 |
+| candidate-for-wrapper-after-review | 1 |
+| manual-review-only | 2 |
+| order-preserving-router-required | 1 |
 | split-sync-guard-before-async-router | 2 |
-| stop-router-output-contract-required | 1 |
 
 ## Wrapper Review Items
 
 | event | matcher | bucket | hooks | blockers | strategy |
 | --- | --- | --- | --- | --- | --- |
-| Stop | * | side_effect:cache_write | 4 | contains_llm_backed_hook, medium_risk_candidate, status_message_semantics | stop-router-output-contract-required |
 | PostToolUse | Bash | event_matcher | 3 | contains_llm_backed_hook, medium_risk_candidate, mixed_async_semantics, status_message_semantics | split-sync-guard-before-async-router |
+| SessionEnd | * | event_matcher | 2 | medium_risk_candidate | candidate-for-wrapper-after-review |
 | PostToolUse | Bash | side_effect:outcome_log | 2 | contains_llm_backed_hook, medium_risk_candidate, mixed_async_semantics, status_message_semantics | split-sync-guard-before-async-router |
 
 ## Order Review Items
 
 | event | matcher | bucket | hooks | blockers | strategy |
 | --- | --- | --- | --- | --- | --- |
-| Stop | * | side_effect:metrics | 3 | contains_llm_backed_hook, medium_risk_candidate, non_contiguous_interleaved_hooks | order-preserving-router-required |
 | PostToolUse | Bash | side_effect:cache_write | 2 | contains_llm_backed_hook, medium_risk_candidate, non_contiguous_interleaved_hooks | order-preserving-router-required |
 
 ## Manual Review Items
 
 | event | matcher | bucket | hooks | blockers | strategy |
 | --- | --- | --- | --- | --- | --- |
-| Stop | * | event_matcher | 7 | contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
-| PreToolUse | Bash(git commit*) | event_matcher | 6 | contains_blocking_hook, contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
-| PreToolUse | Agent | event_matcher | 4 | contains_blocking_hook, contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
-| PreToolUse | Edit|Write | event_matcher | 4 | contains_blocking_hook, contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
 | SessionStart | * | event_matcher | 3 | contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
-| Stop | * | side_effect:audio | 2 | high_risk_manual_review | manual-review-only |
-| PreToolUse | Bash(git commit*) | side_effect:outcome_log | 2 | contains_blocking_hook, high_risk_manual_review | manual-review-only |
-| Stop | * | side_effect:notification | 3 | high_risk_manual_review, non_contiguous_interleaved_hooks | manual-review-only |
-| Stop | * | side_effect:git | 2 | contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
 | UserPromptSubmit | * | event_matcher | 2 | contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
-| PreToolUse | Edit|Write | side_effect:cache_write | 3 | contains_blocking_hook, contains_llm_backed_hook, high_risk_manual_review, non_contiguous_interleaved_hooks | manual-review-only |
-| PreToolUse | Bash(git commit*) | side_effect:cache_write | 2 | contains_blocking_hook, contains_llm_backed_hook, high_risk_manual_review, non_contiguous_interleaved_hooks | manual-review-only |

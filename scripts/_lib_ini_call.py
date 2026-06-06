@@ -27,7 +27,37 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-OLLAMA = os.environ.get("OLLAMA_HOST_LAN", "leonard.local:11434")
+def _normalize_host(value: str) -> str:
+    return value.removeprefix("http://").removeprefix("https://").rstrip("/")
+
+
+def _parse_host_line(line: str) -> str | None:
+    stripped = line.split("#", 1)[0].strip()
+    if not stripped or stripped.startswith("#") or "=" not in stripped:
+        return None
+    key, value = stripped.split("=", 1)
+    if key.strip() != "host":
+        return None
+    return _normalize_host(value.strip().strip('"').strip("'"))
+
+
+def _config_host() -> str | None:
+    config = Path.home() / ".config" / "ini" / "config.toml"
+    if not config.exists():
+        return None
+    for line in config.read_text(encoding="utf-8", errors="ignore").splitlines():
+        host = _parse_host_line(line)
+        if host:
+            return host
+    return None
+
+
+OLLAMA = _normalize_host(
+    os.environ.get("OLLAMA_HOST_LAN")
+    or os.environ.get("OLLAMA_HOST_URL")
+    or _config_host()
+    or "leonard.local:11434"
+)
 INI_BIN = Path.home() / ".local" / "bin" / "ini"
 LOG_FILE = Path.home() / ".claude" / "cache" / "gemma-calls.jsonl"
 
@@ -129,6 +159,11 @@ def _call_urllib(prompt: str, model: str, num_predict: int, temperature: float, 
         return None, {}, str(e)
 
 
+def _remaining_timeout(started_at: float, timeout: int) -> int:
+    elapsed = int(time.time() - started_at)
+    return max(1, timeout - elapsed)
+
+
 def call_ollama(
     prompt: str,
     model: str = "gemma4:e4b",
@@ -153,7 +188,13 @@ def call_ollama(
     if response is None:
         # 2) Fallback to urllib
         transport = "urllib_fallback"
-        response, meta, err = _call_urllib(prompt, model, num_predict, temperature, timeout)
+        response, meta, err = _call_urllib(
+            prompt,
+            model,
+            num_predict,
+            temperature,
+            _remaining_timeout(t_start, timeout),
+        )
 
     duration_ms = int((time.time() - t_start) * 1000)
     status = "ok" if response else "error"
@@ -284,7 +325,7 @@ def call_ollama_messages(
         parts = []
         for m in messages:
             role = m.get("role", "user")
-            content = m.get("content", "")
+            content = m.get("content") or ""
             if role == "system":
                 parts.append(f"[SYSTEM]\n{content}")
             elif role == "assistant":
@@ -297,7 +338,14 @@ def call_ollama_messages(
 
         if response is None:
             transport = "urllib_fallback"
-            response, meta, err = _call_urllib_messages(messages, model, num_predict, temperature, timeout, extra_options)
+            response, meta, err = _call_urllib_messages(
+                messages,
+                model,
+                num_predict,
+                temperature,
+                _remaining_timeout(t_start, timeout),
+                extra_options,
+            )
 
     duration_ms = int((time.time() - t_start) * 1000)
     status = "ok" if response else "error"
@@ -307,7 +355,7 @@ def call_ollama_messages(
     if not force_format:
         flat_for_log = flat_prompt
     else:
-        flat_for_log = "\n\n".join(m.get("content", "") for m in messages)
+        flat_for_log = "\n\n".join((m.get("content") or "") for m in messages)
     record = {
         "schema_version": 1,
         "timestamp": ts_start,
@@ -397,6 +445,7 @@ def main(argv: list[str] | None = None) -> int:
     if response:
         print(response)
         return 0
+    print(f"ollama call failed; see {LOG_FILE}", file=sys.stderr)
     return 1
 
 

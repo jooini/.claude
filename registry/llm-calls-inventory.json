@@ -5,11 +5,11 @@
     "scripts/*.sh",
     "scripts/*.py"
   ],
-  "file_count": 81,
+  "file_count": 82,
   "provider_counts": [
     {
       "provider": "gemini_or_agy",
-      "file_count": 39
+      "file_count": 40
     },
     {
       "provider": "codex",
@@ -17,15 +17,15 @@
     },
     {
       "provider": "ollama",
-      "file_count": 45
+      "file_count": 46
     },
     {
       "provider": "gemma",
-      "file_count": 41
+      "file_count": 42
     },
     {
       "provider": "qwen_ini",
-      "file_count": 27
+      "file_count": 28
     }
   ],
   "entries": [
@@ -2163,90 +2163,100 @@
         "gemma",
         "qwen_ini"
       ],
-      "hit_count": 39,
+      "hit_count": 42,
       "hits": [
         {
           "provider": "ollama",
           "hits": [
             {
-              "line": 30,
+              "line": 55,
               "pattern": "\\bollama\\b",
-              "text": "OLLAMA = os.environ.get(\"OLLAMA_HOST_LAN\", \"leonard.local:11434\")"
+              "text": "OLLAMA = _normalize_host("
             },
             {
-              "line": 51,
+              "line": 59,
+              "pattern": "leonard\\.local:11434",
+              "text": "or \"leonard.local:11434\""
+            },
+            {
+              "line": 81,
               "pattern": "\\bollama\\b",
               "text": "\"\"\"Parse Ollama JSON response tolerant of raw control characters."
             },
             {
-              "line": 53,
+              "line": 83,
               "pattern": "\\bollama\\b",
               "text": "Ollama (qwen3.5 등 일부 모델)가 응답 문자열에 raw 제어문자(BEL 0x07, ESC 0x1B,"
             },
             {
-              "line": 77,
+              "line": 107,
               "pattern": "\\bollama\\b",
               "text": "env[\"OLLAMA_HOST_URL\"] = f\"http://{OLLAMA}\""
             },
             {
-              "line": 113,
+              "line": 143,
               "pattern": "\\bollama\\b",
               "text": "f\"http://{OLLAMA}/api/chat\","
             },
             {
-              "line": 140,
+              "line": 175,
               "pattern": "\\bollama\\b",
               "text": "\"\"\"Call Ollama via ini (preferred) or urllib (fallback). Returns response string (empty on total failure)."
             },
             {
-              "line": 166,
+              "line": 207,
               "pattern": "\\bollama\\b",
               "text": "\"provider\": \"ollama\","
             },
             {
-              "line": 208,
+              "line": 249,
               "pattern": "\\bollama\\b",
               "text": "f\"http://{OLLAMA}/api/chat\","
             },
             {
-              "line": 237,
+              "line": 278,
               "pattern": "\\bollama\\b",
               "text": "\"\"\"Call Ollama with chat messages list. ini for flattened, urllib fallback preserves messages."
             },
             {
-              "line": 239,
+              "line": 280,
               "pattern": "\\bollama\\b",
               "text": "force_format: Ollama API \"format\" param (e.g. \"json\"). ini doesn't support format option,"
             },
             {
-              "line": 267,
+              "line": 308,
               "pattern": "\\bollama\\b",
               "text": "f\"http://{OLLAMA}/api/chat\","
             },
             {
-              "line": 315,
+              "line": 363,
               "pattern": "\\bollama\\b",
               "text": "\"provider\": \"ollama\","
             },
             {
-              "line": 345,
+              "line": 393,
               "pattern": "/api/tags",
               "text": "\"\"\"Quick health check via /api/tags.\"\"\""
             },
             {
-              "line": 347,
+              "line": 395,
               "pattern": "\\bollama\\b",
               "text": "req = urllib.request.Request(f\"http://{OLLAMA}/api/tags\")"
             },
             {
-              "line": 357,
+              "line": 405,
               "pattern": "\\bollama\\b",
               "text": "print(f\"OLLAMA: {OLLAMA}\")"
             },
             {
-              "line": 371,
+              "line": 419,
               "pattern": "\\bollama\\b",
               "text": "parser = argparse.ArgumentParser(description=\"Call local Ollama through the shared ini helper.\")"
+            },
+            {
+              "line": 448,
+              "pattern": "\\bollama\\b",
+              "text": "print(f\"ollama call failed; see {LOG_FILE}\", file=sys.stderr)"
             }
           ]
         },
@@ -2264,12 +2274,12 @@
               "text": "JSONL 로깅: ~/.claude/cache/gemma-calls.jsonl (gemma-logger.sh와 동일 위치, transport 필드로 경로 구분)"
             },
             {
-              "line": 32,
+              "line": 62,
               "pattern": "\\bgemma\\b",
               "text": "LOG_FILE = Path.home() / \".claude\" / \"cache\" / \"gemma-calls.jsonl\""
             },
             {
-              "line": 142,
+              "line": 177,
               "pattern": "\\bgemma\\b",
               "text": "Logs every call to ~/.claude/cache/gemma-calls.jsonl with transport field."
             }
@@ -2299,77 +2309,82 @@
               "text": "2) urllib /api/chat fallback (ini 실패 또는 미설치)"
             },
             {
-              "line": 31,
+              "line": 45,
+              "pattern": "\\bini\\b",
+              "text": "config = Path.home() / \".config\" / \"ini\" / \"config.toml\""
+            },
+            {
+              "line": 61,
               "pattern": "\\bini\\b",
               "text": "INI_BIN = Path.home() / \".local\" / \"bin\" / \"ini\""
             },
             {
-              "line": 53,
+              "line": 83,
               "pattern": "qwen",
               "text": "Ollama (qwen3.5 등 일부 모델)가 응답 문자열에 raw 제어문자(BEL 0x07, ESC 0x1B,"
             },
             {
-              "line": 75,
+              "line": 105,
               "pattern": "\\bini\\b",
               "text": "return None, \"ini binary not found\""
             },
             {
-              "line": 98,
+              "line": 128,
               "pattern": "\\bini\\b",
               "text": "return None, \"ini timeout\""
             },
             {
-              "line": 100,
+              "line": 130,
               "pattern": "\\bini\\b",
               "text": "return None, f\"ini OSError: {e}\""
             },
             {
-              "line": 140,
+              "line": 175,
               "pattern": "\\bini\\b",
               "text": "\"\"\"Call Ollama via ini (preferred) or urllib (fallback). Returns response string (empty on total failure)."
             },
             {
-              "line": 147,
+              "line": 182,
               "pattern": "\\bini\\b",
               "text": "# 1) Try ini"
             },
             {
-              "line": 149,
+              "line": 184,
               "pattern": "\\bini\\b",
               "text": "transport = \"ini\""
             },
             {
-              "line": 237,
+              "line": 278,
               "pattern": "\\bini\\b",
               "text": "\"\"\"Call Ollama with chat messages list. ini for flattened, urllib fallback preserves messages."
             },
             {
-              "line": 239,
+              "line": 280,
               "pattern": "\\bini\\b",
               "text": "force_format: Ollama API \"format\" param (e.g. \"json\"). ini doesn't support format option,"
             },
             {
-              "line": 240,
+              "line": 281,
               "pattern": "\\bini\\b",
               "text": "so when force_format is set, urllib is used directly (skips ini)."
             },
             {
-              "line": 245,
+              "line": 286,
               "pattern": "\\bini\\b",
               "text": "transport = \"ini\""
             },
             {
-              "line": 252,
+              "line": 293,
               "pattern": "\\bini\\b",
               "text": "# ini doesn't support format=json, go direct to urllib"
             },
             {
-              "line": 283,
+              "line": 324,
               "pattern": "\\bini\\b",
               "text": "# Flatten for ini"
             },
             {
-              "line": 371,
+              "line": 419,
               "pattern": "\\bini\\b",
               "text": "parser = argparse.ArgumentParser(description=\"Call local Ollama through the shared ini helper.\")"
             }
@@ -4298,12 +4313,22 @@
             {
               "line": 7,
               "pattern": "llm-call\\.sh[^\\n]*\\b(ini|ollama|gemma|qwen)\\b",
-              "text": "#   printf '%s' \"$PROMPT\" | llm-call.sh ini --caller hook-name --timeout 30 --profile reviewer --num-ctx 8192 --prompt -"
+              "text": "#   printf '%s' \"$PROMPT\" | llm-call.sh ini --caller hook-name --timeout 30 --model gemma4:e4b --prompt -"
             },
             {
               "line": 20,
               "pattern": "llm-call\\.sh[^\\n]*\\b(ini|ollama|gemma|qwen)\\b",
               "text": "Usage: llm-call.sh <gemini|codex|ini> [--caller NAME] [--timeout SECONDS] [--prompt TEXT|-] [provider options]"
+            },
+            {
+              "line": 26,
+              "pattern": "\\bollama\\b",
+              "text": "--profile NAME      ini profile. Ignored by the Python Ollama fallback path."
+            },
+            {
+              "line": 27,
+              "pattern": "\\bollama\\b",
+              "text": "--num-ctx N         ini context window. Ignored by the Python Ollama fallback path."
             },
             {
               "line": 141,
@@ -4318,7 +4343,7 @@
             {
               "line": 7,
               "pattern": "llm-call\\.sh[^\\n]*\\b(gemma|ini)\\b",
-              "text": "#   printf '%s' \"$PROMPT\" | llm-call.sh ini --caller hook-name --timeout 30 --profile reviewer --num-ctx 8192 --prompt -"
+              "text": "#   printf '%s' \"$PROMPT\" | llm-call.sh ini --caller hook-name --timeout 30 --model gemma4:e4b --prompt -"
             },
             {
               "line": 20,
@@ -4338,7 +4363,7 @@
             {
               "line": 7,
               "pattern": "\\bini\\b",
-              "text": "#   printf '%s' \"$PROMPT\" | llm-call.sh ini --caller hook-name --timeout 30 --profile reviewer --num-ctx 8192 --prompt -"
+              "text": "#   printf '%s' \"$PROMPT\" | llm-call.sh ini --caller hook-name --timeout 30 --model gemma4:e4b --prompt -"
             },
             {
               "line": 20,
@@ -4348,27 +4373,184 @@
             {
               "line": 26,
               "pattern": "\\bini\\b",
-              "text": "--profile NAME      ini profile."
+              "text": "--profile NAME      ini profile. Ignored by the Python Ollama fallback path."
             },
             {
               "line": 27,
               "pattern": "\\bini\\b",
-              "text": "--num-ctx N         ini context window."
-            },
-            {
-              "line": 28,
-              "pattern": "\\bini\\b",
-              "text": "--model NAME        ini model override when supported."
+              "text": "--num-ctx N         ini context window. Ignored by the Python Ollama fallback path."
             },
             {
               "line": 141,
               "pattern": "\\bini\\b",
               "text": "ini|ollama|gemma|qwen)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/llm-router.py",
+      "providers": [
+        "gemini_or_agy",
+        "ollama",
+        "gemma",
+        "qwen_ini"
+      ],
+      "hit_count": 27,
+      "hits": [
+        {
+          "provider": "gemini_or_agy",
+          "hits": [
+            {
+              "line": 30,
+              "pattern": "\\bagy\\b",
+              "text": "\"agy\": \"gemini\","
             },
             {
-              "line": 142,
+              "line": 31,
+              "pattern": "\\bgemini\\b",
+              "text": "\"antigravity\": \"gemini\","
+            },
+            {
+              "line": 32,
+              "pattern": "\\bgemini\\b",
+              "text": "\"gemini\": \"gemini\","
+            },
+            {
+              "line": 139,
+              "pattern": "\\bgemini\\b",
+              "text": "elif provider in {\"gemini\", \"antigravity\"}:"
+            },
+            {
+              "line": 140,
+              "pattern": "\\bgemini\\b",
+              "text": "wrapper = ROOT / \"scripts\" / \"gemini-wrapped.sh\""
+            },
+            {
+              "line": 141,
+              "pattern": "\\bagy\\b",
+              "text": "cli = shutil.which(\"agy\") or shutil.which(\"gemini\")"
+            },
+            {
+              "line": 143,
+              "pattern": "\\bgemini\\b",
+              "text": "detail = str(wrapper if wrapper.exists() else cli or \"missing gemini-wrapped.sh\")"
+            },
+            {
+              "line": 234,
+              "pattern": "\\bgemini\\b",
+              "text": "critical_unavailable = unavailable.intersection({\"codex\", \"gemini\"})"
+            }
+          ]
+        },
+        {
+          "provider": "ollama",
+          "hits": [
+            {
+              "line": 36,
+              "pattern": "\\bollama\\b",
+              "text": "\"ollama\": \"ini\","
+            },
+            {
+              "line": 203,
+              "pattern": "leonard\\.local:11434",
+              "text": "for candidate in candidates or [\"leonard.local:11434\"]:"
+            },
+            {
+              "line": 214,
+              "pattern": "/api/tags",
+              "text": "url = f\"http://{normalize_host(host)}/api/tags\""
+            },
+            {
+              "line": 221,
+              "pattern": "\\bollama\\b",
+              "text": "detail = \"Ollama unreachable for candidates: \" + \", \".join("
+            }
+          ]
+        },
+        {
+          "provider": "gemma",
+          "hits": [
+            {
+              "line": 34,
+              "pattern": "\\bgemma\\b",
+              "text": "\"gemma\": \"ini\","
+            },
+            {
+              "line": 148,
+              "pattern": "\\bgemma\\b",
+              "text": "elif provider == \"gemma\":"
+            },
+            {
+              "line": 199,
+              "pattern": "\\bgemma\\b",
+              "text": "registry.get(\"providers\", {}).get(\"gemma\", {}).get(\"host_candidates\", [])"
+            },
+            {
+              "line": 294,
+              "pattern": "\\bgemma\\b",
+              "text": "selected = health.get(\"providers\", {}).get(\"gemma\", {}).get(\"selected_host\")"
+            }
+          ]
+        },
+        {
+          "provider": "qwen_ini",
+          "hits": [
+            {
+              "line": 34,
               "pattern": "\\bini\\b",
-              "text": "INI_BIN=\"$HOME/.local/bin/ini\""
+              "text": "\"gemma\": \"ini\","
+            },
+            {
+              "line": 35,
+              "pattern": "\\bini\\b",
+              "text": "\"ini\": \"ini\","
+            },
+            {
+              "line": 36,
+              "pattern": "\\bini\\b",
+              "text": "\"ollama\": \"ini\","
+            },
+            {
+              "line": 37,
+              "pattern": "\\bini\\b",
+              "text": "\"qwen\": \"ini\","
+            },
+            {
+              "line": 149,
+              "pattern": "\\bini\\b",
+              "text": "ini = Path.home() / \".local\" / \"bin\" / \"ini\""
+            },
+            {
+              "line": 150,
+              "pattern": "\\bini\\b",
+              "text": "if not ini.exists() or not os.access(ini, os.X_OK):"
+            },
+            {
+              "line": 152,
+              "pattern": "\\bini\\b",
+              "text": "detail = str(ini)"
+            },
+            {
+              "line": 180,
+              "pattern": "\\bini\\b",
+              "text": "config = Path.home() / \".config\" / \"ini\" / \"config.toml\""
+            },
+            {
+              "line": 356,
+              "pattern": "\\bini\\b",
+              "text": "if adapter_provider == \"ini\":"
+            },
+            {
+              "line": 568,
+              "pattern": "\\bini\\b",
+              "text": "parser.add_argument(\"--profile\", help=\"ini profile for local providers\")"
+            },
+            {
+              "line": 569,
+              "pattern": "\\bini\\b",
+              "text": "parser.add_argument(\"--num-ctx\", help=\"ini context window for local providers\")"
             }
           ]
         }

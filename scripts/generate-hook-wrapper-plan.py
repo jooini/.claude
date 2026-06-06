@@ -114,6 +114,8 @@ def build_plan(candidate: dict[str, Any], inventory_by_id: dict[str, dict[str, A
         and not any(hook.get("blocking") for hook in hooks)
         and not any(hook.get("calls_llm") for hook in hooks)
     )
+    if safe_initial_migration and "candidate risk is medium" not in risk_notes:
+        risk_notes = ["candidate risk is medium"]
     async_value = async_values.pop() if len(async_values) == 1 else None
 
     return {

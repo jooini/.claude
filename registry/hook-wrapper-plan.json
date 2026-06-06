@@ -10,12 +10,12 @@
   "fixture_file": "registry/hook-replay-fixtures.json",
   "wrapper_ready_candidate_count": 3,
   "definition_count": 11,
-  "active_definition_count": 7,
-  "planned_definition_count": 4,
+  "active_definition_count": 10,
+  "planned_definition_count": 1,
   "candidate_plan_count": 3,
   "plan_count": 14,
-  "safe_initial_migration_count": 1,
-  "overlap_count": 4,
+  "safe_initial_migration_count": 2,
+  "overlap_count": 3,
   "plans": [
     {
       "id": "posttooluse-agent-event-matcher",
@@ -465,7 +465,7 @@
     {
       "id": "stop-all-side-effect-vault-write",
       "source": "definition",
-      "definition_state": "active",
+      "definition_state": "planned",
       "event": "Stop",
       "matcher": "*",
       "bucket": "side_effect:vault_write",
@@ -570,7 +570,7 @@
     {
       "id": "stop-composite-notification-output-router",
       "source": "definition",
-      "definition_state": "planned",
+      "definition_state": "active",
       "event": "Stop",
       "matcher": "*",
       "bucket": "composite:notification-output-vault-finalize",
@@ -964,7 +964,7 @@
     {
       "id": "pretooluse-git-commit-pipeline",
       "source": "definition",
-      "definition_state": "planned",
+      "definition_state": "active",
       "event": "PreToolUse",
       "matcher": "Bash(git commit*)",
       "bucket": "blocking-router:git-commit",
@@ -1180,7 +1180,7 @@
     {
       "id": "pretooluse-edit-write-event-matcher",
       "source": "definition",
-      "definition_state": "planned",
+      "definition_state": "active",
       "event": "PreToolUse",
       "matcher": "Edit|Write",
       "bucket": "event_matcher",
@@ -1278,7 +1278,7 @@
     {
       "id": "pretooluse-agent-event-matcher",
       "source": "definition",
-      "definition_state": "planned",
+      "definition_state": "active",
       "event": "PreToolUse",
       "matcher": "Agent",
       "bucket": "event_matcher",
@@ -1365,108 +1365,6 @@
           "side_effects": [
             "cache_write",
             "git"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "stop-all-side-effect-cache-write",
-      "source": "candidate",
-      "event": "Stop",
-      "matcher": "*",
-      "bucket": "side_effect:cache_write",
-      "source_candidate": {
-        "risk": "medium",
-        "recommendation": "candidate-for-router-or-wrapper",
-        "score": 55,
-        "hook_count": 4,
-        "first_order": 37,
-        "last_order": 40
-      },
-      "safe_initial_migration": false,
-      "risk_notes": [
-        "candidate risk is medium",
-        "statusMessage cannot be represented one-for-one in a single settings hook",
-        "contains LLM-backed hook"
-      ],
-      "settings_replacement": {
-        "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py stop-all-side-effect-cache-write --execute --allow-side-effects",
-        "dry_run_command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py stop-all-side-effect-cache-write",
-        "async": true,
-        "timeout": 144,
-        "statusMessage": "세션 요약+의도 통합 생성 중..."
-      },
-      "timeout_strategy": {
-        "per_hook_timeout_enforced_by_runner": true,
-        "sum_hook_timeouts_seconds": 142,
-        "wrapper_timeout_seconds": 144
-      },
-      "execution": [
-        {
-          "hook_id": "Stop:0:2",
-          "order": 37,
-          "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py stop-all-side-effect-vault-write --execute --allow-side-effects",
-          "script": "scripts/hook-wrapper-runner.py",
-          "async": true,
-          "timeout_seconds": 122,
-          "blocking": false,
-          "failure_mode": "wrapped-hooks-preserved",
-          "status_message": "세션 요약+의도 통합 생성 중...",
-          "calls_llm": true,
-          "side_effects": [
-            "cache_write",
-            "git",
-            "metrics",
-            "outcome_log",
-            "vault_write"
-          ]
-        },
-        {
-          "hook_id": "Stop:0:3",
-          "order": 38,
-          "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-summary.sh",
-          "script": "hooks/turn-summary.sh",
-          "async": true,
-          "timeout_seconds": 5,
-          "blocking": false,
-          "failure_mode": "fail-open",
-          "status_message": null,
-          "calls_llm": false,
-          "side_effects": [
-            "cache_write"
-          ]
-        },
-        {
-          "hook_id": "Stop:0:4",
-          "order": 39,
-          "command": "/bin/zsh /Users/leonard/.claude/hooks/budget-alert.sh",
-          "script": "hooks/budget-alert.sh",
-          "async": true,
-          "timeout_seconds": 5,
-          "blocking": false,
-          "failure_mode": "fail-open",
-          "status_message": null,
-          "calls_llm": false,
-          "side_effects": [
-            "cache_write",
-            "notification",
-            "metrics"
-          ]
-        },
-        {
-          "hook_id": "Stop:0:5",
-          "order": 40,
-          "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-finalize.sh",
-          "script": "hooks/turn-finalize.sh",
-          "async": true,
-          "timeout_seconds": 10,
-          "blocking": false,
-          "failure_mode": "fail-open",
-          "status_message": null,
-          "calls_llm": false,
-          "side_effects": [
-            "cache_write",
-            "metrics"
           ]
         }
       ]
@@ -1565,6 +1463,69 @@
       ]
     },
     {
+      "id": "sessionend-all-event-matcher",
+      "source": "candidate",
+      "event": "SessionEnd",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "source_candidate": {
+        "risk": "low",
+        "recommendation": "candidate-for-router-or-wrapper",
+        "score": 40,
+        "hook_count": 2,
+        "first_order": 21,
+        "last_order": 22
+      },
+      "safe_initial_migration": true,
+      "risk_notes": [
+        "candidate risk is medium"
+      ],
+      "settings_replacement": {
+        "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py sessionend-all-event-matcher --execute --allow-side-effects",
+        "dry_run_command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py sessionend-all-event-matcher",
+        "async": false,
+        "timeout": 17,
+        "statusMessage": null
+      },
+      "timeout_strategy": {
+        "per_hook_timeout_enforced_by_runner": true,
+        "sum_hook_timeouts_seconds": 15,
+        "wrapper_timeout_seconds": 17
+      },
+      "execution": [
+        {
+          "hook_id": "SessionEnd:0:0",
+          "order": 21,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/llm-adapter-health-notify.sh",
+          "script": "hooks/llm-adapter-health-notify.sh",
+          "async": false,
+          "timeout_seconds": 12,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "metrics"
+          ]
+        },
+        {
+          "hook_id": "SessionEnd:0:1",
+          "order": 22,
+          "command": "$HOME/.claude/hooks/iterm-badge-clear.sh",
+          "script": "hooks/iterm-badge-clear.sh",
+          "async": false,
+          "timeout_seconds": 3,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "badge"
+          ]
+        }
+      ]
+    },
+    {
       "id": "posttooluse-bash-side-effect-outcome-log",
       "source": "candidate",
       "event": "PostToolUse",
@@ -1653,16 +1614,6 @@
       "right": "posttooluse-bash-side-effect-outcome-log",
       "shared_hook_ids": [
         "PostToolUse:0:1"
-      ]
-    },
-    {
-      "left": "stop-all-side-effect-vault-write",
-      "right": "stop-all-side-effect-cache-write",
-      "shared_hook_ids": [
-        "Stop:0:2",
-        "Stop:0:3",
-        "Stop:0:4",
-        "Stop:0:5"
       ]
     },
     {

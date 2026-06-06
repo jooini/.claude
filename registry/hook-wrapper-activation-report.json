@@ -7,167 +7,31 @@
     "registry/hook-replay-fixtures.json"
   ],
   "runner": "scripts/hook-wrapper-runner.py",
-  "gate_count": 4,
-  "validation_count": 7,
+  "gate_count": 1,
+  "validation_count": 1,
   "failed_validation_count": 0,
   "status": "pass",
   "gates": [
     {
-      "plan_id": "pretooluse-git-commit-pipeline",
-      "event": "PreToolUse",
-      "matcher": "Bash(git commit*)",
-      "activation_state": "blocked-pending-isolated-execute-validation",
-      "validation_mode": "dry-run-only",
-      "fixture_count": 3,
-      "status": "pass",
-      "fixture_results": [
-        {
-          "fixture_id": "pretooluse-git-commit-basic",
-          "event": "PreToolUse",
-          "matcher": "Bash(git commit*)",
-          "payload_bytes": 242,
-          "step_count": 6,
-          "orders": [
-            14,
-            15,
-            16,
-            17,
-            18,
-            19
-          ],
-          "status": "pass",
-          "failures": []
-        },
-        {
-          "fixture_id": "pretooluse-git-commit-non-korean",
-          "event": "PreToolUse",
-          "matcher": "Bash(git commit*)",
-          "payload_bytes": 232,
-          "step_count": 6,
-          "orders": [
-            14,
-            15,
-            16,
-            17,
-            18,
-            19
-          ],
-          "status": "pass",
-          "failures": []
-        },
-        {
-          "fixture_id": "pretooluse-git-commit-coauthor",
-          "event": "PreToolUse",
-          "matcher": "Bash(git commit*)",
-          "payload_bytes": 291,
-          "step_count": 6,
-          "orders": [
-            14,
-            15,
-            16,
-            17,
-            18,
-            19
-          ],
-          "status": "pass",
-          "failures": []
-        }
-      ]
-    },
-    {
-      "plan_id": "pretooluse-edit-write-event-matcher",
-      "event": "PreToolUse",
-      "matcher": "Edit|Write",
-      "activation_state": "blocked-pending-isolated-execute-validation",
-      "validation_mode": "dry-run-only",
-      "fixture_count": 2,
-      "status": "pass",
-      "fixture_results": [
-        {
-          "fixture_id": "pretooluse-edit-write-basic",
-          "event": "PreToolUse",
-          "matcher": "Edit|Write",
-          "payload_bytes": 309,
-          "step_count": 4,
-          "orders": [
-            22,
-            23,
-            24,
-            25
-          ],
-          "status": "pass",
-          "failures": []
-        },
-        {
-          "fixture_id": "pretooluse-edit-write-large-direct",
-          "event": "PreToolUse",
-          "matcher": "Edit|Write",
-          "payload_bytes": 748,
-          "step_count": 4,
-          "orders": [
-            22,
-            23,
-            24,
-            25
-          ],
-          "status": "pass",
-          "failures": []
-        }
-      ]
-    },
-    {
-      "plan_id": "pretooluse-agent-event-matcher",
-      "event": "PreToolUse",
-      "matcher": "Agent",
-      "activation_state": "blocked-pending-isolated-execute-validation",
-      "validation_mode": "dry-run-only",
-      "fixture_count": 1,
-      "status": "pass",
-      "fixture_results": [
-        {
-          "fixture_id": "pretooluse-agent-reviewer-basic",
-          "event": "PreToolUse",
-          "matcher": "Agent",
-          "payload_bytes": 307,
-          "step_count": 4,
-          "orders": [
-            26,
-            27,
-            28,
-            29
-          ],
-          "status": "pass",
-          "failures": []
-        }
-      ]
-    },
-    {
-      "plan_id": "stop-composite-notification-output-router",
+      "plan_id": "stop-all-side-effect-vault-write",
       "event": "Stop",
       "matcher": "*",
-      "activation_state": "blocked-pending-isolated-execute-validation",
-      "validation_mode": "isolated-execute-required",
+      "activation_state": "ready-for-settings-migration",
+      "validation_mode": "ready",
       "fixture_count": 1,
       "status": "pass",
       "fixture_results": [
         {
-          "fixture_id": "stop-composite-basic",
+          "fixture_id": "stop-basic",
           "event": "Stop",
           "matcher": "*",
-          "payload_bytes": 167,
-          "step_count": 11,
+          "payload_bytes": 153,
+          "step_count": 4,
           "orders": [
-            36,
-            37,
-            38,
-            39,
             40,
             41,
             42,
-            43,
-            44,
-            45,
-            46
+            43
           ],
           "status": "pass",
           "failures": []

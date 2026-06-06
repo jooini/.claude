@@ -1,80 +1,128 @@
 # LLM 라우팅 규칙
 
-세 LLM(Gemma/Gemini/Codex)을 언제 어떻게 호출할지 정의. CLAUDE.md "도구 역할 분담" 섹션의 상세 매핑.
+Claude, Codex, Gemini/agy, Gemma/Ollama를 한쪽 전용 설정이 아니라 공통 라우팅 계층으로 묶는다. 실행 정책의 정본은 `registry/llm-routing.json`이고, 실제 호출은 `scripts/llm-router.sh`가 담당한다.
 
 ---
 
-## Gemma (로컬 Ollama, leonard.local:11434)
+## 공통 라우터
 
-**역할**: 프라이빗·로컬·빠른 브레인스토밍 담당
+**진입점**: `~/.claude/scripts/llm-router.sh`
 
-**다음 상황에서 반드시 활용**:
-- 세컨드 오피니언이 필요한 판단/설계 결정
-- 민감 데이터(사내/고객 정보) 포함 질의 — 외부 API 차단 대상
-- 간단한 아이디어 발산/브레인스토밍 초기 단계
-- 오프라인/프라이빗 질의
-- 코드 리뷰 보조 및 설명 생성 (외부 전송 부적합)
+**역할**:
+- task별 provider fallback 결정
+- 호출한 provider로 다시 라우팅되는 self-recursion 방지
+- `cache/llm-handoff/current.json`에 이어받기 컨텍스트 기록
+- `cache/llm-provider-health.json`에 provider 상태 기록
+- 실제 provider 실행은 항상 `scripts/llm-call.sh`에 위임
 
-**호출 방법**: `/ask-gemma` 스킬 또는 `Skill(ask-gemma)` 직접 사용
+**기본 사용**:
+
+```bash
+~/.claude/scripts/llm-router.sh doctor
+~/.claude/scripts/llm-router.sh doctor --strict
+~/.claude/scripts/llm-router.sh scan --caller manual --prompt "영향 범위 분석"
+~/.claude/scripts/llm-router.sh implement --caller manual --prompt "패치 초안 작성"
+~/.claude/scripts/llm-router.sh review --caller manual --prompt "현재 diff 리뷰"
+~/.claude/scripts/llm-router.sh private --caller manual --prompt "민감한 로컬 검토"
+```
+
+## Task Routes
+
+| task | 전략 | 순서 |
+|---|---|---|
+| `scan` | first success | Gemini/agy → Codex → Gemma |
+| `implement` | first success | Codex → Gemini |
+| `review` | parallel best-effort | Codex + Gemini/agy + Gemma |
+| `private` | first success | Gemma only |
+| `rescue` | first success | Codex → Gemini/agy → Gemma |
+| `summarize` | first success | Gemma → Codex → Gemini/agy |
+| `default` | first success | Codex → Gemini/agy → Gemma |
+
+Claude 토큰이 소진되면 `rescue` 또는 `implement` 경로가 Codex를 우선 사용한다. Gemini/agy는 큰 컨텍스트 스캔과 통합 검증에 우선 쓰고, Gemma/Ollama는 민감하거나 로컬-only인 작업에 우선 쓴다.
 
 ---
 
-## Gemini / Antigravity CLI (1M 토큰 컨텍스트) — Phase 0 필수
+## Health And Local Hosts
 
-> **2026-06-18 전환**: 무료/Pro/Ultra 사용자 대상 `gemini` CLI 요청 처리 종료 → **Antigravity CLI (`agy`)** 가 새 기본값.
-> `settings.json` env에 `GEMINI_CLI=agy` 지정. 모든 호출 지점은 `${GEMINI_CLI:-agy}` 또는 wrapper(`~/.claude/scripts/gemini-wrapped.sh`)를 통해 자동 전환됨.
-> 엔터프라이즈 API 키 사용자는 기존 `gemini`를 `GEMINI_CLI=gemini`로 계속 사용 가능.
-> **호환성 차이**: `agy`는 `--output-format stream-json` 미지원 → 토큰 메타 로깅 불가. wrapper가 duration/exit_code만 기록.
+`doctor`는 `cache/llm-provider-health.json`을 갱신한다. Codex/Gemini가 사용 가능하면 라우터는 실행 가능 상태로 보고, 로컬 Gemma/Ollama만 실패한 경우 `degraded`로 표시한다. 모든 provider가 반드시 살아 있어야 하는 점검에는 `doctor --strict`를 쓴다.
 
-**역할**: 광범위 스캔·영향 분석
+Gemma/Ollama host 탐색 순서:
 
-**다음 상황에서 반드시 먼저 호출**:
-- 코드 구조/아키텍처/의존성 파악 (문서 작성 포함)
-- 대규모 코드베이스 스캔 — 3파일 이상 수정·리팩터·영향 범위 분석
-- 업그레이드/마이그레이션 영향 분석 (의존성 변경, 프레임워크 버전 전환)
-- 3중 리뷰 (code-reviewer + codex + gemini 병렬)
+1. `OLLAMA_HOST_LAN` 또는 `OLLAMA_HOST_URL`
+2. `~/.config/ini/config.toml`의 `host`
+3. `registry/llm-routing.json`의 `providers.gemma.host_candidates`
+
+`doctor`가 성공한 로컬 host를 찾으면 이후 `ini` adapter 호출에 `OLLAMA_HOST_LAN`으로 넘긴다.
+
+---
+
+## Provider Roles
+
+### Gemini / Antigravity CLI
+
+**역할**: 광범위 스캔, 영향 분석, 대규모 컨텍스트 확인
+
+**사용 상황**:
+- 코드 구조/아키텍처/의존성 파악
+- 3파일 이상 수정, 리팩터, 마이그레이션 영향 분석
 - 최종 통합 검증
 - UI/스크린샷 분석, 문서 요약
 
-**호출 방법**: `/ask-gemini` 스킬 또는 `Skill(ask-gemini)` 직접 사용
+**경로**: `scripts/llm-router.sh scan` 또는 `scripts/llm-call.sh gemini`
 
-**Phase 0 규칙**: 결과는 파일 저장 후 요약만 메인 컨텍스트에 전달 (전문 주입 금지)
+### Codex
 
-**금지**:
-- 3파일 이상 수정하면서 Gemini 스캔 건너뛰기
-- Grep/Read만으로 구조 파악 끝내기
+**역할**: 구현, 패치, 코드 리뷰, Claude quota 소진 시 주 continuation 경로
 
----
+**사용 상황**:
+- 구현 대안 작성
+- 패치 초안/검토
+- 디버깅 rescue
+- Claude 토큰 소진 후 이어받기
 
-## Codex (CLI 또는 MCP)
+**경로**: `scripts/llm-router.sh implement`, `scripts/llm-router.sh rescue`, 또는 `scripts/llm-call.sh codex`
 
-**역할**: 구현·패치·세컨드 오피니언
+### Gemma / Ollama / ini
 
-**다음 상황에서 호출**:
-- 구현 대안 검증
-- 에러/버그 다른 관점 분석
-- 패치 초안 검토
-- Claude 수정안의 세컨드 오피니언
+**역할**: 로컬, 프라이빗, 빠른 판단 보조
 
-**호출 방법**: `/ask-codex` 스킬 또는 `codex exec` CLI (MCP 미사용 — 2026-05-30)
+**사용 상황**:
+- 민감 데이터 포함 질의
+- 외부 API로 보내기 부적합한 검토
+- 짧은 요약, 한글 초안, 세션 요약
 
----
-
-## 3중 LLM 병렬 활용 (큰 결정/비교/마이그레이션)
-
-큰 결정 시 항상 3중 호출 후 결과 통합:
-- Gemini (1M 컨텍스트, 광범위 분석)
-- Codex (세컨드 오피니언, 다른 관점)
-- Gemma (로컬 빠른 검증)
-
-→ 시간 압축: `run_in_background: true` 또는 한 메시지에 동시 호출
+**경로**: `scripts/llm-router.sh private`, `scripts/llm-router.sh summarize`, 또는 `scripts/llm-call.sh ini`
 
 ---
 
-## 역할 분담 요약
+## Handoff
 
-| LLM | 강점 | 사용처 |
-|-----|------|--------|
-| **Gemini** | 1M 토큰 컨텍스트 | 광범위 스캔, 영향 분석 |
-| **Codex** | 코드 특화 | 구현, 패치, 세컨드 오피니언 |
-| **Gemma** | 로컬, 프라이빗, 빠름 | 민감 데이터, 브레인스토밍 |
+라우터는 호출 시 `cache/llm-handoff/current.json`을 갱신한다.
+
+포함 정보:
+- 현재 `cwd`
+- task/caller/provider
+- prompt preview
+- git root/branch/status
+- changed files 일부
+
+다른 LLM에서 이어받을 때는 이 파일을 먼저 읽고, 실제 코드와 현재 git 상태를 다시 확인한다.
+
+## Recursion Guard
+
+라우터는 다음 환경변수를 사용한다.
+
+| env | 의미 |
+|---|---|
+| `LLM_PARENT_PROVIDER` | 현재 호출을 만든 상위 provider |
+| `LLM_ACTIVE_PROVIDER` | 현재 실행 중인 provider |
+| `LLM_CALL_DEPTH` | 중첩 호출 깊이 |
+
+기본 정책은 parent provider를 fallback 후보에서 제거하고, `max_call_depth=2` 이상이면 중단한다.
+
+## 원칙
+
+- active orchestrator가 최종 통합한다. Claude가 항상 가능하다고 가정하지 않는다.
+- hooks/scripts의 provider 호출은 `llm-router.sh` 또는 `llm-call.sh`를 통한다.
+- `private` route는 외부 provider를 쓰지 않는다.
+- LLM 출력은 근거 자료일 뿐 자동 채택하지 않는다.

@@ -1,7 +1,8 @@
 {
   "version": 1,
   "status": "transitional",
-  "description": "Policy for direct LLM CLI usage in hooks/scripts. Runtime generation calls should go through scripts/llm-call.sh unless explicitly allowed here.",
+  "description": "Policy for direct LLM CLI usage in hooks/scripts. Runtime generation calls should go through scripts/llm-router.sh or scripts/llm-call.sh unless explicitly allowed here.",
+  "router_entrypoint": "scripts/llm-router.sh",
   "adapter_entrypoint": "scripts/llm-call.sh",
   "python_adapter_entrypoint": "scripts/_lib_ini_call.py",
   "disallowed_runtime_patterns": [

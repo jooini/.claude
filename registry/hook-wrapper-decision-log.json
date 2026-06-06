@@ -1,27 +1,9 @@
 {
   "version": 1,
-  "description": "Manual decisions for residual wrapper candidate plans that should not be promoted directly to planned/active definitions.",
+  "description": "Manual decisions for residual wrapper candidate plans and their promotion status.",
   "generated_context": "registry/hook-wrapper-plan.json source=candidate entries",
   "decision_count": 3,
   "decisions": [
-    {
-      "plan_id": "stop-all-side-effect-cache-write",
-      "event": "Stop",
-      "matcher": "*",
-      "bucket": "side_effect:cache_write",
-      "decision": "defer",
-      "status": "covered-by-planned-composite-stop-router",
-      "reviewed_at": "2026-06-06",
-      "blockers": [
-        "wraps-active-wrapper",
-        "status-message-policy-required",
-        "contains-llm-backed-step",
-        "overlaps-vault-write-wrapper",
-        "requires-isolated-execute-before-settings-migration"
-      ],
-      "reason": "This candidate is too narrow to promote by itself because it starts from the active vault-write wrapper and then adds cache/notification/finalize hooks. The planned stop-composite-notification-output-router now represents the full Stop flow explicitly, while this candidate remains deferred to avoid wrapper-over-wrapper settings migration.",
-      "next_action": "Use stop-composite-notification-output-router activation evidence before considering any Stop settings migration; do not promote this cache-write subset independently."
-    },
     {
       "plan_id": "posttooluse-bash-event-matcher",
       "event": "PostToolUse",
@@ -55,6 +37,22 @@
       ],
       "reason": "This is a narrower side-effect view of the same PostToolUse/Bash router problem. It overlaps the active posttooluse-bash-post-guard-async wrapper and the direct dangerous-command-detect hook.",
       "next_action": "Resolve together with posttooluse-bash-event-matcher; do not migrate this side-effect subset independently."
+    },
+    {
+      "plan_id": "sessionend-all-event-matcher",
+      "event": "SessionEnd",
+      "matcher": "*",
+      "bucket": "event_matcher",
+      "decision": "promote-to-planned",
+      "status": "sessionend-side-effect-check-first",
+      "reviewed_at": "2026-06-06",
+      "blockers": [
+        "new-health-notify-has-runner-overhead",
+        "session-end-side-effect-and-output-order-verification",
+        "planned-wrapper-migration-evidence-required"
+      ],
+      "reason": "SessionEnd/*는 shared matcher를 쓰는 저블럭 경로로, health-notify + badge-clear를 route 방식으로 묶을 적합도가 높아 1개 후보로 먼저 선별한다.",
+      "next_action": "sessionend-all-event-matcher를 planned wrapper로 등록하고 activation gate + dry-run/execute 증빙을 확보한 뒤 settings migration으로 진행한다."
     }
   ],
   "pretooluse_guard_policy": {
@@ -78,9 +76,9 @@
       },
       {
         "matcher": "Bash(git commit*)",
-        "decision": "planned-wrapper",
+        "decision": "active-wrapper",
         "wrapper_id": "pretooluse-git-commit-pipeline",
-        "status": "planned-pending-settings-migration",
+        "status": "active-in-settings",
         "scripts": [
           "hooks/gemma-commit-draft.sh",
           "hooks/gemma-commit-convention.sh",
@@ -106,31 +104,31 @@
       },
       {
         "matcher": "Edit|Write",
-        "decision": "planned-wrapper",
+        "decision": "active-wrapper",
         "wrapper_id": "pretooluse-edit-write-event-matcher",
-        "status": "planned-pending-settings-migration",
+        "status": "active-in-settings",
         "scripts": [
           "hooks/code-edit-pipeline-remind.sh",
           "hooks/delegation-enforcer.sh",
           "hooks/dependency-change-detect.sh",
           "hooks/gemini-prescan-enforcer.sh"
         ],
-        "reason": "Edit/Write guards share one mutation boundary. The delegation enforcer can block, while the other hooks are advisory or side-effecting, so one wrapper must preserve first blocking exit and stdout/stderr passthrough.",
-        "next_action": "Keep planned. Do not split delegation-enforcer into a separate direct hook unless wrapper activation shows unacceptable latency or masking risk."
+        "reason": "Edit/Write guards share one mutation boundary. The delegation enforcer can block, while the other hooks are advisory or side-effecting, so one wrapper must preserve first blocking exit and stdout/stderr passthrough. Wrapper has been moved to active settings for safer single-point policy and consistent step ordering.",
+        "next_action": "Monitor for regression in edit/write flows and compare wrapper-first nonzero exit behavior against the previous direct child order."
       },
       {
         "matcher": "Agent",
-        "decision": "planned-wrapper",
+        "decision": "active-wrapper",
         "wrapper_id": "pretooluse-agent-event-matcher",
-        "status": "planned-pending-settings-migration",
+        "status": "active-in-settings",
         "scripts": [
           "hooks/agent-start-notify.sh",
           "hooks/agent-context-inject.sh",
           "hooks/agent-knowledge-remind.sh",
           "hooks/gemma-review-prescan.sh"
         ],
-        "reason": "Agent hooks form one pre-agent context/notification/prescan bundle. They are planned together so context stdout, audio side effects, and review prescan cache writes remain ordered.",
-        "next_action": "Keep planned and promote only after audio/LLM side effects are stubbed or explicitly accepted."
+        "reason": "Agent hooks form one pre-agent context/notification/prescan bundle. They are now promoted together to keep context stdout, audio side effects, and review prescan cache writes in one ordered path.",
+        "next_action": "Monitor for agent launch regressions and validate that first-failing child behavior remains visible under wrapper execution."
       },
       {
         "matcher": "mcp__",

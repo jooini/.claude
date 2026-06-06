@@ -238,6 +238,17 @@
         "cwd": "/Users/leonard/.claude",
         "hook_event_name": "Stop"
       }
+    },
+    {
+      "id": "sessionend-basic",
+      "event": "SessionEnd",
+      "matcher": "*",
+      "payload": {
+        "session_id": "fixture-session",
+        "transcript_path": "/tmp/claude-fixture-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "SessionEnd"
+      }
     }
   ]
 }

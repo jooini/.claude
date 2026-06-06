@@ -49,11 +49,13 @@
 | `hook-order-review.md` | order-review 운영/발표용 요약 문서 |
 | `hook-output-contracts.json` | Stop/PreToolUse 등 사용자 가시 출력과 차단 의미가 있는 훅의 stdout/stderr/status/audio/exit 계약 |
 | `llm-calls-inventory.json` | 런타임 hooks/scripts 기준 LLM 호출 가능 파일 인벤토리 |
-| `llm-routing.json` | Claude/Gemini/Codex/Gemma/Antigravity 역할과 호출 경로 |
+| `llm-routing.json` | provider-neutral task route, fallback, handoff, provider 역할과 호출 경로 |
 | `llm-adapter-policy.json` | 직접 LLM CLI 호출 금지 기준과 승인된 예외 |
 | `llm-log-schema.json` | shell/Python LLM 어댑터 JSONL 공통 로그 필드 |
 | `llm-adapter-thresholds.json` | LLM adapter 실패율, timeout, provider별 지연시간 경고/위험 임계치 |
 | `presentation-pipeline.json` | generated Mermaid 파일을 발표 deck/문서 생성 입력으로 쓰는 파이프라인 계약 |
+| `../scripts/llm-router.sh` | task별 provider fallback, recursion guard, handoff cache를 담당하는 공통 라우터 |
+| `../scripts/llm-router.py` | `llm-router.sh`의 실행 본체 |
 | `../scripts/llm-call.sh` | shell 훅용 공통 LLM 호출 어댑터(provider/caller/timeout telemetry) |
 | `../scripts/llm-usage.py` | Claude/Codex/Gemini/Ollama 사용량과 LLM 어댑터 성공률/지연시간 리포트 |
 | `../scripts/generate-hook-manifest.py` | `settings.json:hooks` full manifest 생성 |
@@ -101,12 +103,14 @@ scripts/audit-claude-config.py
 - `hooks-inventory.json`과 `llm-calls-inventory.json`이 생성기 출력과 일치하는지
 - `claude-architecture-diagrams.generated.md`가 생성기 출력과 일치하는지
 - Gemini/Codex/Ollama/Gemma/Qwen-ini 런타임 호출 경로가 하나 이상 존재하는지
+- 공통 LLM 라우터 `scripts/llm-router.sh`와 `scripts/llm-router.py`가 존재하고 실행 가능하며 라우팅 문서에 등록되어 있는지
 - 공통 shell LLM 어댑터 `scripts/llm-call.sh`가 존재하고 실행 가능하며 라우팅 문서에 등록되어 있는지
 - 등록된 hook 스크립트가 Gemini/Codex/ini를 직접 호출하지 않고 `scripts/llm-call.sh`를 통하는지
 - 런타임 hooks/scripts의 직접 LLM CLI 호출이 `llm-adapter-policy.json` 승인 예외 안에만 존재하는지
 - shell/Python LLM 어댑터가 `llm-log-schema.json`의 공통 로그 필드를 기록하는지
 - `scripts/llm-usage.py`가 `cache/llm-adapter-calls.jsonl`과 공통 로그 필드를 읽어 provider/caller/status를 집계하는지
 - `llm-adapter-thresholds.json`의 실패율, timeout, 평균 지연시간 임계치가 usage 리포트에서 health로 평가되는지
+- `llm-routing.json`이 `default/scan/implement/review/private/rescue/summarize` task route와 `cache/llm-handoff/current.json` handoff 경로를 선언하는지
 - `presentation-pipeline.json`이 generated Mermaid 파일을 PPTX/문서 입력으로 선언하고 stale check를 유지하는지
 - AskUserQuestion 한글 직렬화 버그 방어 훅 등록 여부
 - Codex가 MCP가 아닌 CLI/Plugin/Skill 경로로 문서화되어 있는지
@@ -146,6 +150,7 @@ scripts/audit-claude-config.py
 - 실제 settings 전환 후보는 먼저 `hook-wrapper-definitions.json`에 planned 정의로 고정한다. 후보 기반 plan만 믿고 settings를 바꾸면 원본 hook이 사라진 뒤 runner 실행 정의도 사라질 수 있다.
 - planned/active로 승격하지 않는 후보 기반 plan은 `hook-wrapper-decision-log.json`에 defer/reject/promote 판단과 다음 조치를 남긴다.
 - LLM adapter 임계치는 `llm-adapter-thresholds.json`에서 조정하고, 변경 후 `scripts/llm-usage.py --json --days 1`과 audit를 함께 확인한다.
+- LLM provider fallback 정책은 `llm-routing.json:tasks`에서 조정하고, 변경 후 `scripts/llm-router.sh doctor`와 audit를 함께 확인한다.
 - planned wrapper를 active로 승격하기 전에는 `hook-wrapper-activation-gates.json`의 금지 execute 범위와 isolated validation 요구사항을 먼저 만족해야 한다.
 - planned wrapper의 dry-run fixture 재생 결과는 `scripts/validate-hook-wrapper-activation.py --write`로 갱신하고 감사가 실패 0개를 검증한다.
 - planned wrapper의 isolated execute 결과는 `scripts/validate-hook-wrapper-isolated-execute.py --write`로 갱신하고 감사가 실패 0개를 검증한다.
@@ -157,7 +162,7 @@ scripts/audit-claude-config.py
 - Stop/PreToolUse 훅 wrapper 전환 전에는 `hook-output-contracts.json`에서 stdout/stderr/statusMessage/audio/notification/exit 계약을 먼저 갱신하고 감사가 통과해야 한다.
 - `hooks-manifest.json` 또는 `settings-policy.json`의 projection 대상 범위를 바꿨다면 `scripts/project-settings-from-registry.py --write`로 `settings.json`에 projection한 뒤 감사한다.
 - hooks/scripts의 LLM 호출 경로를 바꾼 뒤에는 반드시 `llm-calls-inventory.json`을 재생성한다.
-- 새 LLM 호출 경로는 `llm-routing.json`에 provider, entrypoint, privacy tier를 추가한다.
+- 새 LLM 호출 경로는 `llm-routing.json`에 provider, task route, entrypoint, privacy tier를 추가한다.
 - 새 shell hook에서 Gemini/Codex/ini를 직접 호출해야 하면 먼저 `scripts/llm-call.sh` 사용을 검토한다.
 - `settings.json`에 등록되는 hook은 Gemini/Codex/ini 직접 호출 금지. 예외가 필요하면 감사 스크립트와 레지스트리에 이유를 먼저 남긴다.
 - 비등록 scripts에서 직접 provider CLI가 필요한 경우에도 `llm-adapter-policy.json`에 예외 사유를 남긴 뒤 감사가 통과해야 한다.

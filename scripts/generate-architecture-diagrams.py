@@ -164,13 +164,13 @@ def generate() -> str:
         provider_nodes.append(f'        {node_id}["{label}"]')
         if provider == "claude":
             continue
-        provider_edges.append(f"    Claude --> {node_id}")
+        provider_edges.append(f"    Claude --> Router --> {node_id}")
 
     overall_diagram = f"""```mermaid
 %%{{init: {{"flowchart": {{"defaultRenderer": "elk"}} }} }}%%
 flowchart TB
     User["사용자"]
-    Claude["Claude Code main session<br/>final judgment and synthesis"]
+    Claude["Active orchestrator<br/>Claude / Codex / Gemini / local routes"]
 
     subgraph HookLayer["Hook automation<br/>{hook_count} hooks / {event_count} events"]
         SessionStart["SessionStart"]
@@ -209,6 +209,7 @@ flowchart TB
     end
 
     subgraph LLMLayer["LLM support layer"]
+        Router["scripts/llm-router.sh<br/>task fallback + handoff"]
 {chr(10).join(provider_nodes)}
     end
 
@@ -268,7 +269,7 @@ flowchart TB
     SessionStartNode --> Wait["사용자 입력 대기"]
 
     Wait --> PromptNode["UserPromptSubmit hooks<br/>{event_counts.get('UserPromptSubmit', 0)} registered"]
-    PromptNode --> Judge["Claude 판단<br/>rules + context + user intent"]
+    PromptNode --> Judge["Active orchestrator 판단<br/>rules + context + user intent"]
     Judge --> NeedTool{{"도구 호출 필요?"}}
     NeedTool -->|"아니오"| Answer["응답 생성"]
     NeedTool -->|"예"| PreNode["PreToolUse hooks<br/>{event_counts.get('PreToolUse', 0)} registered"]
@@ -289,17 +290,22 @@ flowchart TB
     llm_diagram = f"""```mermaid
 %%{{init: {{"flowchart": {{"defaultRenderer": "elk"}} }} }}%%
 flowchart LR
-    Claude["Claude<br/>primary orchestrator"]
+    Claude["Active orchestrator<br/>provider-neutral"]
+    Router["scripts/llm-router.sh<br/>task fallback + recursion guard"]
     Adapter["scripts/llm-call.sh<br/>shell adapter telemetry"]
     PythonIni["scripts/_lib_ini_call.py<br/>python ini telemetry"]
     Usage["scripts/llm-usage.py<br/>usage and health report"]
     Audit["audit-claude-config.py<br/>schema + consumer check"]
 
-    Claude --> Gemini["Gemini / agy<br/>{provider_counts_raw.get('gemini_or_agy', 0)} runtime files"]
-    Claude --> Codex["Codex CLI/plugin<br/>{provider_counts_raw.get('codex', 0)} runtime files"]
-    Claude --> Gemma["Gemma/Ollama/ini<br/>{provider_counts_raw.get('gemma', 0)} runtime files"]
-    Claude --> Antigravity["Antigravity surface"]
+    Claude --> Router
+    Router --> Gemini["Gemini / agy<br/>{provider_counts_raw.get('gemini_or_agy', 0)} runtime files"]
+    Router --> Codex["Codex CLI/plugin<br/>{provider_counts_raw.get('codex', 0)} runtime files"]
+    Router --> Gemma["Gemma/Ollama/ini<br/>{provider_counts_raw.get('gemma', 0)} runtime files"]
+    Router --> Antigravity["Antigravity surface"]
 
+    Router --> Handoff["cache/llm-handoff/current.json"]
+    Router --> Health["cache/llm-provider-health.json"]
+    Router --> RouterLog["cache/llm-router-calls.jsonl"]
     Adapter --> Gemini
     Adapter --> Codex
     Adapter --> Gemma

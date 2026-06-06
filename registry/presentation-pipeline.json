@@ -21,11 +21,13 @@
       "type": "presentation-deck",
       "format": "pptx",
       "input": "cache/generated-docs/claude-architecture-diagrams.generated.md",
+      "output": "cache/presentations/claude-config-architecture.pptx",
       "output_intent": "Use this generated Mermaid markdown as the deck source input instead of manually copied diagram blocks."
     }
   ],
   "stale_checks": [
     "scripts/generate-architecture-diagrams.py",
+    "scripts/generate-presentation-pipeline.py",
     "scripts/audit-claude-config.py"
   ],
   "manual_copy_policy": "forbidden",

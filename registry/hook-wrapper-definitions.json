@@ -391,7 +391,7 @@
     },
     {
       "id": "stop-all-side-effect-vault-write",
-      "state": "active",
+      "state": "planned",
       "description": "Status-aware Stop wrapper for the contiguous vault-writing Stop hook group.",
       "event": "Stop",
       "matcher": "*",
@@ -482,7 +482,7 @@
     },
     {
       "id": "stop-composite-notification-output-router",
-      "state": "planned",
+      "state": "active",
       "description": "Planned composite Stop router that preserves notification, status, vault-write, output, finalize, closure, and TaskHub phases in one order-preserving wrapper before settings migration.",
       "event": "Stop",
       "matcher": "*",
@@ -887,7 +887,7 @@
     },
     {
       "id": "pretooluse-git-commit-pipeline",
-      "state": "planned",
+      "state": "active",
       "description": "Blocking-aware planned wrapper for the PreToolUse/Bash(git commit*) commit advisory and policy gate group.",
       "event": "PreToolUse",
       "matcher": "Bash(git commit*)",
@@ -1077,7 +1077,7 @@
     },
     {
       "id": "pretooluse-edit-write-event-matcher",
-      "state": "planned",
+      "state": "active",
       "description": "Blocking-aware planned wrapper for the PreToolUse/Edit|Write pipeline reminder, delegation, dependency, and prescan gates.",
       "event": "PreToolUse",
       "matcher": "Edit|Write",
@@ -1161,7 +1161,7 @@
     },
     {
       "id": "pretooluse-agent-event-matcher",
-      "state": "planned",
+      "state": "active",
       "description": "Blocking-aware planned wrapper for the PreToolUse/Agent notification, context, knowledge, and review prescan group.",
       "event": "PreToolUse",
       "matcher": "Agent",

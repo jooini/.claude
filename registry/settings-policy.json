@@ -5,6 +5,9 @@
   "projection_scope": {
     "settings_json": [
       "hooks",
+      "statusLine",
+      "enabledPlugins",
+      "skills",
       "env.required_exact",
       "env.path_must_start_with",
       "mcpServers.required_server_commands",

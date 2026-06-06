@@ -3,7 +3,8 @@
 
 Current scope:
 - replace settings.json:hooks from registry/hooks-manifest.json
-- overlay non-secret env, MCP command, and permission guards from registry/settings-policy.json
+- overlay non-secret env, MCP command, permission guards, and selected top-level settings
+  (statusLine, enabledPlugins, skills) from registry/settings-policy.json
 
 The default command prints the projected settings JSON to stdout. Use --check to
 verify semantic equality with the current settings.json, or --write to update it.
@@ -109,6 +110,17 @@ def project_permissions(projected: dict[str, Any], policy: dict[str, Any]) -> No
     projected["permissions"] = permissions
 
 
+def project_top_level_settings(
+    original_settings: dict[str, Any],
+    projected: dict[str, Any],
+    policy: dict[str, Any],
+) -> None:
+    settings_scope = policy.get("projection_scope", {}).get("settings_json", [])
+    for key in ["statusLine", "enabledPlugins", "skills"]:
+        if key in settings_scope and key in original_settings:
+            projected[key] = copy.deepcopy(original_settings[key])
+
+
 def project_settings(
     settings: dict[str, Any],
     hook_manifest: dict[str, Any],
@@ -121,6 +133,7 @@ def project_settings(
     project_env(projected, settings_policy)
     project_mcp_servers(projected, settings_policy)
     project_permissions(projected, settings_policy)
+    project_top_level_settings(settings, projected, settings_policy)
     return projected
 
 
