@@ -1,20 +1,20 @@
 {
   "version": 1,
   "generated_from": "settings.json",
-  "hook_count": 46,
+  "hook_count": 45,
   "event_count": 8,
-  "llm_hook_count": 19,
+  "llm_hook_count": 18,
   "timeout_missing_count": 0,
   "effective_timeout_missing_count": 0,
-  "side_effect_count": 109,
+  "side_effect_count": 107,
   "priority_counts": {
     "P0": 9,
-    "P1": 20,
+    "P1": 19,
     "P2": 16,
     "P3": 1
   },
   "timeout_source_counts": {
-    "settings": 46
+    "settings": 45
   },
   "events": [
     "Notification",
@@ -773,75 +773,48 @@
       "order": 20,
       "event": "PreToolUse",
       "matcher": "Bash(gh pr*)",
-      "command": "/bin/zsh /Users/leonard/.claude/hooks/pr-create-codex-remind.sh",
+      "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-gh-pr-pipeline --execute --allow-side-effects",
       "type": "command",
       "async": false,
-      "timeout_seconds": 90,
-      "effective_timeout_seconds": 90,
+      "timeout_seconds": 104,
+      "effective_timeout_seconds": 104,
       "timeout_source": "settings",
-      "timeout_policy_seconds": 90,
-      "timeout_policy_source": "hook-timeout-policy:script",
-      "timeout_policy_reason": "PR summary generation intentionally waits for Codex before gh pr create.",
-      "status_message": null,
-      "script": "hooks/pr-create-codex-remind.sh",
+      "timeout_policy_seconds": 30,
+      "timeout_policy_source": "hook-timeout-policy:default:pretool-blocking-llm",
+      "timeout_policy_reason": "Blocking LLM-assisted reminders need a hard upper bound.",
+      "status_message": "Gemma 한글 번역 검사 중...",
+      "script": "scripts/hook-wrapper-runner.py",
       "script_exists": true,
       "script_executable": true,
       "calls_llm": true,
       "llm_providers": [
-        "codex"
+        "codex",
+        "gemma",
+        "ollama",
+        "qwen_ini"
       ],
       "side_effects": [
         "cache_write",
         "git",
         "network"
       ],
-      "wrapped_hook_count": 0,
-      "wrapped_hook_ids": [],
-      "wrapped_scripts": [],
+      "wrapped_hook_count": 2,
+      "wrapped_hook_ids": [
+        "PreToolUse:2:0",
+        "PreToolUse:2:1"
+      ],
+      "wrapped_scripts": [
+        "hooks/pr-create-codex-remind.sh",
+        "hooks/gemma-korean-translate-gate.sh"
+      ],
       "priority": "P1",
       "blocking": true,
-      "failure_mode": "may-block",
-      "classification_source": "derived"
-    },
-    {
-      "id": "PreToolUse:2:1",
-      "order": 21,
-      "event": "PreToolUse",
-      "matcher": "Bash(gh pr*)",
-      "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
-      "type": "command",
-      "async": false,
-      "timeout_seconds": 12,
-      "effective_timeout_seconds": 12,
-      "timeout_source": "settings",
-      "timeout_policy_seconds": 12,
-      "timeout_policy_source": "hook-timeout-policy:script",
-      "timeout_policy_reason": "Translation gate uses local LLM assistance.",
-      "status_message": "Gemma 한글 번역 검사 중...",
-      "script": "hooks/gemma-korean-translate-gate.sh",
-      "script_exists": true,
-      "script_executable": true,
-      "calls_llm": true,
-      "llm_providers": [
-        "ollama",
-        "gemma",
-        "qwen_ini"
-      ],
-      "side_effects": [
-        "git",
-        "network"
-      ],
-      "wrapped_hook_count": 0,
-      "wrapped_hook_ids": [],
-      "wrapped_scripts": [],
-      "priority": "P1",
-      "blocking": true,
-      "failure_mode": "may-block",
-      "classification_source": "derived"
+      "failure_mode": "wrapped-hooks-preserved",
+      "classification_source": "hook-wrapper-definitions"
     },
     {
       "id": "PreToolUse:3:0",
-      "order": 22,
+      "order": 21,
       "event": "PreToolUse",
       "matcher": "Edit|Write",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/code-edit-pipeline-remind.sh",
@@ -875,7 +848,7 @@
     },
     {
       "id": "PreToolUse:3:1",
-      "order": 23,
+      "order": 22,
       "event": "PreToolUse",
       "matcher": "Edit|Write",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/delegation-enforcer.sh",
@@ -910,7 +883,7 @@
     },
     {
       "id": "PreToolUse:3:2",
-      "order": 24,
+      "order": 23,
       "event": "PreToolUse",
       "matcher": "Edit|Write",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/dependency-change-detect.sh",
@@ -945,7 +918,7 @@
     },
     {
       "id": "PreToolUse:3:3",
-      "order": 25,
+      "order": 24,
       "event": "PreToolUse",
       "matcher": "Edit|Write",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/gemini-prescan-enforcer.sh",
@@ -978,7 +951,7 @@
     },
     {
       "id": "PreToolUse:4:0",
-      "order": 26,
+      "order": 25,
       "event": "PreToolUse",
       "matcher": "Agent",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-start-notify.sh",
@@ -1009,7 +982,7 @@
     },
     {
       "id": "PreToolUse:4:1",
-      "order": 27,
+      "order": 26,
       "event": "PreToolUse",
       "matcher": "Agent",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-context-inject.sh",
@@ -1042,7 +1015,7 @@
     },
     {
       "id": "PreToolUse:4:2",
-      "order": 28,
+      "order": 27,
       "event": "PreToolUse",
       "matcher": "Agent",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/agent-knowledge-remind.sh",
@@ -1071,7 +1044,7 @@
     },
     {
       "id": "PreToolUse:4:3",
-      "order": 29,
+      "order": 28,
       "event": "PreToolUse",
       "matcher": "Agent",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-review-prescan.sh",
@@ -1107,7 +1080,7 @@
     },
     {
       "id": "PreToolUse:5:0",
-      "order": 30,
+      "order": 29,
       "event": "PreToolUse",
       "matcher": "mcp__",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/mcp-deferred-guard.sh",
@@ -1140,7 +1113,7 @@
     },
     {
       "id": "PreToolUse:6:0",
-      "order": 31,
+      "order": 30,
       "event": "PreToolUse",
       "matcher": "AskUserQuestion",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/askuserquestion-korean-block.sh",
@@ -1171,7 +1144,7 @@
     },
     {
       "id": "SessionEnd:0:0",
-      "order": 32,
+      "order": 31,
       "event": "SessionEnd",
       "matcher": "*",
       "command": "$HOME/.claude/hooks/iterm-badge-clear.sh",
@@ -1202,7 +1175,7 @@
     },
     {
       "id": "SessionStart:0:0",
-      "order": 33,
+      "order": 32,
       "event": "SessionStart",
       "matcher": "*",
       "command": "$HOME/.claude/hooks/session-start-router.sh",
@@ -1239,7 +1212,7 @@
     },
     {
       "id": "SessionStart:1:0",
-      "order": 34,
+      "order": 33,
       "event": "SessionStart",
       "matcher": "*",
       "command": "$HOME/.claude/hooks/taskhub-session-start.sh",
@@ -1271,7 +1244,7 @@
     },
     {
       "id": "SessionStart:2:0",
-      "order": 35,
+      "order": 34,
       "event": "SessionStart",
       "matcher": "*",
       "command": "$HOME/.claude/hooks/iterm-badge-set.sh",
@@ -1302,7 +1275,7 @@
     },
     {
       "id": "Stop:0:0",
-      "order": 36,
+      "order": 35,
       "event": "Stop",
       "matcher": "*",
       "command": "/Users/leonard/.claude/hooks/stop-notify.sh",
@@ -1334,7 +1307,7 @@
     },
     {
       "id": "Stop:0:1",
-      "order": 37,
+      "order": 36,
       "event": "Stop",
       "matcher": "*",
       "command": "/Users/leonard/.claude/hooks/stop-pipeline-check.sh",
@@ -1367,7 +1340,7 @@
     },
     {
       "id": "Stop:0:2",
-      "order": 38,
+      "order": 37,
       "event": "Stop",
       "matcher": "*",
       "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py stop-all-side-effect-vault-write --execute --allow-side-effects",
@@ -1416,7 +1389,7 @@
     },
     {
       "id": "Stop:0:3",
-      "order": 39,
+      "order": 38,
       "event": "Stop",
       "matcher": "*",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-summary.sh",
@@ -1447,7 +1420,7 @@
     },
     {
       "id": "Stop:0:4",
-      "order": 40,
+      "order": 39,
       "event": "Stop",
       "matcher": "*",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/budget-alert.sh",
@@ -1480,7 +1453,7 @@
     },
     {
       "id": "Stop:0:5",
-      "order": 41,
+      "order": 40,
       "event": "Stop",
       "matcher": "*",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-finalize.sh",
@@ -1512,7 +1485,7 @@
     },
     {
       "id": "Stop:1:0",
-      "order": 42,
+      "order": 41,
       "event": "Stop",
       "matcher": "",
       "command": "/bin/zsh /Users/leonard/.claude/hooks/closure-gate-stop.sh",
@@ -1544,7 +1517,7 @@
     },
     {
       "id": "Stop:2:0",
-      "order": 43,
+      "order": 42,
       "event": "Stop",
       "matcher": "*",
       "command": "$HOME/.claude/hooks/taskhub-session-stop.sh",
@@ -1576,7 +1549,7 @@
     },
     {
       "id": "UserPromptSubmit:0:0",
-      "order": 44,
+      "order": 43,
       "event": "UserPromptSubmit",
       "matcher": "*",
       "command": "$HOME/.claude/hooks/user-prompt-router.sh",
@@ -1609,7 +1582,7 @@
     },
     {
       "id": "UserPromptSubmit:1:0",
-      "order": 45,
+      "order": 44,
       "event": "UserPromptSubmit",
       "matcher": "*",
       "command": "$HOME/.claude/hooks/taskhub-utterance.sh",

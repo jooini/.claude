@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "status": "active",
+  "description": "Warning and critical thresholds for cache/llm-adapter-calls.jsonl telemetry.",
+  "metric_source": "cache/llm-adapter-calls.jsonl",
+  "minimum_calls_for_rate": 5,
+  "defaults": {
+    "warning_error_rate": 0.1,
+    "critical_error_rate": 0.25,
+    "warning_timeout_rate": 0.05,
+    "critical_timeout_rate": 0.15,
+    "warning_avg_duration_ms": 15000,
+    "critical_avg_duration_ms": 30000
+  },
+  "provider_overrides": {
+    "gemini": {
+      "warning_avg_duration_ms": 45000,
+      "critical_avg_duration_ms": 90000
+    },
+    "codex": {
+      "warning_avg_duration_ms": 60000,
+      "critical_avg_duration_ms": 120000
+    },
+    "ini": {
+      "warning_avg_duration_ms": 30000,
+      "critical_avg_duration_ms": 60000
+    }
+  }
+}

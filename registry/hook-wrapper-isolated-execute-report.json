@@ -7,7 +7,7 @@
     "registry/hook-wrapper-activation-gates.json"
   ],
   "runner": "scripts/hook-wrapper-runner.py",
-  "scenario_count": 5,
+  "scenario_count": 6,
   "failed_scenario_count": 0,
   "status": "pass",
   "side_effect_boundary": {
@@ -200,6 +200,100 @@
         {
           "order": 29,
           "hook_id": "PreToolUse:4:3",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        }
+      ],
+      "failures": []
+    },
+    {
+      "id": "stop-composite-safe-stubbed",
+      "plan_id": "stop-composite-notification-output-router",
+      "status": "pass",
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "runner_returncode": 0,
+      "expected_executed_step_count": 11,
+      "actual_executed_step_count": 11,
+      "expected_blocked_hook_id": null,
+      "actual_blocked_hook_id": null,
+      "stdout_bytes": 0,
+      "stderr_bytes": 930,
+      "steps": [
+        {
+          "order": 36,
+          "hook_id": "StopComposite:0:0",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 37,
+          "hook_id": "StopComposite:0:1",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 38,
+          "hook_id": "StopComposite:0:2",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 39,
+          "hook_id": "StopComposite:0:3",
+          "exit_code": 1,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 40,
+          "hook_id": "StopComposite:0:4",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 41,
+          "hook_id": "StopComposite:0:5",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 42,
+          "hook_id": "StopComposite:0:6",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 43,
+          "hook_id": "StopComposite:0:7",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 44,
+          "hook_id": "StopComposite:0:8",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 45,
+          "hook_id": "StopComposite:0:9",
+          "exit_code": 0,
+          "blocked": false,
+          "timed_out": false
+        },
+        {
+          "order": 46,
+          "hook_id": "StopComposite:0:10",
           "exit_code": 0,
           "blocked": false,
           "timed_out": false

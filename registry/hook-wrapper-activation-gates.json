@@ -38,38 +38,6 @@
       ]
     },
     {
-      "plan_id": "pretooluse-gh-pr-pipeline",
-      "event": "PreToolUse",
-      "matcher": "Bash(gh pr*)",
-      "activation_state": "blocked-pending-isolated-execute-validation",
-      "validation_mode": "dry-run-only",
-      "dry_run_fixtures": [
-        "pretooluse-gh-pr-create-basic",
-        "pretooluse-gh-pr-create-english"
-      ],
-      "risk_reasons": [
-        "contains-llm-backed-step",
-        "contains-network-step",
-        "contains-git-side-effect",
-        "contains-status-message-replacement",
-        "contains-blocking-step"
-      ],
-      "forbidden_execution": [
-        "no-live-github-execute",
-        "no-live-network-execute",
-        "no-unstubbed-llm-execute"
-      ],
-      "required_before_activation": [
-        "run wrapper with GitHub CLI/network calls stubbed",
-        "stub or explicitly allow LLM adapter calls",
-        "verify English PR fixture preserves first nonzero exit when translation gate blocks",
-        "review statusMessage preservation"
-      ],
-      "current_evidence": [
-        "dry-run order and timeout verified with safe fixtures on 2026-06-06"
-      ]
-    },
-    {
       "plan_id": "pretooluse-edit-write-event-matcher",
       "event": "PreToolUse",
       "matcher": "Edit|Write",
@@ -131,6 +99,40 @@
       ],
       "current_evidence": [
         "dry-run order and timeout verified with safe fixtures on 2026-06-06"
+      ]
+    },
+    {
+      "plan_id": "stop-composite-notification-output-router",
+      "event": "Stop",
+      "matcher": "*",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "isolated-execute-required",
+      "dry_run_fixtures": [
+        "stop-composite-basic"
+      ],
+      "risk_reasons": [
+        "contains-llm-backed-step",
+        "contains-notification-side-effect",
+        "contains-audio-side-effect",
+        "contains-network-side-effect",
+        "contains-status-message-replacement",
+        "wraps-existing-active-stop-wrapper-scope"
+      ],
+      "forbidden_execution": [
+        "no-live-audio-execute",
+        "no-live-notification-execute",
+        "no-live-taskhub-network-execute",
+        "no-unstubbed-llm-execute"
+      ],
+      "required_before_activation": [
+        "run wrapper with afplay/say/osascript/curl stubbed",
+        "stub or explicitly allow LLM adapter calls",
+        "verify all Stop phases execute in order",
+        "verify stdout/stderr passthrough remains available for warning hooks",
+        "review wrapper-level composite statusMessage wording"
+      ],
+      "current_evidence": [
+        "planned composite Stop router definition added on 2026-06-06"
       ]
     }
   ]

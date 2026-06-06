@@ -408,7 +408,7 @@ flowchart LR
 
 # Claude Architecture Diagrams
 
-이 문서는 `settings.json`, `.mcp.json`, `registry/settings-policy.json`, `registry/hooks-manifest.json`, `registry/hooks-inventory.json`, `registry/hook-consolidation-candidates.json`, `registry/hook-wrapper-definitions.json`, `registry/hook-wrapper-plan.json`, `registry/hook-wrapper-activation-gates.json`, `registry/hook-wrapper-activation-report.json`, `registry/hook-wrapper-isolated-execute-report.json`, `registry/hook-order-review.json`, `registry/hook-output-contracts.json`, `registry/llm-calls-inventory.json`, `registry/llm-routing.json`에서 자동 생성된다. 발표 문서에 들어가는 구조도 숫자는 이 파일을 기준으로 맞춘다.
+이 문서는 `settings.json`, `.mcp.json`, `registry/settings-policy.json`, `registry/hooks-manifest.json`, `registry/hooks-inventory.json`, `registry/hook-consolidation-candidates.json`, `registry/hook-wrapper-definitions.json`, `registry/hook-wrapper-plan.json`, `registry/hook-wrapper-activation-gates.json`, `registry/hook-wrapper-activation-report.json`, `registry/hook-wrapper-isolated-execute-report.json`, `registry/hook-order-review.json`, `registry/hook-output-contracts.json`, `registry/llm-calls-inventory.json`, `registry/llm-routing.json`에서 자동 생성된다. `registry/presentation-pipeline.json`은 이 파일을 발표 deck/문서 생성 입력으로 선언한다. 발표 문서에 들어가는 구조도 숫자는 이 파일을 기준으로 맞춘다.
 
 ## Snapshot
 

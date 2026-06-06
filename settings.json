@@ -244,14 +244,9 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/pr-create-codex-remind.sh",
-            "timeout": 90,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-gh-pr-pipeline --execute --allow-side-effects",
             "statusMessage": "Gemma 한글 번역 검사 중...",
-            "timeout": 12,
+            "timeout": 104,
             "type": "command"
           }
         ],

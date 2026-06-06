@@ -481,6 +481,341 @@
       ]
     },
     {
+      "id": "stop-composite-notification-output-router",
+      "state": "planned",
+      "description": "Planned composite Stop router that preserves notification, status, vault-write, output, finalize, closure, and TaskHub phases in one order-preserving wrapper before settings migration.",
+      "event": "Stop",
+      "matcher": "*",
+      "bucket": "composite:notification-output-vault-finalize",
+      "safe_initial_migration": false,
+      "risk_notes": [
+        "candidate risk is high",
+        "statusMessage cannot be represented one-for-one in a single settings hook",
+        "contains LLM-backed hook",
+        "contains notification/audio side effects",
+        "contains network side effect"
+      ],
+      "status_message_policy": {
+        "mode": "wrapper-level-composite-stop-status",
+        "wrapper_status_message": "세션 종료 훅 통합 실행 중...",
+        "replaces_child_status_messages": [
+          "세션 요약+의도 통합 생성 중..."
+        ],
+        "reason": "The composite Stop router has multiple visible output channels but Claude settings exposes one statusMessage per hook entry. A wrapper-level message makes the whole Stop pipeline visible while child stdout/stderr/audio/notification behavior is preserved by the runner and output contract."
+      },
+      "execution_contract": {
+        "preserve_first_nonzero_exit": false,
+        "stop_after_blocking_exit": false,
+        "reason": "Stop hooks are fail-open background/finalization work. The composite router must continue later Stop phases even if one child exits nonzero, while preserving child stdout/stderr for user-visible warnings."
+      },
+      "router_phases": [
+        {
+          "phase": "notify",
+          "scripts": [
+            "hooks/stop-notify.sh"
+          ]
+        },
+        {
+          "phase": "pipeline-warning",
+          "scripts": [
+            "hooks/stop-pipeline-check.sh"
+          ]
+        },
+        {
+          "phase": "vault-write",
+          "scripts": [
+            "hooks/gemma-session-stop-unified.sh",
+            "hooks/qwen-handoff-suggest.sh",
+            "hooks/daily-learning-capture.sh",
+            "hooks/llm-wiki-session-lint.sh"
+          ]
+        },
+        {
+          "phase": "turn-output",
+          "scripts": [
+            "hooks/turn-summary.sh",
+            "hooks/budget-alert.sh"
+          ]
+        },
+        {
+          "phase": "finalize",
+          "scripts": [
+            "hooks/turn-finalize.sh",
+            "hooks/closure-gate-stop.sh",
+            "hooks/taskhub-session-stop.sh"
+          ]
+        }
+      ],
+      "execution": [
+        {
+          "hook_id": "StopComposite:0:0",
+          "command": "/Users/leonard/.claude/hooks/stop-notify.sh",
+          "script": "hooks/stop-notify.sh",
+          "async": true,
+          "timeout_seconds": 10,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio"
+          ],
+          "order": 36,
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "none",
+            "visible_channels": [
+              "audio"
+            ],
+            "user_visible": true
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:1",
+          "command": "/Users/leonard/.claude/hooks/stop-pipeline-check.sh",
+          "script": "hooks/stop-pipeline-check.sh",
+          "async": true,
+          "timeout_seconds": 10,
+          "blocking": false,
+          "failure_mode": "warn-only",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "notification",
+            "audio",
+            "git"
+          ],
+          "order": 37,
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "conditional-user-warning",
+            "visible_channels": [
+              "stderr",
+              "audio"
+            ],
+            "user_visible": true
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:2",
+          "order": 38,
+          "command": "/Users/leonard/.claude/hooks/gemma-session-stop-unified.sh",
+          "script": "hooks/gemma-session-stop-unified.sh",
+          "async": true,
+          "timeout_seconds": 90,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": "세션 요약+의도 통합 생성 중...",
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "vault_write",
+            "metrics"
+          ],
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "none",
+            "visible_channels": [
+              "statusMessage"
+            ],
+            "user_visible": true
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:3",
+          "order": 39,
+          "command": "/Users/leonard/.claude/hooks/qwen-handoff-suggest.sh",
+          "script": "hooks/qwen-handoff-suggest.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "vault_write",
+            "metrics"
+          ],
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "conditional-handoff-suggestion",
+            "visible_channels": [
+              "stderr"
+            ],
+            "user_visible": true
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:4",
+          "order": 40,
+          "command": "/Users/leonard/.claude/hooks/daily-learning-capture.sh",
+          "script": "hooks/daily-learning-capture.sh",
+          "async": true,
+          "timeout_seconds": 15,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": true,
+          "side_effects": [
+            "vault_write",
+            "metrics"
+          ],
+          "output_contract": {
+            "stdout": "conditional-capture-path",
+            "stderr": "none",
+            "visible_channels": [
+              "stdout"
+            ],
+            "user_visible": true
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:5",
+          "order": 41,
+          "command": "/bin/zsh /Users/leonard/.claude/hooks/llm-wiki-session-lint.sh",
+          "script": "hooks/llm-wiki-session-lint.sh",
+          "async": true,
+          "timeout_seconds": 10,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "outcome_log",
+            "vault_write"
+          ],
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "conditional-lint-report",
+            "visible_channels": [
+              "stderr"
+            ],
+            "user_visible": true
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:6",
+          "command": "/Users/leonard/.claude/hooks/turn-summary.sh",
+          "script": "hooks/turn-summary.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write"
+          ],
+          "order": 42,
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "conditional-turn-summary",
+            "visible_channels": [
+              "stderr"
+            ],
+            "user_visible": true
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:7",
+          "command": "/Users/leonard/.claude/hooks/budget-alert.sh",
+          "script": "hooks/budget-alert.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "notification",
+            "metrics"
+          ],
+          "order": 43,
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "conditional-budget-warning",
+            "visible_channels": [
+              "stderr",
+              "notification"
+            ],
+            "user_visible": true
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:8",
+          "command": "/Users/leonard/.claude/hooks/turn-finalize.sh",
+          "script": "hooks/turn-finalize.sh",
+          "async": true,
+          "timeout_seconds": 10,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ],
+          "order": 44,
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "none",
+            "visible_channels": [],
+            "user_visible": false
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:9",
+          "command": "/Users/leonard/.claude/hooks/closure-gate-stop.sh",
+          "script": "hooks/closure-gate-stop.sh",
+          "async": true,
+          "timeout_seconds": 10,
+          "blocking": false,
+          "failure_mode": "warn-or-gate",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "cache_write",
+            "metrics"
+          ],
+          "order": 45,
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "conditional-closure-warning",
+            "visible_channels": [
+              "stderr"
+            ],
+            "user_visible": true
+          }
+        },
+        {
+          "hook_id": "StopComposite:0:10",
+          "command": "/Users/leonard/.claude/hooks/taskhub-session-stop.sh",
+          "script": "hooks/taskhub-session-stop.sh",
+          "async": true,
+          "timeout_seconds": 5,
+          "blocking": false,
+          "failure_mode": "fail-open",
+          "status_message": null,
+          "calls_llm": false,
+          "side_effects": [
+            "network",
+            "taskhub"
+          ],
+          "order": 46,
+          "output_contract": {
+            "stdout": "none",
+            "stderr": "none",
+            "visible_channels": [],
+            "user_visible": false
+          }
+        }
+      ]
+    },
+    {
       "id": "pretooluse-bash-safety-gates",
       "state": "active",
       "description": "Blocking-aware wrapper for the three PreToolUse/Bash safety gates.",
@@ -679,8 +1014,8 @@
     },
     {
       "id": "pretooluse-gh-pr-pipeline",
-      "state": "planned",
-      "description": "Blocking-aware planned wrapper for the PreToolUse/Bash(gh pr*) PR advisory group.",
+      "state": "active",
+      "description": "Blocking-aware active wrapper for the PreToolUse/Bash(gh pr*) PR advisory group.",
       "event": "PreToolUse",
       "matcher": "Bash(gh pr*)",
       "bucket": "blocking-router:gh-pr",

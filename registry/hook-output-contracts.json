@@ -29,11 +29,12 @@
           "visible_channels": [
             "audio"
           ],
-          "migration_policy": "notification-router-candidate",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
+            "fail-open-unless-explicitly-documented",
             "per-child-timeout",
-            "fail-open-unless-explicitly-documented"
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Always plays fanfare and speaks completion; no text output."
         },
@@ -47,12 +48,12 @@
             "stderr",
             "audio"
           ],
-          "migration_policy": "keep-direct-until-notification-router",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
+            "fail-open-unless-explicitly-documented",
             "per-child-timeout",
-            "stdout-stderr-passthrough",
-            "fail-open-unless-explicitly-documented"
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Warns when code changes exist without an obvious completed pipeline."
         },
@@ -65,14 +66,14 @@
           "visible_channels": [
             "statusMessage"
           ],
-          "migration_policy": "status-aware-background-wrapper-candidate",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
-            "per-child-timeout",
-            "stdout-stderr-passthrough",
             "adapter-telemetry",
+            "fail-open-unless-explicitly-documented",
+            "per-child-timeout",
             "status-message-policy-for-status-hooks",
-            "fail-open-unless-explicitly-documented"
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Writes session summary, intent, decisions, and learning records to cache/vault paths through the ini adapter."
         },
@@ -85,13 +86,13 @@
           "visible_channels": [
             "stderr"
           ],
-          "migration_policy": "output-preserving-wrapper-candidate",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
-            "per-child-timeout",
-            "stdout-stderr-passthrough",
             "adapter-telemetry",
-            "fail-open-unless-explicitly-documented"
+            "fail-open-unless-explicitly-documented",
+            "per-child-timeout",
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Suggests handoff when long sessions contain unfinished-work signals."
         },
@@ -104,13 +105,13 @@
           "visible_channels": [
             "stdout"
           ],
-          "migration_policy": "output-preserving-wrapper-candidate",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
-            "per-child-timeout",
-            "stdout-stderr-passthrough",
             "adapter-telemetry",
-            "fail-open-unless-explicitly-documented"
+            "fail-open-unless-explicitly-documented",
+            "per-child-timeout",
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Appends learning queue entries and prints the capture path when it records a note."
         },
@@ -123,12 +124,12 @@
           "visible_channels": [
             "stderr"
           ],
-          "migration_policy": "output-preserving-wrapper-candidate",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
+            "fail-open-unless-explicitly-documented",
             "per-child-timeout",
-            "stdout-stderr-passthrough",
-            "fail-open-unless-explicitly-documented"
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Reports broken wiki links or orphan pages at session end."
         },
@@ -141,12 +142,12 @@
           "visible_channels": [
             "stderr"
           ],
-          "migration_policy": "output-preserving-wrapper-candidate",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
+            "fail-open-unless-explicitly-documented",
             "per-child-timeout",
-            "stdout-stderr-passthrough",
-            "fail-open-unless-explicitly-documented"
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Prints recent hook timing only when enough hook timing entries exist."
         },
@@ -160,12 +161,12 @@
             "stderr",
             "notification"
           ],
-          "migration_policy": "keep-direct-until-notification-router",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
+            "fail-open-unless-explicitly-documented",
             "per-child-timeout",
-            "stdout-stderr-passthrough",
-            "fail-open-unless-explicitly-documented"
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Warns only when daily LLM spend crosses configured thresholds."
         },
@@ -176,11 +177,12 @@
           "status_message": null,
           "user_visible": false,
           "visible_channels": [],
-          "migration_policy": "background-wrapper-candidate",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
+            "fail-open-unless-explicitly-documented",
             "per-child-timeout",
-            "fail-open-unless-explicitly-documented"
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Finalizes turn-level cache and metrics without user-facing output."
         },
@@ -193,12 +195,12 @@
           "visible_channels": [
             "stderr"
           ],
-          "migration_policy": "keep-direct-until-output-router",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
+            "fail-open-unless-explicitly-documented",
             "per-child-timeout",
-            "stdout-stderr-passthrough",
-            "fail-open-unless-explicitly-documented"
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Warns only after daily closure violation threshold is exceeded."
         },
@@ -209,15 +211,61 @@
           "status_message": null,
           "user_visible": false,
           "visible_channels": [],
-          "migration_policy": "background-wrapper-candidate",
+          "migration_policy": "composite-stop-router-planned",
           "wrapper_requirements": [
-            "stdin-replay-once-per-child",
+            "fail-open-unless-explicitly-documented",
             "per-child-timeout",
-            "fail-open-unless-explicitly-documented"
+            "stdin-replay-once-per-child",
+            "stdout-stderr-passthrough"
           ],
           "notes": "Posts session-stop metadata to TaskHub and suppresses network output."
         }
-      ]
+      ],
+      "router_plan": {
+        "planned_wrapper_id": "stop-composite-notification-output-router",
+        "state": "planned",
+        "activation_gate": "registry/hook-wrapper-activation-gates.json",
+        "execute_evidence": "registry/hook-wrapper-isolated-execute-report.json",
+        "status_message_policy": "wrapper-level-composite-stop-status",
+        "phases": [
+          {
+            "phase": "notify",
+            "scripts": [
+              "hooks/stop-notify.sh"
+            ]
+          },
+          {
+            "phase": "pipeline-warning",
+            "scripts": [
+              "hooks/stop-pipeline-check.sh"
+            ]
+          },
+          {
+            "phase": "vault-write",
+            "scripts": [
+              "hooks/gemma-session-stop-unified.sh",
+              "hooks/qwen-handoff-suggest.sh",
+              "hooks/daily-learning-capture.sh",
+              "hooks/llm-wiki-session-lint.sh"
+            ]
+          },
+          {
+            "phase": "turn-output",
+            "scripts": [
+              "hooks/turn-summary.sh",
+              "hooks/budget-alert.sh"
+            ]
+          },
+          {
+            "phase": "finalize",
+            "scripts": [
+              "hooks/turn-finalize.sh",
+              "hooks/closure-gate-stop.sh",
+              "hooks/taskhub-session-stop.sh"
+            ]
+          }
+        ]
+      }
     },
     {
       "event": "PreToolUse",

@@ -5,22 +5,22 @@
     "registry/hook-wrapper-plan.json"
   ],
   "description": "Review guide for hook candidates that should not be migrated automatically.",
-  "active_wrapper_count": 6,
+  "active_wrapper_count": 7,
   "wrapper_review_count": 3,
   "order_review_count": 2,
-  "manual_review_count": 14,
-  "review_item_count": 19,
+  "manual_review_count": 13,
+  "review_item_count": 18,
   "blocker_counts": {
-    "contains_blocking_hook": 8,
-    "contains_llm_backed_hook": 16,
-    "high_risk_manual_review": 14,
+    "contains_blocking_hook": 7,
+    "contains_llm_backed_hook": 15,
+    "high_risk_manual_review": 13,
     "medium_risk_candidate": 5,
     "mixed_async_semantics": 2,
     "non_contiguous_interleaved_hooks": 6,
     "status_message_semantics": 3
   },
   "strategy_counts": {
-    "manual-review-only": 14,
+    "manual-review-only": 13,
     "order-preserving-router-required": 2,
     "split-sync-guard-before-async-router": 2,
     "stop-router-output-contract-required": 1
@@ -452,6 +452,50 @@
           ]
         }
       ]
+    },
+    {
+      "id": "pretooluse-gh-pr-pipeline",
+      "source": "wrapper-plan",
+      "event": "PreToolUse",
+      "matcher": "Bash(gh pr*)",
+      "bucket": "blocking-router:gh-pr",
+      "state": "active",
+      "blockers": [
+        "candidate_risk_is_high",
+        "contains_blocking_hook",
+        "contains_llm_backed_hook",
+        "status_message_semantics"
+      ],
+      "strategy": "status-aware-wrapper-required",
+      "next_action": "A single settings hook can expose only one statusMessage, so document whether the wrapper-level message is acceptable before migration.",
+      "hook_count": 2,
+      "execution": [
+        {
+          "order": 20,
+          "script": "hooks/pr-create-codex-remind.sh",
+          "priority": null,
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 90,
+          "side_effects": [
+            "cache_write",
+            "git",
+            "network"
+          ]
+        },
+        {
+          "order": 21,
+          "script": "hooks/gemma-korean-translate-gate.sh",
+          "priority": null,
+          "blocking": true,
+          "calls_llm": true,
+          "timeout_seconds": 12,
+          "side_effects": [
+            "git",
+            "network"
+          ]
+        }
+      ]
     }
   ],
   "wrapper_review_items": [
@@ -472,7 +516,7 @@
       "hook_count": 4,
       "execution": [
         {
-          "order": 38,
+          "order": 37,
           "script": "scripts/hook-wrapper-runner.py",
           "priority": null,
           "blocking": false,
@@ -487,7 +531,7 @@
           ]
         },
         {
-          "order": 39,
+          "order": 38,
           "script": "hooks/turn-summary.sh",
           "priority": null,
           "blocking": false,
@@ -498,7 +542,7 @@
           ]
         },
         {
-          "order": 40,
+          "order": 39,
           "script": "hooks/budget-alert.sh",
           "priority": null,
           "blocking": false,
@@ -511,7 +555,7 @@
           ]
         },
         {
-          "order": 41,
+          "order": 40,
           "script": "hooks/turn-finalize.sh",
           "priority": null,
           "blocking": false,
@@ -655,12 +699,12 @@
       "strategy": "order-preserving-router-required",
       "next_action": "Do not wrap only this side-effect subset. Either keep the current order or design a router that includes every interleaved hook in sequence.",
       "hook_count": 3,
-      "first_order": 38,
-      "last_order": 41,
+      "first_order": 37,
+      "last_order": 40,
       "interleaved_hook_count": 1,
       "hooks": [
         {
-          "order": 38,
+          "order": 37,
           "script": "scripts/hook-wrapper-runner.py",
           "priority": "P1",
           "blocking": false,
@@ -675,7 +719,7 @@
           ]
         },
         {
-          "order": 40,
+          "order": 39,
           "script": "hooks/budget-alert.sh",
           "priority": "P1",
           "blocking": false,
@@ -688,7 +732,7 @@
           ]
         },
         {
-          "order": 41,
+          "order": 40,
           "script": "hooks/turn-finalize.sh",
           "priority": "P2",
           "blocking": false,
@@ -702,7 +746,7 @@
       ],
       "interleaved_hooks": [
         {
-          "order": 39,
+          "order": 38,
           "script": "hooks/turn-summary.sh",
           "priority": "P1",
           "blocking": false,
@@ -800,12 +844,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 7,
-      "first_order": 36,
-      "last_order": 43,
+      "first_order": 35,
+      "last_order": 42,
       "interleaved_hook_count": 0,
       "hooks": [
         {
-          "order": 36,
+          "order": 35,
           "script": "hooks/stop-notify.sh",
           "priority": "P2",
           "blocking": false,
@@ -817,7 +861,7 @@
           ]
         },
         {
-          "order": 37,
+          "order": 36,
           "script": "hooks/stop-pipeline-check.sh",
           "priority": "P0",
           "blocking": false,
@@ -830,7 +874,7 @@
           ]
         },
         {
-          "order": 38,
+          "order": 37,
           "script": "scripts/hook-wrapper-runner.py",
           "priority": "P1",
           "blocking": false,
@@ -845,7 +889,7 @@
           ]
         },
         {
-          "order": 39,
+          "order": 38,
           "script": "hooks/turn-summary.sh",
           "priority": "P1",
           "blocking": false,
@@ -856,7 +900,7 @@
           ]
         },
         {
-          "order": 40,
+          "order": 39,
           "script": "hooks/budget-alert.sh",
           "priority": "P1",
           "blocking": false,
@@ -869,7 +913,7 @@
           ]
         },
         {
-          "order": 41,
+          "order": 40,
           "script": "hooks/turn-finalize.sh",
           "priority": "P2",
           "blocking": false,
@@ -881,7 +925,7 @@
           ]
         },
         {
-          "order": 43,
+          "order": 42,
           "script": "hooks/taskhub-session-stop.sh",
           "priority": "P2",
           "blocking": false,
@@ -1005,12 +1049,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 4,
-      "first_order": 26,
-      "last_order": 29,
+      "first_order": 25,
+      "last_order": 28,
       "interleaved_hook_count": 0,
       "hooks": [
         {
-          "order": 26,
+          "order": 25,
           "script": "hooks/agent-start-notify.sh",
           "priority": "P1",
           "blocking": true,
@@ -1021,7 +1065,7 @@
           ]
         },
         {
-          "order": 27,
+          "order": 26,
           "script": "hooks/agent-context-inject.sh",
           "priority": "P1",
           "blocking": true,
@@ -1032,7 +1076,7 @@
           ]
         },
         {
-          "order": 28,
+          "order": 27,
           "script": "hooks/agent-knowledge-remind.sh",
           "priority": "P1",
           "blocking": true,
@@ -1041,7 +1085,7 @@
           "side_effects": []
         },
         {
-          "order": 29,
+          "order": 28,
           "script": "hooks/gemma-review-prescan.sh",
           "priority": "P1",
           "blocking": true,
@@ -1071,12 +1115,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 4,
-      "first_order": 22,
-      "last_order": 25,
+      "first_order": 21,
+      "last_order": 24,
       "interleaved_hook_count": 0,
       "hooks": [
         {
-          "order": 22,
+          "order": 21,
           "script": "hooks/code-edit-pipeline-remind.sh",
           "priority": "P1",
           "blocking": true,
@@ -1087,7 +1131,7 @@
           ]
         },
         {
-          "order": 23,
+          "order": 22,
           "script": "hooks/delegation-enforcer.sh",
           "priority": "P0",
           "blocking": true,
@@ -1099,7 +1143,7 @@
           ]
         },
         {
-          "order": 24,
+          "order": 23,
           "script": "hooks/dependency-change-detect.sh",
           "priority": "P1",
           "blocking": true,
@@ -1112,7 +1156,7 @@
           ]
         },
         {
-          "order": 25,
+          "order": 24,
           "script": "hooks/gemini-prescan-enforcer.sh",
           "priority": "P1",
           "blocking": true,
@@ -1140,12 +1184,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 3,
-      "first_order": 33,
-      "last_order": 35,
+      "first_order": 32,
+      "last_order": 34,
       "interleaved_hook_count": 0,
       "hooks": [
         {
-          "order": 33,
+          "order": 32,
           "script": "hooks/session-start-router.sh",
           "priority": "P0",
           "blocking": false,
@@ -1159,7 +1203,7 @@
           ]
         },
         {
-          "order": 34,
+          "order": 33,
           "script": "hooks/taskhub-session-start.sh",
           "priority": "P2",
           "blocking": false,
@@ -1171,7 +1215,7 @@
           ]
         },
         {
-          "order": 35,
+          "order": 34,
           "script": "hooks/iterm-badge-set.sh",
           "priority": "P2",
           "blocking": false,
@@ -1198,12 +1242,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 2,
-      "first_order": 36,
-      "last_order": 37,
+      "first_order": 35,
+      "last_order": 36,
       "interleaved_hook_count": 0,
       "hooks": [
         {
-          "order": 36,
+          "order": 35,
           "script": "hooks/stop-notify.sh",
           "priority": "P2",
           "blocking": false,
@@ -1215,7 +1259,7 @@
           ]
         },
         {
-          "order": 37,
+          "order": 36,
           "script": "hooks/stop-pipeline-check.sh",
           "priority": "P0",
           "blocking": false,
@@ -1225,54 +1269,6 @@
             "notification",
             "audio",
             "git"
-          ]
-        }
-      ],
-      "interleaved_hooks": []
-    },
-    {
-      "id": "PreToolUse::Bash(gh pr*)::event_matcher",
-      "source": "consolidation-candidate",
-      "event": "PreToolUse",
-      "matcher": "Bash(gh pr*)",
-      "bucket": "event_matcher",
-      "risk": "high",
-      "recommendation": "manual-review-only",
-      "blockers": [
-        "contains_blocking_hook",
-        "contains_llm_backed_hook",
-        "high_risk_manual_review"
-      ],
-      "strategy": "manual-review-only",
-      "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
-      "hook_count": 2,
-      "first_order": 20,
-      "last_order": 21,
-      "interleaved_hook_count": 0,
-      "hooks": [
-        {
-          "order": 20,
-          "script": "hooks/pr-create-codex-remind.sh",
-          "priority": "P1",
-          "blocking": true,
-          "calls_llm": true,
-          "timeout_seconds": 90,
-          "side_effects": [
-            "cache_write",
-            "git",
-            "network"
-          ]
-        },
-        {
-          "order": 21,
-          "script": "hooks/gemma-korean-translate-gate.sh",
-          "priority": "P1",
-          "blocking": true,
-          "calls_llm": true,
-          "timeout_seconds": 12,
-          "side_effects": [
-            "git",
-            "network"
           ]
         }
       ],
@@ -1339,12 +1335,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 3,
-      "first_order": 36,
-      "last_order": 40,
+      "first_order": 35,
+      "last_order": 39,
       "interleaved_hook_count": 2,
       "hooks": [
         {
-          "order": 36,
+          "order": 35,
           "script": "hooks/stop-notify.sh",
           "priority": "P2",
           "blocking": false,
@@ -1356,7 +1352,7 @@
           ]
         },
         {
-          "order": 37,
+          "order": 36,
           "script": "hooks/stop-pipeline-check.sh",
           "priority": "P0",
           "blocking": false,
@@ -1369,7 +1365,7 @@
           ]
         },
         {
-          "order": 40,
+          "order": 39,
           "script": "hooks/budget-alert.sh",
           "priority": "P1",
           "blocking": false,
@@ -1384,7 +1380,7 @@
       ],
       "interleaved_hooks": [
         {
-          "order": 38,
+          "order": 37,
           "script": "scripts/hook-wrapper-runner.py",
           "priority": "P1",
           "blocking": false,
@@ -1399,7 +1395,7 @@
           ]
         },
         {
-          "order": 39,
+          "order": 38,
           "script": "hooks/turn-summary.sh",
           "priority": "P1",
           "blocking": false,
@@ -1426,12 +1422,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 2,
-      "first_order": 37,
-      "last_order": 38,
+      "first_order": 36,
+      "last_order": 37,
       "interleaved_hook_count": 0,
       "hooks": [
         {
-          "order": 37,
+          "order": 36,
           "script": "hooks/stop-pipeline-check.sh",
           "priority": "P0",
           "blocking": false,
@@ -1444,7 +1440,7 @@
           ]
         },
         {
-          "order": 38,
+          "order": 37,
           "script": "scripts/hook-wrapper-runner.py",
           "priority": "P1",
           "blocking": false,
@@ -1476,12 +1472,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 2,
-      "first_order": 44,
-      "last_order": 45,
+      "first_order": 43,
+      "last_order": 44,
       "interleaved_hook_count": 0,
       "hooks": [
         {
-          "order": 44,
+          "order": 43,
           "script": "hooks/user-prompt-router.sh",
           "priority": "P0",
           "blocking": false,
@@ -1492,7 +1488,7 @@
           ]
         },
         {
-          "order": 45,
+          "order": 44,
           "script": "hooks/taskhub-utterance.sh",
           "priority": "P2",
           "blocking": false,
@@ -1523,12 +1519,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 3,
-      "first_order": 22,
-      "last_order": 25,
+      "first_order": 21,
+      "last_order": 24,
       "interleaved_hook_count": 1,
       "hooks": [
         {
-          "order": 22,
+          "order": 21,
           "script": "hooks/code-edit-pipeline-remind.sh",
           "priority": "P1",
           "blocking": true,
@@ -1539,7 +1535,7 @@
           ]
         },
         {
-          "order": 24,
+          "order": 23,
           "script": "hooks/dependency-change-detect.sh",
           "priority": "P1",
           "blocking": true,
@@ -1552,7 +1548,7 @@
           ]
         },
         {
-          "order": 25,
+          "order": 24,
           "script": "hooks/gemini-prescan-enforcer.sh",
           "priority": "P1",
           "blocking": true,
@@ -1565,7 +1561,7 @@
       ],
       "interleaved_hooks": [
         {
-          "order": 23,
+          "order": 22,
           "script": "hooks/delegation-enforcer.sh",
           "priority": "P0",
           "blocking": true,
@@ -1679,12 +1675,12 @@
       "strategy": "manual-review-only",
       "next_action": "Document output, timeout, and blocking semantics before any wrapper migration.",
       "hook_count": 2,
-      "first_order": 27,
-      "last_order": 29,
+      "first_order": 26,
+      "last_order": 28,
       "interleaved_hook_count": 1,
       "hooks": [
         {
-          "order": 27,
+          "order": 26,
           "script": "hooks/agent-context-inject.sh",
           "priority": "P1",
           "blocking": true,
@@ -1695,7 +1691,7 @@
           ]
         },
         {
-          "order": 29,
+          "order": 28,
           "script": "hooks/gemma-review-prescan.sh",
           "priority": "P1",
           "blocking": true,
@@ -1709,7 +1705,7 @@
       ],
       "interleaved_hooks": [
         {
-          "order": 28,
+          "order": 27,
           "script": "hooks/agent-knowledge-remind.sh",
           "priority": "P1",
           "blocking": true,

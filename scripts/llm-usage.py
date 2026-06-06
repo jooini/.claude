@@ -23,6 +23,10 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LLM_ADAPTER_THRESHOLDS_PATH = os.path.join(ROOT, "registry", "llm-adapter-thresholds.json")
+
+
 # 모델별 1M 토큰당 USD 가격 (2026-05 기준 — 검증 필요 시 갱신)
 # 출처: OpenAI / Anthropic / Google 공식 가격표 (2026-05-07 시점 추정)
 PRICING = {
@@ -80,6 +84,121 @@ def iter_jsonl(path):
                     yield obj
     except Exception:
         return
+
+
+def load_llm_adapter_thresholds():
+    defaults = {
+        'warning_error_rate': 0.10,
+        'critical_error_rate': 0.25,
+        'warning_timeout_rate': 0.05,
+        'critical_timeout_rate': 0.15,
+        'warning_avg_duration_ms': 15000,
+        'critical_avg_duration_ms': 30000,
+    }
+    fallback = {
+        'version': 0,
+        'status': 'fallback',
+        'metric_source': 'cache/llm-adapter-calls.jsonl',
+        'minimum_calls_for_rate': 5,
+        'defaults': defaults,
+        'provider_overrides': {},
+    }
+    try:
+        with open(LLM_ADAPTER_THRESHOLDS_PATH, encoding='utf-8') as handle:
+            data = json.load(handle)
+        if not isinstance(data, dict):
+            return fallback
+        merged = dict(fallback)
+        merged.update(data)
+        merged_defaults = dict(defaults)
+        merged_defaults.update(data.get('defaults') or {})
+        merged['defaults'] = merged_defaults
+        merged['provider_overrides'] = data.get('provider_overrides') or {}
+        return merged
+    except Exception:
+        return fallback
+
+
+def adapter_thresholds_for(thresholds, provider=None):
+    values = dict(thresholds.get('defaults') or {})
+    if provider:
+        values.update((thresholds.get('provider_overrides') or {}).get(provider) or {})
+    return values
+
+
+def evaluate_adapter_bucket(name, bucket, thresholds, provider=None):
+    calls = as_int(bucket.get('calls'))
+    errors = as_int(bucket.get('error'))
+    timeouts = as_int(bucket.get('timeout'))
+    avg_duration_ms = float(bucket.get('avg_duration_ms') or 0.0)
+    minimum_calls = as_int(thresholds.get('minimum_calls_for_rate'), 5)
+    policy = adapter_thresholds_for(thresholds, provider)
+    error_rate = errors / calls if calls else 0.0
+    timeout_rate = timeouts / calls if calls else 0.0
+
+    severity = 'ok'
+    reasons = []
+    if calls < minimum_calls:
+        severity = 'insufficient-data'
+    else:
+        if error_rate >= float(policy.get('critical_error_rate', 1.0)):
+            severity = 'critical'
+            reasons.append('error_rate')
+        elif error_rate >= float(policy.get('warning_error_rate', 1.0)):
+            severity = 'warning'
+            reasons.append('error_rate')
+
+        if timeout_rate >= float(policy.get('critical_timeout_rate', 1.0)):
+            severity = 'critical'
+            reasons.append('timeout_rate')
+        elif timeout_rate >= float(policy.get('warning_timeout_rate', 1.0)) and severity != 'critical':
+            severity = 'warning'
+            reasons.append('timeout_rate')
+
+        if avg_duration_ms >= float(policy.get('critical_avg_duration_ms', 10**12)):
+            severity = 'critical'
+            reasons.append('avg_duration_ms')
+        elif avg_duration_ms >= float(policy.get('warning_avg_duration_ms', 10**12)) and severity != 'critical':
+            severity = 'warning'
+            reasons.append('avg_duration_ms')
+
+    return {
+        'name': name,
+        'provider': provider,
+        'severity': severity,
+        'calls': calls,
+        'error_rate': error_rate,
+        'timeout_rate': timeout_rate,
+        'avg_duration_ms': avg_duration_ms,
+        'reasons': sorted(set(reasons)),
+    }
+
+
+def evaluate_adapter_health(total, by_provider, thresholds):
+    total_health = evaluate_adapter_bucket('total', total, thresholds)
+    provider_health = {
+        provider: evaluate_adapter_bucket(provider, bucket, thresholds, provider=provider)
+        for provider, bucket in by_provider.items()
+    }
+    alerts = [
+        {'scope': 'total', **total_health}
+    ] if total_health['severity'] in {'warning', 'critical'} else []
+    alerts.extend(
+        {'scope': 'provider', **item}
+        for item in provider_health.values()
+        if item['severity'] in {'warning', 'critical'}
+    )
+    severity_rank = {'ok': 0, 'insufficient-data': 0, 'warning': 1, 'critical': 2}
+    overall = max(
+        [total_health['severity']] + [item['severity'] for item in provider_health.values()],
+        key=lambda value: severity_rank.get(value, 0),
+    )
+    return {
+        'overall': overall,
+        'total': total_health,
+        'by_provider': provider_health,
+        'alerts': alerts,
+    }
 
 
 def cost_for(model, in_tokens=0, out_tokens=0, cache_r=0, cache_c=0):
@@ -408,6 +527,7 @@ def collect_llm_adapter():
         'calls': 0,
         'ok': 0,
         'error': 0,
+        'timeout': 0,
         'duration_ms': 0,
         'timeout_seconds': 0,
         'prompt_length': 0,
@@ -418,6 +538,7 @@ def collect_llm_adapter():
         'calls': 0,
         'ok': 0,
         'error': 0,
+        'timeout': 0,
         'duration_ms': 0,
         'prompt_length': 0,
         'response_length': 0,
@@ -427,13 +548,15 @@ def collect_llm_adapter():
         'calls': 0,
         'ok': 0,
         'error': 0,
+        'timeout': 0,
         'duration_ms': 0,
     })
-    by_adapter = defaultdict(lambda: {'calls': 0, 'ok': 0, 'error': 0})
+    by_adapter = defaultdict(lambda: {'calls': 0, 'ok': 0, 'error': 0, 'timeout': 0})
     total = {
         'calls': 0,
         'ok': 0,
         'error': 0,
+        'timeout': 0,
         'duration_ms': 0,
         'timeout_seconds': 0,
         'prompt_length': 0,
@@ -454,6 +577,7 @@ def collect_llm_adapter():
         exit_code = as_int(d.get('exit_code'))
         status = d.get('status') or ('ok' if exit_code == 0 else 'error')
         ok = status == 'ok' and exit_code == 0
+        timed_out = status == 'timeout' or exit_code == 124
         duration_ms = as_int(d.get('duration_ms'))
         timeout_seconds = as_int(d.get('timeout_seconds'))
         prompt_length = as_int(d.get('prompt_length'))
@@ -464,6 +588,7 @@ def collect_llm_adapter():
             bucket['calls'] += 1
             bucket['ok'] += 1 if ok else 0
             bucket['error'] += 0 if ok else 1
+            bucket['timeout'] += 1 if timed_out else 0
             bucket['duration_ms'] += duration_ms
             bucket['prompt_length'] += prompt_length
             bucket['response_length'] += response_length
@@ -473,25 +598,41 @@ def collect_llm_adapter():
         by_caller[caller]['calls'] += 1
         by_caller[caller]['ok'] += 1 if ok else 0
         by_caller[caller]['error'] += 0 if ok else 1
+        by_caller[caller]['timeout'] += 1 if timed_out else 0
         by_caller[caller]['duration_ms'] += duration_ms
         by_adapter[adapter]['calls'] += 1
         by_adapter[adapter]['ok'] += 1 if ok else 0
         by_adapter[adapter]['error'] += 0 if ok else 1
+        by_adapter[adapter]['timeout'] += 1 if timed_out else 0
 
     if total['calls']:
+        thresholds = load_llm_adapter_thresholds()
         total['success_rate'] = total['ok'] / total['calls']
+        total['error_rate'] = total['error'] / total['calls']
+        total['timeout_rate'] = total['timeout'] / total['calls']
         total['avg_duration_ms'] = total['duration_ms'] / total['calls']
         for bucket in by_provider.values():
             bucket['success_rate'] = bucket['ok'] / bucket['calls'] if bucket['calls'] else 0.0
+            bucket['error_rate'] = bucket['error'] / bucket['calls'] if bucket['calls'] else 0.0
+            bucket['timeout_rate'] = bucket['timeout'] / bucket['calls'] if bucket['calls'] else 0.0
             bucket['avg_duration_ms'] = bucket['duration_ms'] / bucket['calls'] if bucket['calls'] else 0.0
+        health = evaluate_adapter_health(total, by_provider, thresholds)
         note = f"{path} ({total['calls']} calls)"
     elif os.path.exists(path):
+        thresholds = load_llm_adapter_thresholds()
         total['success_rate'] = 0.0
+        total['error_rate'] = 0.0
+        total['timeout_rate'] = 0.0
         total['avg_duration_ms'] = 0.0
+        health = evaluate_adapter_health(total, by_provider, thresholds)
         note = f"{path} exists but has no valid records"
     else:
+        thresholds = load_llm_adapter_thresholds()
         total['success_rate'] = 0.0
+        total['error_rate'] = 0.0
+        total['timeout_rate'] = 0.0
         total['avg_duration_ms'] = 0.0
+        health = evaluate_adapter_health(total, by_provider, thresholds)
         note = f"{path} not created yet"
 
     return {
@@ -500,6 +641,8 @@ def collect_llm_adapter():
         'by_provider': dict(by_provider),
         'by_caller': dict(by_caller),
         'by_adapter': dict(by_adapter),
+        'thresholds': thresholds,
+        'health': health,
         'schema_versions': sorted(v for v in schema_versions if v is not None),
         'available': total['calls'] > 0,
         'note': note,
@@ -592,11 +735,23 @@ def print_human(data, days):
             f"/ 성공률 {at.get('success_rate', 0.0) * 100:.1f}% "
             f"/ 평균 {at.get('avg_duration_ms', 0.0):.0f}ms"
         )
+        health = ad.get('health', {})
+        print(f"   Health: {health.get('overall', 'unknown')}")
+        for alert in health.get('alerts', [])[:5]:
+            reasons = ",".join(alert.get('reasons', [])) or "threshold"
+            print(
+                f"     {alert.get('scope')}:{alert.get('name')} "
+                f"{alert.get('severity')} ({reasons}) "
+                f"err={alert.get('error_rate', 0.0) * 100:.1f}% "
+                f"timeout={alert.get('timeout_rate', 0.0) * 100:.1f}% "
+                f"avg={alert.get('avg_duration_ms', 0.0):.0f}ms"
+            )
         print("   Provider별:")
         for provider, p in sorted(ad['by_provider'].items(), key=lambda x: -x[1].get('calls', 0)):
             print(
                 f"     {provider:12s} {p['calls']:>4}회 / "
                 f"성공률 {p.get('success_rate', 0.0) * 100:>5.1f}% / "
+                f"timeout {p.get('timeout_rate', 0.0) * 100:>5.1f}% / "
                 f"평균 {p.get('avg_duration_ms', 0.0):>7.0f}ms"
             )
         callers = sorted(ad['by_caller'].items(), key=lambda x: -x[1].get('calls', 0))[:5]

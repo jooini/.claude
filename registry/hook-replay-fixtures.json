@@ -227,6 +227,17 @@
           "prompt": "Review the current diff."
         }
       }
+    },
+    {
+      "id": "stop-composite-basic",
+      "event": "Stop",
+      "matcher": "*",
+      "payload": {
+        "session_id": "fixture-stop-composite",
+        "transcript_path": "/tmp/claude-stop-composite-transcript.jsonl",
+        "cwd": "/Users/leonard/.claude",
+        "hook_event_name": "Stop"
+      }
     }
   ]
 }

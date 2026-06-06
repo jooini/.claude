@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""Project registry manifests onto settings.json.
+"""Project registry manifests and non-secret policy onto settings.json.
 
-Current scope: replace settings.json:hooks from registry/hooks-manifest.json.
+Current scope:
+- replace settings.json:hooks from registry/hooks-manifest.json
+- overlay non-secret env, MCP command, and permission guards from registry/settings-policy.json
+
 The default command prints the projected settings JSON to stdout. Use --check to
 verify semantic equality with the current settings.json, or --write to update it.
 """
@@ -19,6 +22,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_PATH = ROOT / "settings.json"
 HOOK_MANIFEST_PATH = ROOT / "registry" / "hooks-manifest.json"
+SETTINGS_POLICY_PATH = ROOT / "registry" / "settings-policy.json"
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -39,10 +43,84 @@ def validate_hook_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("hooks-manifest hook_count does not match hooks payload")
 
 
-def project_settings(settings: dict[str, Any], hook_manifest: dict[str, Any]) -> dict[str, Any]:
+def validate_settings_policy(policy: dict[str, Any]) -> None:
+    if policy.get("version") != 1:
+        raise ValueError("settings-policy version must be 1")
+    if policy.get("status") != "active":
+        raise ValueError("settings-policy status must be active")
+
+
+def append_missing(items: list[Any], required: list[Any]) -> list[Any]:
+    projected = list(items)
+    for item in required:
+        if item not in projected:
+            projected.append(item)
+    return projected
+
+
+def project_env(projected: dict[str, Any], policy: dict[str, Any]) -> None:
+    env_policy = policy.get("env", {})
+    env = copy.deepcopy(projected.get("env", {}))
+    env.update(env_policy.get("required_exact", {}))
+
+    path_prefix = env_policy.get("path_must_start_with")
+    current_path = str(env.get("PATH", ""))
+    if path_prefix and current_path and not current_path.startswith(path_prefix):
+        env["PATH"] = f"{path_prefix}:{current_path}"
+    elif path_prefix and not current_path:
+        env["PATH"] = str(path_prefix)
+    projected["env"] = env
+
+
+def project_mcp_servers(projected: dict[str, Any], policy: dict[str, Any]) -> None:
+    required_servers = policy.get("mcp", {}).get("settings_json_required_servers", {})
+    servers = copy.deepcopy(projected.get("mcpServers", {}))
+    for name, required in required_servers.items():
+        if name not in servers:
+            raise ValueError(f"settings.json missing MCP server required by policy: {name}")
+        server = copy.deepcopy(servers[name])
+        if "command" in required:
+            server["command"] = required["command"]
+        env = server.get("env", {})
+        for key in required.get("required_env_keys", []):
+            if key not in env:
+                raise ValueError(f"settings.json MCP server {name} missing env key: {key}")
+        servers[name] = server
+    projected["mcpServers"] = servers
+
+
+def project_permissions(projected: dict[str, Any], policy: dict[str, Any]) -> None:
+    permission_policy = policy.get("permissions", {})
+    permissions = copy.deepcopy(projected.get("permissions", {}))
+    if "default_mode" in permission_policy:
+        permissions["defaultMode"] = permission_policy["default_mode"]
+    permissions["additionalDirectories"] = append_missing(
+        permissions.get("additionalDirectories", []),
+        permission_policy.get("required_additional_directories", []),
+    )
+    permissions["allow"] = append_missing(
+        permissions.get("allow", []),
+        permission_policy.get("required_allow", []),
+    )
+    permissions["deny"] = append_missing(
+        permissions.get("deny", []),
+        permission_policy.get("required_deny", []),
+    )
+    projected["permissions"] = permissions
+
+
+def project_settings(
+    settings: dict[str, Any],
+    hook_manifest: dict[str, Any],
+    settings_policy: dict[str, Any],
+) -> dict[str, Any]:
     validate_hook_manifest(hook_manifest)
+    validate_settings_policy(settings_policy)
     projected = copy.deepcopy(settings)
     projected["hooks"] = copy.deepcopy(hook_manifest["hooks"])
+    project_env(projected, settings_policy)
+    project_mcp_servers(projected, settings_policy)
+    project_permissions(projected, settings_policy)
     return projected
 
 
@@ -58,7 +136,8 @@ def main() -> int:
 
     settings = load_json(SETTINGS_PATH)
     hook_manifest = load_json(HOOK_MANIFEST_PATH)
-    projected = project_settings(settings, hook_manifest)
+    settings_policy = load_json(SETTINGS_POLICY_PATH)
+    projected = project_settings(settings, hook_manifest, settings_policy)
 
     if args.check:
         if projected != settings:

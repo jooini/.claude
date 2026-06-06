@@ -8,7 +8,7 @@
   ],
   "runner": "scripts/hook-wrapper-runner.py",
   "gate_count": 4,
-  "validation_count": 8,
+  "validation_count": 7,
   "failed_validation_count": 0,
   "status": "pass",
   "gates": [
@@ -68,43 +68,6 @@
             17,
             18,
             19
-          ],
-          "status": "pass",
-          "failures": []
-        }
-      ]
-    },
-    {
-      "plan_id": "pretooluse-gh-pr-pipeline",
-      "event": "PreToolUse",
-      "matcher": "Bash(gh pr*)",
-      "activation_state": "blocked-pending-isolated-execute-validation",
-      "validation_mode": "dry-run-only",
-      "fixture_count": 2,
-      "status": "pass",
-      "fixture_results": [
-        {
-          "fixture_id": "pretooluse-gh-pr-create-basic",
-          "event": "PreToolUse",
-          "matcher": "Bash(gh pr*)",
-          "payload_bytes": 294,
-          "step_count": 2,
-          "orders": [
-            20,
-            21
-          ],
-          "status": "pass",
-          "failures": []
-        },
-        {
-          "fixture_id": "pretooluse-gh-pr-create-english",
-          "event": "PreToolUse",
-          "matcher": "Bash(gh pr*)",
-          "payload_bytes": 266,
-          "step_count": 2,
-          "orders": [
-            20,
-            21
           ],
           "status": "pass",
           "failures": []
@@ -172,6 +135,39 @@
             27,
             28,
             29
+          ],
+          "status": "pass",
+          "failures": []
+        }
+      ]
+    },
+    {
+      "plan_id": "stop-composite-notification-output-router",
+      "event": "Stop",
+      "matcher": "*",
+      "activation_state": "blocked-pending-isolated-execute-validation",
+      "validation_mode": "isolated-execute-required",
+      "fixture_count": 1,
+      "status": "pass",
+      "fixture_results": [
+        {
+          "fixture_id": "stop-composite-basic",
+          "event": "Stop",
+          "matcher": "*",
+          "payload_bytes": 167,
+          "step_count": 11,
+          "orders": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46
           ],
           "status": "pass",
           "failures": []

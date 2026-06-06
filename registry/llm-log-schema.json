@@ -2,6 +2,7 @@
   "version": 1,
   "status": "active",
   "description": "Common JSONL telemetry fields for shell and Python LLM adapters.",
+  "threshold_policy": "registry/llm-adapter-thresholds.json",
   "log_paths": [
     "cache/llm-adapter-calls.jsonl",
     "cache/gemma-calls.jsonl",

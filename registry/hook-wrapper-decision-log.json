@@ -10,16 +10,17 @@
       "matcher": "*",
       "bucket": "side_effect:cache_write",
       "decision": "defer",
-      "status": "requires-composite-stop-router",
+      "status": "covered-by-planned-composite-stop-router",
       "reviewed_at": "2026-06-06",
       "blockers": [
         "wraps-active-wrapper",
         "status-message-policy-required",
         "contains-llm-backed-step",
-        "overlaps-vault-write-wrapper"
+        "overlaps-vault-write-wrapper",
+        "requires-isolated-execute-before-settings-migration"
       ],
-      "reason": "This candidate starts with the active stop-all-side-effect-vault-write wrapper and then adds cache_write/notification/finalize hooks. Promoting it directly would create a wrapper-over-wrapper Stop router without first deciding the user-visible status/output policy.",
-      "next_action": "Design a composite Stop router that explicitly separates vault-write, notification, output, and finalize phases before any settings migration."
+      "reason": "This candidate is too narrow to promote by itself because it starts from the active vault-write wrapper and then adds cache/notification/finalize hooks. The planned stop-composite-notification-output-router now represents the full Stop flow explicitly, while this candidate remains deferred to avoid wrapper-over-wrapper settings migration.",
+      "next_action": "Use stop-composite-notification-output-router activation evidence before considering any Stop settings migration; do not promote this cache-write subset independently."
     },
     {
       "plan_id": "posttooluse-bash-event-matcher",
@@ -55,5 +56,104 @@
       "reason": "This is a narrower side-effect view of the same PostToolUse/Bash router problem. It overlaps the active posttooluse-bash-post-guard-async wrapper and the direct dangerous-command-detect hook.",
       "next_action": "Resolve together with posttooluse-bash-event-matcher; do not migrate this side-effect subset independently."
     }
-  ]
+  ],
+  "pretooluse_guard_policy": {
+    "version": 1,
+    "description": "Direct-vs-wrapper decisions for current PreToolUse guards. This section covers active wrappers, planned wrappers, and guards that must remain direct.",
+    "reviewed_at": "2026-06-06",
+    "decision_count": 7,
+    "decisions": [
+      {
+        "matcher": "Bash",
+        "decision": "active-wrapper",
+        "wrapper_id": "pretooluse-bash-safety-gates",
+        "status": "active-in-settings",
+        "scripts": [
+          "hooks/bash-codegen-block.sh",
+          "hooks/danger-keyword-detect.sh",
+          "hooks/git-worktree-internal-block.sh"
+        ],
+        "reason": "These generic Bash safety gates already share a blocking execution contract and are active as one wrapper. The wrapper preserves first nonzero exit and stops after the first blocking child.",
+        "next_action": "Keep active. Only expand this wrapper with additional Bash guards if they share the same fail-closed blocking semantics and do not require a separate status/output policy."
+      },
+      {
+        "matcher": "Bash(git commit*)",
+        "decision": "planned-wrapper",
+        "wrapper_id": "pretooluse-git-commit-pipeline",
+        "status": "planned-pending-settings-migration",
+        "scripts": [
+          "hooks/gemma-commit-draft.sh",
+          "hooks/gemma-commit-convention.sh",
+          "hooks/commit-korean-check.sh",
+          "hooks/commit-no-coauthor.sh",
+          "hooks/gemini-large-diff-prescan.sh",
+          "hooks/gemma-korean-translate-gate.sh"
+        ],
+        "reason": "Commit hooks are contiguous and share the same trigger, but they mix LLM-backed advisory steps with hard blocking checks. They remain planned until isolated execute and statusMessage policy are reviewed for settings migration.",
+        "next_action": "Keep planned. Promote only as one unit after activation gate review; do not keep individual commit guards direct once the wrapper is active."
+      },
+      {
+        "matcher": "Bash(gh pr*)",
+        "decision": "active-wrapper",
+        "wrapper_id": "pretooluse-gh-pr-pipeline",
+        "status": "active-in-settings",
+        "scripts": [
+          "hooks/pr-create-codex-remind.sh",
+          "hooks/gemma-korean-translate-gate.sh"
+        ],
+        "reason": "PR hooks share a trigger and preserve stdout/status feedback together. This is the smallest planned PreToolUse wrapper by child count and only runs for gh pr commands, so it has the lowest settings migration blast radius among planned candidates.",
+        "next_action": "Keep active. If gh pr preflight behavior changes, compare wrapper execution against the two original child hooks before expanding this wrapper."
+      },
+      {
+        "matcher": "Edit|Write",
+        "decision": "planned-wrapper",
+        "wrapper_id": "pretooluse-edit-write-event-matcher",
+        "status": "planned-pending-settings-migration",
+        "scripts": [
+          "hooks/code-edit-pipeline-remind.sh",
+          "hooks/delegation-enforcer.sh",
+          "hooks/dependency-change-detect.sh",
+          "hooks/gemini-prescan-enforcer.sh"
+        ],
+        "reason": "Edit/Write guards share one mutation boundary. The delegation enforcer can block, while the other hooks are advisory or side-effecting, so one wrapper must preserve first blocking exit and stdout/stderr passthrough.",
+        "next_action": "Keep planned. Do not split delegation-enforcer into a separate direct hook unless wrapper activation shows unacceptable latency or masking risk."
+      },
+      {
+        "matcher": "Agent",
+        "decision": "planned-wrapper",
+        "wrapper_id": "pretooluse-agent-event-matcher",
+        "status": "planned-pending-settings-migration",
+        "scripts": [
+          "hooks/agent-start-notify.sh",
+          "hooks/agent-context-inject.sh",
+          "hooks/agent-knowledge-remind.sh",
+          "hooks/gemma-review-prescan.sh"
+        ],
+        "reason": "Agent hooks form one pre-agent context/notification/prescan bundle. They are planned together so context stdout, audio side effects, and review prescan cache writes remain ordered.",
+        "next_action": "Keep planned and promote only after audio/LLM side effects are stubbed or explicitly accepted."
+      },
+      {
+        "matcher": "mcp__",
+        "decision": "keep-direct",
+        "wrapper_id": null,
+        "status": "direct-hardware-protocol-guard",
+        "scripts": [
+          "hooks/mcp-deferred-guard.sh"
+        ],
+        "reason": "This guard protects deferred MCP tool calls before schemas are loaded. It is a narrow protocol safety gate and should remain direct until a dedicated MCP router exists.",
+        "next_action": "Keep direct. Revisit only with a separate MCP router design and fixture coverage for blocked deferred calls."
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "decision": "keep-direct",
+        "wrapper_id": null,
+        "status": "direct-serialization-bug-guard",
+        "scripts": [
+          "hooks/askuserquestion-korean-block.sh"
+        ],
+        "reason": "This guard mitigates the known AskUserQuestion non-ASCII serialization bug. It should stay direct to minimize latency and avoid masking the hard block.",
+        "next_action": "Keep direct until the upstream serialization bug is fixed and verified against Korean payload fixtures."
+      }
+    ]
+  }
 }

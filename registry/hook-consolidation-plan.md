@@ -9,14 +9,14 @@ It is an execution aid, not an instruction to merge hooks automatically.
 
 | metric | value |
 | --- | ---: |
-| hooks analyzed | 46 |
-| candidates | 19 |
+| hooks analyzed | 45 |
+| candidates | 18 |
 | low risk | 0 |
 | medium risk | 5 |
-| high risk | 14 |
+| high risk | 13 |
 | wrapper-ready recommendations | 3 |
 | order-review recommendations | 2 |
-| manual-review recommendations | 14 |
+| manual-review recommendations | 13 |
 
 ## Execution Order
 
@@ -37,7 +37,7 @@ No low-risk candidates found.
 - Risk: `medium`
 - Score: `30`
 - Hooks: `3`
-- Order span: `38`-`41`
+- Order span: `37`-`40`
 - Contiguous within trigger: `False`
 - Interleaved hooks: `1`
 - LLM hooks: `1`
@@ -46,15 +46,15 @@ No low-risk candidates found.
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 38 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, outcome_log, vault_write |
-| 40 | P1 | `hooks/budget-alert.sh` | False | False | cache_write, notification, metrics |
-| 41 | P2 | `hooks/turn-finalize.sh` | False | False | cache_write, metrics |
+| 37 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, outcome_log, vault_write |
+| 39 | P1 | `hooks/budget-alert.sh` | False | False | cache_write, notification, metrics |
+| 40 | P2 | `hooks/turn-finalize.sh` | False | False | cache_write, metrics |
 
 Interleaved hooks that would change relative order if this group were wrapped directly:
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 39 | P1 | `hooks/turn-summary.sh` | False | False | cache_write |
+| 38 | P1 | `hooks/turn-summary.sh` | False | False | cache_write |
 
 
 ### PostToolUse / Bash / side_effect:cache_write
@@ -88,7 +88,7 @@ Interleaved hooks that would change relative order if this group were wrapped di
 - Risk: `medium`
 - Score: `55`
 - Hooks: `4`
-- Order span: `38`-`41`
+- Order span: `37`-`40`
 - Contiguous within trigger: `True`
 - Interleaved hooks: `0`
 - LLM hooks: `1`
@@ -97,10 +97,10 @@ Interleaved hooks that would change relative order if this group were wrapped di
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 38 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, outcome_log, vault_write |
-| 39 | P1 | `hooks/turn-summary.sh` | False | False | cache_write |
-| 40 | P1 | `hooks/budget-alert.sh` | False | False | cache_write, notification, metrics |
-| 41 | P2 | `hooks/turn-finalize.sh` | False | False | cache_write, metrics |
+| 37 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, outcome_log, vault_write |
+| 38 | P1 | `hooks/turn-summary.sh` | False | False | cache_write |
+| 39 | P1 | `hooks/budget-alert.sh` | False | False | cache_write, notification, metrics |
+| 40 | P2 | `hooks/turn-finalize.sh` | False | False | cache_write, metrics |
 
 
 ### PostToolUse / Bash / event_matcher
@@ -147,7 +147,7 @@ Interleaved hooks that would change relative order if this group were wrapped di
 - Risk: `high`
 - Score: `75`
 - Hooks: `7`
-- Order span: `36`-`43`
+- Order span: `35`-`42`
 - Contiguous within trigger: `True`
 - Interleaved hooks: `0`
 - LLM hooks: `1`
@@ -156,13 +156,13 @@ Interleaved hooks that would change relative order if this group were wrapped di
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 36 | P2 | `hooks/stop-notify.sh` | False | False | notification, audio |
-| 37 | P0 | `hooks/stop-pipeline-check.sh` | False | False | notification, audio, git |
-| 38 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, outcome_log, vault_write |
-| 39 | P1 | `hooks/turn-summary.sh` | False | False | cache_write |
-| 40 | P1 | `hooks/budget-alert.sh` | False | False | cache_write, notification, metrics |
-| 41 | P2 | `hooks/turn-finalize.sh` | False | False | cache_write, metrics |
-| 43 | P2 | `hooks/taskhub-session-stop.sh` | False | False | network, taskhub |
+| 35 | P2 | `hooks/stop-notify.sh` | False | False | notification, audio |
+| 36 | P0 | `hooks/stop-pipeline-check.sh` | False | False | notification, audio, git |
+| 37 | P1 | `scripts/hook-wrapper-runner.py` | False | True | cache_write, git, metrics, outcome_log, vault_write |
+| 38 | P1 | `hooks/turn-summary.sh` | False | False | cache_write |
+| 39 | P1 | `hooks/budget-alert.sh` | False | False | cache_write, notification, metrics |
+| 40 | P2 | `hooks/turn-finalize.sh` | False | False | cache_write, metrics |
+| 42 | P2 | `hooks/taskhub-session-stop.sh` | False | False | network, taskhub |
 
 
 ### PreToolUse / Bash(git commit*) / event_matcher
@@ -192,7 +192,7 @@ Interleaved hooks that would change relative order if this group were wrapped di
 - Risk: `high`
 - Score: `45`
 - Hooks: `4`
-- Order span: `26`-`29`
+- Order span: `25`-`28`
 - Contiguous within trigger: `True`
 - Interleaved hooks: `0`
 - LLM hooks: `2`
@@ -201,10 +201,10 @@ Interleaved hooks that would change relative order if this group were wrapped di
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 26 | P1 | `hooks/agent-start-notify.sh` | True | False | audio |
-| 27 | P1 | `hooks/agent-context-inject.sh` | True | True | cache_write |
-| 28 | P1 | `hooks/agent-knowledge-remind.sh` | True | False |  |
-| 29 | P1 | `hooks/gemma-review-prescan.sh` | True | True | cache_write, git |
+| 25 | P1 | `hooks/agent-start-notify.sh` | True | False | audio |
+| 26 | P1 | `hooks/agent-context-inject.sh` | True | True | cache_write |
+| 27 | P1 | `hooks/agent-knowledge-remind.sh` | True | False |  |
+| 28 | P1 | `hooks/gemma-review-prescan.sh` | True | True | cache_write, git |
 
 
 ### PreToolUse / Edit|Write / event_matcher
@@ -212,7 +212,7 @@ Interleaved hooks that would change relative order if this group were wrapped di
 - Risk: `high`
 - Score: `35`
 - Hooks: `4`
-- Order span: `22`-`25`
+- Order span: `21`-`24`
 - Contiguous within trigger: `True`
 - Interleaved hooks: `0`
 - LLM hooks: `4`
@@ -221,10 +221,10 @@ Interleaved hooks that would change relative order if this group were wrapped di
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 22 | P1 | `hooks/code-edit-pipeline-remind.sh` | True | True | cache_write |
-| 23 | P0 | `hooks/delegation-enforcer.sh` | True | True | outcome_log, mcp |
-| 24 | P1 | `hooks/dependency-change-detect.sh` | True | True | cache_write, notification, metrics |
-| 25 | P1 | `hooks/gemini-prescan-enforcer.sh` | True | True | cache_write |
+| 21 | P1 | `hooks/code-edit-pipeline-remind.sh` | True | True | cache_write |
+| 22 | P0 | `hooks/delegation-enforcer.sh` | True | True | outcome_log, mcp |
+| 23 | P1 | `hooks/dependency-change-detect.sh` | True | True | cache_write, notification, metrics |
+| 24 | P1 | `hooks/gemini-prescan-enforcer.sh` | True | True | cache_write |
 
 
 ### SessionStart / * / event_matcher
@@ -232,7 +232,7 @@ Interleaved hooks that would change relative order if this group were wrapped di
 - Risk: `high`
 - Score: `35`
 - Hooks: `3`
-- Order span: `33`-`35`
+- Order span: `32`-`34`
 - Contiguous within trigger: `True`
 - Interleaved hooks: `0`
 - LLM hooks: `1`
@@ -241,9 +241,9 @@ Interleaved hooks that would change relative order if this group were wrapped di
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 33 | P0 | `hooks/session-start-router.sh` | False | True | cache_write, vault_write, mcp, agent_build |
-| 34 | P2 | `hooks/taskhub-session-start.sh` | False | False | network, taskhub |
-| 35 | P2 | `hooks/iterm-badge-set.sh` | False | False | badge |
+| 32 | P0 | `hooks/session-start-router.sh` | False | True | cache_write, vault_write, mcp, agent_build |
+| 33 | P2 | `hooks/taskhub-session-start.sh` | False | False | network, taskhub |
+| 34 | P2 | `hooks/iterm-badge-set.sh` | False | False | badge |
 
 
 ### Stop / * / side_effect:audio
@@ -251,7 +251,7 @@ Interleaved hooks that would change relative order if this group were wrapped di
 - Risk: `high`
 - Score: `30`
 - Hooks: `2`
-- Order span: `36`-`37`
+- Order span: `35`-`36`
 - Contiguous within trigger: `True`
 - Interleaved hooks: `0`
 - LLM hooks: `0`
@@ -260,8 +260,8 @@ Interleaved hooks that would change relative order if this group were wrapped di
 
 | order | priority | script | blocking | LLM | side effects |
 | --- | --- | --- | --- | --- | --- |
-| 36 | P2 | `hooks/stop-notify.sh` | False | False | notification, audio |
-| 37 | P0 | `hooks/stop-pipeline-check.sh` | False | False | notification, audio, git |
+| 35 | P2 | `hooks/stop-notify.sh` | False | False | notification, audio |
+| 36 | P0 | `hooks/stop-pipeline-check.sh` | False | False | notification, audio, git |
 
 
 ## Non-Negotiable Constraints

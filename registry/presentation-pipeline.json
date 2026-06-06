@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "status": "active",
+  "pipeline_id": "claude-config-architecture-presentation",
+  "description": "Presentation/document generation inputs for the Claude config architecture deck and supporting markdown documents.",
+  "generated_diagram_input": "cache/generated-docs/claude-architecture-diagrams.generated.md",
+  "source_documents": [
+    "cache/generated-docs/2026-06-06-1444-claude-llm-moai-architecture.md",
+    "registry/next-actions.md"
+  ],
+  "consumers": [
+    {
+      "id": "architecture-markdown-document",
+      "type": "markdown-document",
+      "format": "md",
+      "input": "cache/generated-docs/claude-architecture-diagrams.generated.md",
+      "output": "cache/generated-docs/2026-06-06-1444-claude-llm-moai-architecture.md"
+    },
+    {
+      "id": "architecture-presentation-deck",
+      "type": "presentation-deck",
+      "format": "pptx",
+      "input": "cache/generated-docs/claude-architecture-diagrams.generated.md",
+      "output_intent": "Use this generated Mermaid markdown as the deck source input instead of manually copied diagram blocks."
+    }
+  ],
+  "stale_checks": [
+    "scripts/generate-architecture-diagrams.py",
+    "scripts/audit-claude-config.py"
+  ],
+  "manual_copy_policy": "forbidden",
+  "freshness_contract": "scripts/audit-claude-config.py must fail when cache/generated-docs/claude-architecture-diagrams.generated.md differs from scripts/generate-architecture-diagrams.py output."
+}

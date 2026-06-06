@@ -5,7 +5,7 @@
   "projection_target": "settings.json:hooks",
   "description": "Full hook runtime manifest. During transition this is generated from settings.json; once stable it can become the registry source used to project settings.json hooks.",
   "event_count": 8,
-  "hook_count": 46,
+  "hook_count": 45,
   "event_matrix": [
     {
       "event": "Notification",
@@ -42,7 +42,7 @@
     {
       "event": "PreToolUse",
       "group_count": 7,
-      "hook_count": 19,
+      "hook_count": 18,
       "matchers": [
         "Bash",
         "Bash(git commit*)",
@@ -281,14 +281,9 @@
       {
         "hooks": [
           {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/pr-create-codex-remind.sh",
-            "timeout": 90,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/gemma-korean-translate-gate.sh",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-gh-pr-pipeline --execute --allow-side-effects",
             "statusMessage": "Gemma 한글 번역 검사 중...",
-            "timeout": 12,
+            "timeout": 104,
             "type": "command"
           }
         ],

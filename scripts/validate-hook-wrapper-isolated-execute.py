@@ -71,10 +71,27 @@ exit 0
 """,
     )
     write_executable(
+        stub_bin / "afplay",
+        """#!/bin/zsh
+mkdir -p "$HOME/.claude/cache"
+printf 'afplay %s\\n' "$*" >> "$HOME/.claude/cache/audio-stub.log"
+exit 0
+""",
+    )
+    write_executable(
         stub_bin / "osascript",
         """#!/bin/zsh
 mkdir -p "$HOME/.claude/cache"
 printf 'osascript %s\\n' "$*" >> "$HOME/.claude/cache/notification-stub.log"
+exit 0
+""",
+    )
+    write_executable(
+        stub_bin / "curl",
+        """#!/bin/zsh
+mkdir -p "$HOME/.claude/cache"
+printf 'curl %s\\n' "$*" >> "$HOME/.claude/cache/network-stub.log"
+printf '[]\\n'
 exit 0
 """,
     )
@@ -103,6 +120,21 @@ def payload(event: str, tool_name: str, cwd: Path, tool_input: dict[str, Any]) -
                 "hook_event_name": event,
                 "tool_name": tool_name,
                 "tool_input": tool_input,
+            },
+            ensure_ascii=False,
+        )
+        + "\n"
+    ).encode()
+
+
+def stop_payload(cwd: Path) -> bytes:
+    return (
+        json.dumps(
+            {
+                "session_id": "isolated-stop-composite",
+                "transcript_path": "/tmp/claude-isolated-stop-transcript.jsonl",
+                "cwd": str(cwd),
+                "hook_event_name": "Stop",
             },
             ensure_ascii=False,
         )
@@ -169,6 +201,11 @@ def scenario_payload(scenario_id: str, project: Path) -> tuple[str, bytes]:
                 },
             ),
         )
+    if scenario_id == "stop-composite-safe-stubbed":
+        return (
+            "stop-composite-notification-output-router",
+            stop_payload(project),
+        )
     raise KeyError(scenario_id)
 
 
@@ -201,6 +238,12 @@ SCENARIOS = [
         "id": "agent-reviewer-safe-stubbed",
         "expected_exit_code": 0,
         "expected_executed_step_count": 4,
+        "expected_blocked_hook_id": None,
+    },
+    {
+        "id": "stop-composite-safe-stubbed",
+        "expected_exit_code": 0,
+        "expected_executed_step_count": 11,
         "expected_blocked_hook_id": None,
     },
 ]

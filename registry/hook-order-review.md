@@ -8,19 +8,19 @@ This document classifies remaining hook consolidation candidates that should not
 
 | metric | value |
 | --- | --- |
-| active wrappers | 6 |
+| active wrappers | 7 |
 | wrapper review items | 3 |
 | order-review items | 2 |
-| manual-review items | 14 |
-| total review items | 19 |
+| manual-review items | 13 |
+| total review items | 18 |
 
 ## Blockers
 
 | blocker | count |
 | --- | --- |
-| contains_blocking_hook | 8 |
-| contains_llm_backed_hook | 16 |
-| high_risk_manual_review | 14 |
+| contains_blocking_hook | 7 |
+| contains_llm_backed_hook | 15 |
+| high_risk_manual_review | 13 |
 | medium_risk_candidate | 5 |
 | mixed_async_semantics | 2 |
 | non_contiguous_interleaved_hooks | 6 |
@@ -30,7 +30,7 @@ This document classifies remaining hook consolidation candidates that should not
 
 | strategy | count |
 | --- | --- |
-| manual-review-only | 14 |
+| manual-review-only | 13 |
 | order-preserving-router-required | 2 |
 | split-sync-guard-before-async-router | 2 |
 | stop-router-output-contract-required | 1 |
@@ -60,9 +60,9 @@ This document classifies remaining hook consolidation candidates that should not
 | PreToolUse | Edit|Write | event_matcher | 4 | contains_blocking_hook, contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
 | SessionStart | * | event_matcher | 3 | contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
 | Stop | * | side_effect:audio | 2 | high_risk_manual_review | manual-review-only |
-| PreToolUse | Bash(gh pr*) | event_matcher | 2 | contains_blocking_hook, contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
 | PreToolUse | Bash(git commit*) | side_effect:outcome_log | 2 | contains_blocking_hook, high_risk_manual_review | manual-review-only |
 | Stop | * | side_effect:notification | 3 | high_risk_manual_review, non_contiguous_interleaved_hooks | manual-review-only |
 | Stop | * | side_effect:git | 2 | contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
 | UserPromptSubmit | * | event_matcher | 2 | contains_llm_backed_hook, high_risk_manual_review | manual-review-only |
 | PreToolUse | Edit|Write | side_effect:cache_write | 3 | contains_blocking_hook, contains_llm_backed_hook, high_risk_manual_review, non_contiguous_interleaved_hooks | manual-review-only |
+| PreToolUse | Bash(git commit*) | side_effect:cache_write | 2 | contains_blocking_hook, contains_llm_backed_hook, high_risk_manual_review, non_contiguous_interleaved_hooks | manual-review-only |

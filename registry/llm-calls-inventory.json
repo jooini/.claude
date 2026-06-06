@@ -4388,102 +4388,102 @@
           "provider": "gemini_or_agy",
           "hits": [
             {
-              "line": 48,
+              "line": 52,
               "pattern": "\\bgemini\\b",
               "text": "# Google Gemini"
             },
             {
-              "line": 49,
+              "line": 53,
               "pattern": "\\bgemini\\b",
               "text": "'gemini-3-flash-preview':  {'input': 0.30, 'output': 2.50, 'cache_read': 0.075, 'cache_create': 0},"
             },
             {
-              "line": 50,
+              "line": 54,
               "pattern": "\\bgemini\\b",
               "text": "'gemini-2.5-flash-lite':   {'input': 0.10, 'output': 0.40, 'cache_read': 0.025, 'cache_create': 0},"
             },
             {
-              "line": 51,
+              "line": 55,
               "pattern": "\\bgemini\\b",
               "text": "'gemini-2.5-flash':        {'input': 0.30, 'output': 2.50, 'cache_read': 0.075, 'cache_create': 0},"
             },
             {
-              "line": 52,
+              "line": 56,
               "pattern": "\\bgemini\\b",
               "text": "'gemini-2.5-pro':          {'input': 1.25, 'output': 10.0, 'cache_read': 0.31,  'cache_create': 0},"
             },
             {
-              "line": 53,
+              "line": 57,
               "pattern": "\\bgemini\\b",
               "text": "'auto-gemini-3':           {'input': 0.30, 'output': 2.50, 'cache_read': 0.075, 'cache_create': 0},"
             },
             {
-              "line": 240,
+              "line": 359,
               "pattern": "\\bGEMINI_CLI\\b",
               "text": "if attrs.get('event.name') == 'gemini_cli.api_response':"
             },
             {
-              "line": 246,
+              "line": 365,
               "pattern": "\\bgemini\\b",
               "text": "\"\"\"Gemini 사용량 — telemetry 우선, wrapper 보조\"\"\""
             },
             {
-              "line": 257,
+              "line": 376,
               "pattern": "\\bgemini\\b",
               "text": "tele_path = os.path.expanduser(\"~/.claude/cache/gemini-telemetry.jsonl\")"
             },
             {
-              "line": 294,
+              "line": 413,
               "pattern": "\\bgemini\\b",
               "text": "wrapper_path = os.path.expanduser(\"~/.claude/cache/gemini-calls.jsonl\")"
             },
             {
-              "line": 315,
+              "line": 434,
               "pattern": "\\bagy\\b",
               "text": "# 3) agy CLI (Antigravity, 2026-06-18 이후 기본) — stream-json 미지원으로 토큰 0"
             },
             {
-              "line": 316,
+              "line": 435,
               "pattern": "\\bagy\\b",
               "text": "agy_path = os.path.expanduser(\"~/.claude/cache/agy-calls.jsonl\")"
             },
             {
-              "line": 335,
+              "line": 454,
               "pattern": "\\bagy\\b",
               "text": "by_model['agy(antigravity)']['calls'] += 1"
             },
             {
-              "line": 343,
+              "line": 462,
               "pattern": "\\bagy\\b",
               "text": "sources.append(f'agy ({agy_count} calls, {agy_duration/1000:.1f}s — 토큰 메타 없음)')"
             },
             {
-              "line": 345,
+              "line": 464,
               "pattern": "\\bagy\\b",
               "text": "note = ' / '.join(sources) if sources else 'telemetry/wrapper/agy 미작동'"
             },
             {
-              "line": 562,
+              "line": 705,
               "pattern": "\\bgemini\\b",
               "text": "# Gemini"
             },
             {
-              "line": 563,
+              "line": 706,
               "pattern": "\\bgemini\\b",
               "text": "gm = data['gemini']"
             },
             {
-              "line": 564,
+              "line": 707,
               "pattern": "\\bgemini\\b",
               "text": "print(f\"\\n📕 Gemini\")"
             },
             {
-              "line": 575,
+              "line": 718,
               "pattern": "\\bgemini\\b",
               "text": "print(f\"        해결: ~/.claude/scripts/gemini-wrapped.sh 사용 또는 telemetry 활성화\")"
             },
             {
-              "line": 613,
+              "line": 768,
               "pattern": "\\bgemini\\b",
               "text": "for src in [cc['daily'], cx.get('daily', {}), data['gemini'].get('daily', {}), ol.get('daily', {}), ad.get('daily', {})]:"
             }
@@ -4493,7 +4493,7 @@
           "provider": "codex",
           "hits": [
             {
-              "line": 644,
+              "line": 799,
               "pattern": "codex:",
               "text": "print(\"   Codex:       ~/.codex/state_5.sqlite        (threads.tokens_used)\")"
             }
@@ -4508,32 +4508,32 @@
               "text": "- Ollama:       ~/.claude/cache/gemma-calls.jsonl (현재 부분 기록만)"
             },
             {
-              "line": 400,
+              "line": 519,
               "pattern": "\\bollama\\b",
               "text": "'note': '부분 기록 — 다른 ollama hook들은 이 파일에 안 씀'"
             },
             {
-              "line": 522,
+              "line": 665,
               "pattern": "\\bollama\\b",
               "text": "ol = data['ollama']"
             },
             {
-              "line": 577,
+              "line": 720,
               "pattern": "\\bollama\\b",
               "text": "# Ollama"
             },
             {
-              "line": 578,
+              "line": 721,
               "pattern": "\\bollama\\b",
               "text": "print(f\"\\n📙 Ollama (로컬)\")"
             },
             {
-              "line": 648,
+              "line": 803,
               "pattern": "\\bollama\\b",
               "text": "print(\"   Ollama:      ~/.claude/cache/gemma-calls.jsonl       (부분 기록)\")"
             },
             {
-              "line": 663,
+              "line": 818,
               "pattern": "\\bollama\\b",
               "text": "'ollama': collect_ollama(),"
             }
@@ -4548,22 +4548,22 @@
               "text": "- Ollama:       ~/.claude/cache/gemma-calls.jsonl (현재 부분 기록만)"
             },
             {
-              "line": 358,
+              "line": 477,
               "pattern": "\\bgemma\\b",
               "text": "\"\"\"~/.claude/cache/gemma-calls.jsonl 에서 호출 집계\"\"\""
             },
             {
-              "line": 359,
+              "line": 478,
               "pattern": "\\bgemma\\b",
               "text": "path = os.path.expanduser(\"~/.claude/cache/gemma-calls.jsonl\")"
             },
             {
-              "line": 584,
+              "line": 727,
               "pattern": "\\bgemma\\b",
               "text": "print(f\"   ⚠️  부분 기록만 — gemma-calls.jsonl 비어있음\")"
             },
             {
-              "line": 648,
+              "line": 803,
               "pattern": "\\bgemma\\b",
               "text": "print(\"   Ollama:      ~/.claude/cache/gemma-calls.jsonl       (부분 기록)\")"
             }

@@ -215,6 +215,8 @@ def validate_llm_log_schema(schema: dict) -> None:
     required_fields = schema.get("required_common_fields", [])
     if not required_fields:
         fail("registry/llm-log-schema.json must define required_common_fields")
+    if schema.get("threshold_policy") != "registry/llm-adapter-thresholds.json":
+        fail("registry/llm-log-schema.json must reference registry/llm-adapter-thresholds.json")
     sources = schema.get("sources", [])
     if not sources:
         fail("registry/llm-log-schema.json must define sources")
@@ -235,6 +237,37 @@ def validate_llm_log_schema(schema: dict) -> None:
             fail(f"{path} missing LLM log schema fields: {', '.join(missing_fields)}")
 
 
+def validate_llm_adapter_thresholds(thresholds: dict) -> None:
+    if thresholds.get("version") != 1:
+        fail("registry/llm-adapter-thresholds.json version must be 1")
+    if thresholds.get("status") != "active":
+        fail("registry/llm-adapter-thresholds.json status must be active")
+    if thresholds.get("metric_source") != "cache/llm-adapter-calls.jsonl":
+        fail("registry/llm-adapter-thresholds.json metric_source mismatch")
+    minimum_calls = thresholds.get("minimum_calls_for_rate")
+    if not isinstance(minimum_calls, int) or minimum_calls < 1:
+        fail("registry/llm-adapter-thresholds.json minimum_calls_for_rate must be positive")
+    defaults = thresholds.get("defaults", {})
+    required_defaults = [
+        "warning_error_rate",
+        "critical_error_rate",
+        "warning_timeout_rate",
+        "critical_timeout_rate",
+        "warning_avg_duration_ms",
+        "critical_avg_duration_ms",
+    ]
+    for key in required_defaults:
+        value = defaults.get(key)
+        if not isinstance(value, (int, float)) or value < 0:
+            fail(f"registry/llm-adapter-thresholds.json defaults.{key} must be nonnegative")
+    if defaults["warning_error_rate"] > defaults["critical_error_rate"]:
+        fail("registry/llm-adapter-thresholds.json error thresholds are inverted")
+    if defaults["warning_timeout_rate"] > defaults["critical_timeout_rate"]:
+        fail("registry/llm-adapter-thresholds.json timeout thresholds are inverted")
+    if defaults["warning_avg_duration_ms"] > defaults["critical_avg_duration_ms"]:
+        fail("registry/llm-adapter-thresholds.json duration thresholds are inverted")
+
+
 def validate_llm_usage_report(schema: dict) -> None:
     path = ROOT / "scripts" / "llm-usage.py"
     if not path.exists():
@@ -246,6 +279,11 @@ def validate_llm_usage_report(schema: dict) -> None:
         "'llm_adapter'",
         "'by_provider'",
         "'by_caller'",
+        "llm-adapter-thresholds.json",
+        "evaluate_adapter_health",
+        "warning_error_rate",
+        "critical_timeout_rate",
+        "warning_avg_duration_ms",
     ]
     missing_fragments = [fragment for fragment in required_fragments if fragment not in text]
     if missing_fragments:
@@ -261,6 +299,22 @@ def validate_llm_usage_report(schema: dict) -> None:
 
 
 def validate_settings_policy(settings: dict, project_mcp: dict, policy: dict) -> None:
+    projection_scope = policy.get("projection_scope", {})
+    projected_settings_scope = set(projection_scope.get("settings_json", []))
+    for required_scope in [
+        "hooks",
+        "env.required_exact",
+        "env.path_must_start_with",
+        "mcpServers.required_server_commands",
+        "permissions.defaultMode",
+        "permissions.required_allow",
+        "permissions.required_deny",
+    ]:
+        if required_scope not in projected_settings_scope:
+            fail(f"registry/settings-policy.json projection_scope missing: {required_scope}")
+    if "secret values" not in set(projection_scope.get("excluded", [])):
+        fail("registry/settings-policy.json projection_scope must exclude secret values")
+
     missing_top_level = [
         key for key in policy.get("settings_top_level_required_keys", []) if key not in settings
     ]
@@ -612,6 +666,101 @@ def validate_hook_wrapper_decisions(decisions: dict, wrapper_plan: dict) -> int:
                     "registry/hook-wrapper-decision-log.json decision "
                     f"{index} {field} differs from wrapper plan"
                 )
+    return len(items)
+
+
+def validate_pretooluse_guard_policy(
+    decisions: dict,
+    wrapper_plan: dict,
+    inventory_hooks: list[dict],
+) -> int:
+    policy = decisions.get("pretooluse_guard_policy")
+    if not isinstance(policy, dict):
+        fail("registry/hook-wrapper-decision-log.json missing pretooluse_guard_policy")
+    if policy.get("version") != 1:
+        fail("registry/hook-wrapper-decision-log.json pretooluse_guard_policy version must be 1")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(policy.get("reviewed_at"))):
+        fail("registry/hook-wrapper-decision-log.json pretooluse_guard_policy reviewed_at must be YYYY-MM-DD")
+    items = policy.get("decisions", [])
+    if not isinstance(items, list) or not items:
+        fail("registry/hook-wrapper-decision-log.json pretooluse_guard_policy decisions must be non-empty")
+    if policy.get("decision_count") != len(items):
+        fail("registry/hook-wrapper-decision-log.json pretooluse_guard_policy decision_count mismatch")
+
+    definition_states = {
+        str(plan.get("id")): plan.get("definition_state")
+        for plan in wrapper_plan.get("plans", [])
+        if plan.get("source") == "definition" and plan.get("id")
+    }
+    allowed_decisions = {"active-wrapper", "planned-wrapper", "keep-direct"}
+    covered: set[tuple[str, str]] = set()
+
+    for index, item in enumerate(items):
+        for field in ["matcher", "decision", "status", "scripts", "reason", "next_action"]:
+            if field not in item:
+                fail(
+                    "registry/hook-wrapper-decision-log.json "
+                    f"pretooluse_guard_policy decision {index} missing {field}"
+                )
+        decision = item.get("decision")
+        if decision not in allowed_decisions:
+            fail(
+                "registry/hook-wrapper-decision-log.json "
+                f"pretooluse_guard_policy decision {index} has invalid decision"
+            )
+        scripts = item.get("scripts")
+        if not isinstance(scripts, list) or not scripts:
+            fail(
+                "registry/hook-wrapper-decision-log.json "
+                f"pretooluse_guard_policy decision {index} missing scripts"
+            )
+        matcher = str(item.get("matcher"))
+        wrapper_id = item.get("wrapper_id")
+        if decision in {"active-wrapper", "planned-wrapper"}:
+            if not wrapper_id:
+                fail(
+                    "registry/hook-wrapper-decision-log.json "
+                    f"pretooluse_guard_policy decision {index} missing wrapper_id"
+                )
+            expected_state = "active" if decision == "active-wrapper" else "planned"
+            if definition_states.get(str(wrapper_id)) != expected_state:
+                fail(
+                    "registry/hook-wrapper-decision-log.json "
+                    f"pretooluse_guard_policy decision {index} wrapper state mismatch"
+                )
+        elif wrapper_id not in (None, ""):
+            fail(
+                "registry/hook-wrapper-decision-log.json "
+                f"pretooluse_guard_policy decision {index} keep-direct must not set wrapper_id"
+            )
+        for script in scripts:
+            covered.add((matcher, str(script)))
+
+    def scripts_for_hook(hook: dict) -> list[str]:
+        wrapped = [script for script in hook.get("wrapped_scripts", []) if script]
+        if wrapped:
+            return wrapped
+        script = hook.get("script")
+        return [script] if script else []
+
+    current = {
+        (str(hook.get("matcher")), script)
+        for hook in inventory_hooks
+        if hook.get("event") == "PreToolUse"
+        for script in scripts_for_hook(hook)
+    }
+    missing = sorted(current - covered)
+    if missing:
+        fail(
+            "registry/hook-wrapper-decision-log.json pretooluse_guard_policy missing current hooks: "
+            + ", ".join(f"{matcher}/{script}" for matcher, script in missing)
+        )
+    stale = sorted(covered - current)
+    if stale:
+        fail(
+            "registry/hook-wrapper-decision-log.json pretooluse_guard_policy contains stale hooks: "
+            + ", ".join(f"{matcher}/{script}" for matcher, script in stale)
+        )
     return len(items)
 
 
@@ -1020,6 +1169,7 @@ def validate_hook_output_contracts(contracts: dict, inventory_hooks: list[dict])
         fail("Stop output contract missing current hooks: " + ", ".join(missing))
 
     allowed_policies = {
+        "composite-stop-router-planned",
         "background-wrapper-candidate",
         "keep-direct-until-notification-router",
         "keep-direct-until-output-router",
@@ -1171,6 +1321,44 @@ def validate_hook_output_contracts(contracts: dict, inventory_hooks: list[dict])
     }
 
 
+def validate_presentation_pipeline(pipeline: dict) -> None:
+    if pipeline.get("version") != 1:
+        fail("registry/presentation-pipeline.json version must be 1")
+    if pipeline.get("status") != "active":
+        fail("registry/presentation-pipeline.json status must be active")
+
+    generated_input = pipeline.get("generated_diagram_input")
+    if generated_input != "cache/generated-docs/claude-architecture-diagrams.generated.md":
+        fail("registry/presentation-pipeline.json generated_diagram_input mismatch")
+    if not (ROOT / generated_input).exists():
+        fail("registry/presentation-pipeline.json generated_diagram_input does not exist")
+
+    for document in pipeline.get("source_documents", []):
+        if not (ROOT / document).exists():
+            fail(f"registry/presentation-pipeline.json source document does not exist: {document}")
+
+    consumers = pipeline.get("consumers")
+    if not isinstance(consumers, list) or not consumers:
+        fail("registry/presentation-pipeline.json consumers must be a non-empty array")
+    if not any(item.get("format") == "pptx" for item in consumers):
+        fail("registry/presentation-pipeline.json must declare a pptx consumer")
+    if not any(item.get("type") == "markdown-document" for item in consumers):
+        fail("registry/presentation-pipeline.json must declare a markdown-document consumer")
+    for item in consumers:
+        if item.get("input") != generated_input:
+            fail("registry/presentation-pipeline.json consumer input must use generated diagram file")
+
+    stale_checks = set(pipeline.get("stale_checks", []))
+    for required in [
+        "scripts/generate-architecture-diagrams.py",
+        "scripts/audit-claude-config.py",
+    ]:
+        if required not in stale_checks:
+            fail(f"registry/presentation-pipeline.json missing stale check: {required}")
+    if pipeline.get("manual_copy_policy") != "forbidden":
+        fail("registry/presentation-pipeline.json manual_copy_policy must be forbidden")
+
+
 def main() -> int:
     settings = load_json("settings.json")
     mcp = load_json(".mcp.json")
@@ -1179,6 +1367,7 @@ def main() -> int:
     settings_policy = load_json("registry/settings-policy.json")
     llm_adapter_policy = load_json("registry/llm-adapter-policy.json")
     llm_log_schema = load_json("registry/llm-log-schema.json")
+    llm_adapter_thresholds = load_json("registry/llm-adapter-thresholds.json")
     hook_manifest = load_json("registry/hooks-manifest.json")
     hook_inventory = load_json("registry/hooks-inventory.json")
     hook_consolidation = load_json("registry/hook-consolidation-candidates.json")
@@ -1192,6 +1381,7 @@ def main() -> int:
     hook_output_contracts = load_json("registry/hook-output-contracts.json")
     llm_calls_inventory = load_json("registry/llm-calls-inventory.json")
     llm_routing = load_json("registry/llm-routing.json")
+    presentation_pipeline = load_json("registry/presentation-pipeline.json")
     validate_settings_policy(settings, mcp, settings_policy)
 
     hooks = flatten_hooks(settings)
@@ -1250,6 +1440,11 @@ def main() -> int:
     hook_wrapper_decision_count = validate_hook_wrapper_decisions(
         hook_wrapper_decisions,
         hook_wrapper_plan,
+    )
+    pretooluse_guard_decision_count = validate_pretooluse_guard_policy(
+        hook_wrapper_decisions,
+        hook_wrapper_plan,
+        inventory_hooks,
     )
     hook_wrapper_activation_gate_count = validate_hook_wrapper_activation_gates(
         hook_wrapper_activation_gates,
@@ -1431,6 +1626,7 @@ def main() -> int:
             + ", ".join(unapproved_direct_hits[:10])
         )
     validate_llm_log_schema(llm_log_schema)
+    validate_llm_adapter_thresholds(llm_adapter_thresholds)
     validate_llm_usage_report(llm_log_schema)
 
     generated_llm_calls_inventory = generated_json_from_script("generate-llm-call-inventory.py")
@@ -1448,6 +1644,7 @@ def main() -> int:
             "cache/generated-docs/claude-architecture-diagrams.generated.md is stale; "
             "run scripts/generate-architecture-diagrams.py --write"
         )
+    validate_presentation_pipeline(presentation_pipeline)
     llm_inventory_paths = {entry["path"] for entry in llm_calls_inventory.get("entries", [])}
     if "scripts/llm-call.sh" not in llm_inventory_paths:
         fail("registry/llm-calls-inventory.json must include scripts/llm-call.sh")
@@ -1506,6 +1703,7 @@ def main() -> int:
         f"hook_wrapper_planned={hook_wrapper_plan.get('planned_definition_count')} "
         f"hook_wrapper_candidate_plans={hook_wrapper_plan.get('candidate_plan_count')} "
         f"hook_wrapper_decisions={hook_wrapper_decision_count} "
+        f"pretooluse_guard_decisions={pretooluse_guard_decision_count} "
         f"hook_wrapper_activation_gates={hook_wrapper_activation_gate_count} "
         f"hook_wrapper_activation_validations={hook_wrapper_activation_validation_count} "
         f"hook_wrapper_isolated_executes={hook_wrapper_isolated_execute_count} "
@@ -1518,11 +1716,14 @@ def main() -> int:
         f"pretool_blocking_contracts={output_contract_counts['pretool_blocking_contracts']} "
         "hook_consolidation_plan=1 "
         "settings_projection=1 "
+        "settings_projection_scope=1 "
         "registered_direct_llm_calls=0 "
         "unapproved_direct_llm_calls=0 "
         f"llm_log_schema_version={llm_log_schema.get('version')} "
+        "llm_adapter_thresholds=1 "
         "llm_usage_adapter=1 "
-        "architecture_diagrams=1"
+        "architecture_diagrams=1 "
+        "presentation_pipeline=1"
     )
     return 0
 
