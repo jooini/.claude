@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "status": "active",
+  "description": "Documented output contract for scripts/llm-router.sh route-health --json.",
+  "producer": "scripts/llm-router.sh route-health --json",
+  "top_level_fields": {
+    "schema_version": "integer contract version emitted by the command",
+    "generated_at": "UTC ISO-8601 timestamp",
+    "overall_status": "ok when no route is unavailable; failed when at least one route cannot run",
+    "overall_score": "integer 0-100 average of route scores",
+    "health_cache": "metadata for cache/llm-provider-health.json freshness",
+    "providers": "current provider probe result keyed by provider name",
+    "routes": "task route status keyed by task name"
+  },
+  "health_cache_fields": {
+    "path": "absolute cache path",
+    "exists": "whether the cache exists",
+    "generated_at": "timestamp recorded by the last doctor run",
+    "age_seconds": "cache age in seconds, null when unknown",
+    "is_stale": "true when cache is missing, unreadable, or older than 300 seconds"
+  },
+  "route_fields": {
+    "status": "ok, expected_offline, or unavailable",
+    "score": "integer 0-100 route readiness score",
+    "strategy": "first_success or parallel_best_effort",
+    "privacy_tier": "external_ok, local_preferred, local_only, or configured policy value",
+    "configured_providers": "providers in policy order after adapter normalization",
+    "available_providers": "configured providers currently available",
+    "skipped_providers": "configured providers skipped because doctor marked them unavailable or expected_offline",
+    "minimum_successes": "required successful provider count for this route",
+    "action": "operator-facing next action",
+    "purpose": "human description copied from registry/llm-routing.json"
+  },
+  "route_statuses": {
+    "ok": "minimum_successes can be met with currently available providers",
+    "expected_offline": "route is intentionally local-only and the only missing provider is marked expected_offline",
+    "unavailable": "route cannot meet minimum_successes with current provider health"
+  },
+  "scoring": {
+    "ok": "starts at 100 and subtracts unavailable or expected_offline fallback penalties",
+    "expected_offline": "95 for local_only expected-offline routes, 70 otherwise",
+    "unavailable": 0
+  }
+}

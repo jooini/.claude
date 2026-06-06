@@ -8,7 +8,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -48,7 +48,7 @@ def read_payload(args: argparse.Namespace) -> bytes:
 def dry_run(plan: dict[str, Any], payload: bytes) -> dict[str, Any]:
     execution_contract = plan.get("execution_contract", {})
     return {
-        "ts": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "mode": "dry-run",
         "plan_id": plan.get("id"),
         "event": plan.get("event"),
@@ -153,7 +153,7 @@ def execute_plan(
             break
 
     return {
-        "ts": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "mode": "execute",
         "plan_id": plan.get("id"),
         "event": plan.get("event"),

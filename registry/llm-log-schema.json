@@ -37,7 +37,9 @@
     "prompt_preview",
     "response_preview",
     "ini_stderr_preview",
-    "urllib_error"
+    "urllib_error",
+    "health_class",
+    "failure_reason"
   ],
   "sources": [
     {

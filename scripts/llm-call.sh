@@ -110,8 +110,36 @@ EXIT_CODE=0
 run_with_timeout() {
     if command -v timeout >/dev/null 2>&1; then
         timeout "$CALL_TIMEOUT" "$@" > "$OUT_FILE" 2> "$ERR_FILE"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$CALL_TIMEOUT" "$@" > "$OUT_FILE" 2> "$ERR_FILE"
     else
-        "$@" > "$OUT_FILE" 2> "$ERR_FILE"
+        /usr/bin/python3 - "$CALL_TIMEOUT" "$OUT_FILE" "$ERR_FILE" "$@" <<'PYEOF'
+import subprocess
+import sys
+
+timeout_seconds = int(sys.argv[1])
+out_file = sys.argv[2]
+err_file = sys.argv[3]
+command = sys.argv[4:]
+
+try:
+    with open(out_file, "wb") as out, open(err_file, "wb") as err:
+        result = subprocess.run(
+            command,
+            stdout=out,
+            stderr=err,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    raise SystemExit(result.returncode)
+except subprocess.TimeoutExpired as error:
+    with open(err_file, "ab") as err:
+        message = f"\nllm-call: timeout after {timeout_seconds}s\n"
+        err.write(message.encode("utf-8"))
+        if error.stderr:
+            err.write(error.stderr if isinstance(error.stderr, bytes) else str(error.stderr).encode("utf-8"))
+    raise SystemExit(124)
+PYEOF
     fi
     return $?
 }
@@ -175,10 +203,11 @@ PYEOF
 
 cat "$OUT_FILE"
 
-/usr/bin/python3 - "$LOG_FILE" "$PROVIDER" "$CALLER" "$CALL_TIMEOUT" "$EXIT_CODE" "$DURATION_MS" "$OUT_BYTES" "$ERR_BYTES" "$PROMPT_LENGTH" "$RESPONSE_LENGTH" "$MODEL" <<'PYEOF'
+/usr/bin/python3 - "$LOG_FILE" "$PROVIDER" "$CALLER" "$CALL_TIMEOUT" "$EXIT_CODE" "$DURATION_MS" "$OUT_BYTES" "$ERR_BYTES" "$PROMPT_LENGTH" "$RESPONSE_LENGTH" "$MODEL" "$ERR_FILE" <<'PYEOF'
 import json
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 (
     log_file,
@@ -192,7 +221,83 @@ from datetime import datetime, timezone
     prompt_length,
     response_length,
     model,
+    err_file,
 ) = sys.argv[1:]
+
+
+def as_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def read_preview(path, limit=2000):
+    try:
+        return Path(path).read_text(encoding="utf-8", errors="replace")[:limit]
+    except OSError:
+        return ""
+
+
+def failure_reason_for(provider, caller, exit_code, prompt_length, out_bytes, err_bytes, stderr_text):
+    code = as_int(exit_code)
+    if code == 0:
+        return None
+    caller_lower = str(caller).lower()
+    text = str(stderr_text).lower()
+    if "smoke" in caller_lower or "doctor-live" in caller_lower:
+        return "smoke_failure"
+    if code == 124:
+        return "timeout_large_prompt" if as_int(prompt_length) >= 20000 else "timeout"
+    if code == 127:
+        return "missing_executable"
+    if code == 2:
+        return "usage_error"
+    if any(fragment in text for fragment in ["quota", "rate limit", "resource exhausted"]):
+        return "quota_or_rate_limit"
+    if any(fragment in text for fragment in ["unauthorized", "api key", "login", "permission denied", "auth"]):
+        return "auth_error"
+    if any(fragment in text for fragment in ["context", "too long", "prompt is too", "token limit"]):
+        return "prompt_too_large"
+    if any(fragment in text for fragment in ["dns", "nodename", "connection refused", "failed to lookup", "timed out"]):
+        return "provider_offline"
+    if any(fragment in text for fragment in ["sandbox", "operation not permitted"]):
+        return "sandbox_blocked"
+    if as_int(out_bytes) == 0 and as_int(err_bytes) == 0:
+        return "empty_error"
+    return "runtime_error"
+
+
+def health_class_for(provider, caller, exit_code, failure_reason):
+    if as_int(exit_code) == 0:
+        return "ok"
+    caller_lower = caller.lower()
+    if "smoke" in caller_lower or "doctor-live" in caller_lower:
+        return "smoke"
+    if failure_reason == "sandbox_blocked":
+        return "sandbox_blocked"
+    if provider in {"ini", "ollama", "gemma", "qwen"}:
+        health_path = Path.home() / ".claude" / "cache" / "llm-provider-health.json"
+        try:
+            health = json.loads(health_path.read_text(encoding="utf-8"))
+            gemma_status = health.get("providers", {}).get("gemma", {}).get("status")
+        except (OSError, json.JSONDecodeError):
+            gemma_status = None
+        if gemma_status == "expected_offline":
+            return "expected_offline"
+    return "runtime_failure"
+
+
+stderr_text = read_preview(err_file)
+failure_reason = failure_reason_for(
+    provider,
+    caller,
+    exit_code,
+    prompt_length,
+    out_bytes,
+    err_bytes,
+    stderr_text,
+)
 record = {
     "schema_version": 1,
     "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
@@ -208,6 +313,8 @@ record = {
     "stderr_bytes": int(err_bytes),
     "prompt_length": int(prompt_length),
     "response_length": int(response_length),
+    "health_class": health_class_for(provider, caller, exit_code, failure_reason),
+    "failure_reason": failure_reason,
 }
 with open(log_file, "a", encoding="utf-8") as f:
     f.write(json.dumps(record, ensure_ascii=False) + "\n")

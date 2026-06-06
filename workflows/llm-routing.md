@@ -20,6 +20,9 @@ Claude, Codex, Gemini/agy, Gemma/Ollama를 한쪽 전용 설정이 아니라 공
 ```bash
 ~/.claude/scripts/llm-router.sh doctor
 ~/.claude/scripts/llm-router.sh doctor --strict
+~/.claude/scripts/llm-router.sh doctor --live --provider codex --provider gemini
+~/.claude/scripts/llm-router.sh route-health
+~/.claude/scripts/llm-router.sh route-health --json
 ~/.claude/scripts/llm-router.sh scan --caller manual --prompt "영향 범위 분석"
 ~/.claude/scripts/llm-router.sh implement --caller manual --prompt "패치 초안 작성"
 ~/.claude/scripts/llm-router.sh review --caller manual --prompt "현재 diff 리뷰"
@@ -44,7 +47,15 @@ Claude 토큰이 소진되면 `rescue` 또는 `implement` 경로가 Codex를 우
 
 ## Health And Local Hosts
 
-`doctor`는 `cache/llm-provider-health.json`을 갱신한다. Codex/Gemini가 사용 가능하면 라우터는 실행 가능 상태로 보고, 로컬 Gemma/Ollama만 실패한 경우 `degraded`로 표시한다. 모든 provider가 반드시 살아 있어야 하는 점검에는 `doctor --strict`를 쓴다.
+`doctor`는 `cache/llm-provider-health.json`을 갱신한다. Codex/Gemini가 사용 가능하면 라우터는 실행 가능 상태로 본다. Gemma/Ollama는 회사 Windows 호스트에 붙는 office-only provider이므로, 집이나 외부 네트워크에서 닿지 않는 것은 `expected_offline`으로 기록하고 일반 `doctor`에서는 장애로 보지 않는다. 모든 provider가 반드시 살아 있어야 하는 점검에는 `doctor --strict`를 쓴다.
+
+`doctor --strict`는 `expected_offline`도 실패로 본다. 회사 Windows Ollama까지 반드시 살아 있어야 하는 사무실 점검용이고, 집이나 외부 네트워크에서 실패하는 것은 정상이다.
+
+`doctor --live`는 provider CLI 존재 여부만 보지 않고 짧은 실제 호출을 보낸다. 비용과 시간이 드는 smoke test라서 수동 점검이나 릴리즈 전 검증에만 쓴다. 실패 결과는 `cache/llm-adapter-calls.jsonl`에 `health_class=smoke`, `failure_reason=smoke_failure`로 남아 adapter health 경고율에서는 제외된다.
+
+`route-health`는 provider 단위가 아니라 task route 단위로 현재 실행 가능성을 보여준다. 각 route는 `status`, `score`, `available_providers`, `skipped_providers`, `action`을 가진다. 예를 들어 집에서는 `scan`/`implement`/`review`가 Codex/Gemini로 `ok`이고, `private`는 외부 provider를 의도적으로 금지하기 때문에 `expected_offline`으로 보일 수 있다.
+
+`route-health --json`의 출력 계약은 `registry/llm-route-health-schema.json`에 둔다. `health_cache.age_seconds`와 `health_cache.is_stale`을 같이 보고, doctor cache가 5분보다 오래됐으면 `doctor`를 다시 실행한 뒤 route 점수를 판단한다.
 
 Gemma/Ollama host 탐색 순서:
 
@@ -53,6 +64,37 @@ Gemma/Ollama host 탐색 순서:
 3. `registry/llm-routing.json`의 `providers.gemma.host_candidates`
 
 `doctor`가 성공한 로컬 host를 찾으면 이후 `ini` adapter 호출에 `OLLAMA_HOST_LAN`으로 넘긴다.
+
+---
+
+## Scores And Telemetry
+
+`doctor`의 `score`는 provider 준비 점수다. Codex/Gemini 중 하나라도 `unavailable`이면 0점이고, 일반 모드에서는 office-only Gemma의 `expected_offline`을 감점하지 않는다. `doctor --strict`에서는 `expected_offline`도 감점하고 exit code도 실패로 돌린다.
+
+`route-health`의 `overall_score`는 route별 `score` 평균이다. `private`처럼 local-only route가 office-only Gemma 때문에 `expected_offline`이면 전체 장애가 아니라 “현재 네트워크에서 의도적으로 실행 불가”로 본다.
+
+`scripts/llm-call.sh`는 모든 provider 호출을 `cache/llm-adapter-calls.jsonl`에 남긴다. 실패 레코드는 `health_class`와 `failure_reason`을 가진다.
+
+Adapter timeout은 `timeout` → `gtimeout` → Python `subprocess.run(timeout=...)` 순서로 강제한다. macOS에서 GNU timeout이 PATH에 없더라도 provider CLI가 무기한 대기하지 않게 해야 한다.
+
+| field | 의미 |
+|---|---|
+| `health_class=ok` | 정상 호출 |
+| `health_class=expected_offline` | office-only local provider가 현재 네트워크에서 닿지 않음 |
+| `health_class=smoke` | `doctor --live` 같은 의도적 점검 호출 |
+| `health_class=sandbox_blocked` | 실행 환경 제한으로 막힘 |
+| `health_class=runtime_failure` | 실제 provider 실행 실패 |
+
+대표 `failure_reason`은 `timeout`, `timeout_large_prompt`, `missing_executable`, `usage_error`, `auth_error`, `quota_or_rate_limit`, `prompt_too_large`, `provider_offline`, `expected_offline`, `smoke_failure`, `runtime_error`다.
+
+기존 로그 보정:
+
+```bash
+~/.claude/scripts/normalize-llm-adapter-telemetry.py --json
+~/.claude/scripts/normalize-llm-adapter-telemetry.py --write --json
+```
+
+`scripts/llm-usage.py`는 `expected_offline`, `smoke`, `sandbox_blocked`를 adapter health 경고율에서 제외하고, 실패 사유별 집계를 따로 표시한다.
 
 ---
 

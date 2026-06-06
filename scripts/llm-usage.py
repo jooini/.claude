@@ -520,6 +520,60 @@ def collect_ollama():
     }
 
 
+ADAPTER_HEALTH_EXCLUDED_CLASSES = {'expected_offline', 'smoke', 'sandbox_blocked'}
+
+
+def current_provider_health_statuses():
+    path = os.path.expanduser("~/.claude/cache/llm-provider-health.json")
+    try:
+        with open(path, encoding='utf-8') as handle:
+            health = json.load(handle)
+    except Exception:
+        return {}
+    return {
+        provider: info.get('status')
+        for provider, info in (health.get('providers') or {}).items()
+        if isinstance(info, dict)
+    }
+
+
+def adapter_health_class(record, provider, caller, status, exit_code, provider_health):
+    value = record.get('health_class')
+    if isinstance(value, str) and value:
+        return value
+    if status == 'ok' and exit_code == 0:
+        return 'ok'
+    caller_lower = str(caller).lower()
+    if 'smoke' in caller_lower:
+        return 'smoke'
+    if provider in {'ini', 'ollama', 'gemma', 'qwen'} and provider_health.get('gemma') == 'expected_offline':
+        return 'expected_offline'
+    return 'runtime_failure'
+
+
+def adapter_failure_reason(record, provider, caller, status, exit_code, health_class):
+    value = record.get('failure_reason')
+    if isinstance(value, str) and value:
+        return value
+    if status == 'ok' and exit_code == 0:
+        return None
+    caller_lower = str(caller).lower()
+    prompt_length = as_int(record.get('prompt_length'))
+    if health_class == 'expected_offline':
+        return 'expected_offline'
+    if health_class == 'smoke' or 'smoke' in caller_lower or 'doctor-live' in caller_lower:
+        return 'smoke_failure'
+    if exit_code == 124:
+        return 'timeout_large_prompt' if prompt_length >= 20000 else 'timeout'
+    if exit_code == 127:
+        return 'missing_executable'
+    if exit_code == 2:
+        return 'usage_error'
+    if health_class == 'sandbox_blocked':
+        return 'sandbox_blocked'
+    return 'runtime_error'
+
+
 def collect_llm_adapter():
     """Common shell adapter telemetry from ~/.claude/cache/llm-adapter-calls.jsonl."""
     path = os.path.expanduser("~/.claude/cache/llm-adapter-calls.jsonl")
@@ -552,6 +606,8 @@ def collect_llm_adapter():
         'duration_ms': 0,
     })
     by_adapter = defaultdict(lambda: {'calls': 0, 'ok': 0, 'error': 0, 'timeout': 0})
+    by_health_class = defaultdict(lambda: {'calls': 0, 'ok': 0, 'error': 0, 'timeout': 0})
+    by_failure_reason = defaultdict(lambda: {'calls': 0, 'timeout': 0})
     total = {
         'calls': 0,
         'ok': 0,
@@ -563,7 +619,29 @@ def collect_llm_adapter():
         'response_length': 0,
         'output_bytes': 0,
     }
+    health_total = {
+        'calls': 0,
+        'ok': 0,
+        'error': 0,
+        'timeout': 0,
+        'duration_ms': 0,
+        'timeout_seconds': 0,
+        'prompt_length': 0,
+        'response_length': 0,
+        'output_bytes': 0,
+    }
+    health_by_provider = defaultdict(lambda: {
+        'calls': 0,
+        'ok': 0,
+        'error': 0,
+        'timeout': 0,
+        'duration_ms': 0,
+        'prompt_length': 0,
+        'response_length': 0,
+        'output_bytes': 0,
+    })
     schema_versions = set()
+    provider_health = current_provider_health_statuses()
 
     for d in iter_jsonl(path) or []:
         ts = d.get('timestamp', '')
@@ -578,6 +656,8 @@ def collect_llm_adapter():
         status = d.get('status') or ('ok' if exit_code == 0 else 'error')
         ok = status == 'ok' and exit_code == 0
         timed_out = status == 'timeout' or exit_code == 124
+        health_class = adapter_health_class(d, provider, caller, status, exit_code, provider_health)
+        failure_reason = adapter_failure_reason(d, provider, caller, status, exit_code, health_class)
         duration_ms = as_int(d.get('duration_ms'))
         timeout_seconds = as_int(d.get('timeout_seconds'))
         prompt_length = as_int(d.get('prompt_length'))
@@ -604,6 +684,25 @@ def collect_llm_adapter():
         by_adapter[adapter]['ok'] += 1 if ok else 0
         by_adapter[adapter]['error'] += 0 if ok else 1
         by_adapter[adapter]['timeout'] += 1 if timed_out else 0
+        by_health_class[health_class]['calls'] += 1
+        by_health_class[health_class]['ok'] += 1 if ok else 0
+        by_health_class[health_class]['error'] += 0 if ok else 1
+        by_health_class[health_class]['timeout'] += 1 if timed_out else 0
+        if failure_reason:
+            by_failure_reason[failure_reason]['calls'] += 1
+            by_failure_reason[failure_reason]['timeout'] += 1 if timed_out else 0
+
+        if health_class not in ADAPTER_HEALTH_EXCLUDED_CLASSES:
+            for bucket in (health_by_provider[provider], health_total):
+                bucket['calls'] += 1
+                bucket['ok'] += 1 if ok else 0
+                bucket['error'] += 0 if ok else 1
+                bucket['timeout'] += 1 if timed_out else 0
+                bucket['duration_ms'] += duration_ms
+                bucket['prompt_length'] += prompt_length
+                bucket['response_length'] += response_length
+                bucket['output_bytes'] += output_bytes
+            health_total['timeout_seconds'] += timeout_seconds
 
     if total['calls']:
         thresholds = load_llm_adapter_thresholds()
@@ -616,7 +715,22 @@ def collect_llm_adapter():
             bucket['error_rate'] = bucket['error'] / bucket['calls'] if bucket['calls'] else 0.0
             bucket['timeout_rate'] = bucket['timeout'] / bucket['calls'] if bucket['calls'] else 0.0
             bucket['avg_duration_ms'] = bucket['duration_ms'] / bucket['calls'] if bucket['calls'] else 0.0
-        health = evaluate_adapter_health(total, by_provider, thresholds)
+        if health_total['calls']:
+            health_total['success_rate'] = health_total['ok'] / health_total['calls']
+            health_total['error_rate'] = health_total['error'] / health_total['calls']
+            health_total['timeout_rate'] = health_total['timeout'] / health_total['calls']
+            health_total['avg_duration_ms'] = health_total['duration_ms'] / health_total['calls']
+        else:
+            health_total['success_rate'] = 0.0
+            health_total['error_rate'] = 0.0
+            health_total['timeout_rate'] = 0.0
+            health_total['avg_duration_ms'] = 0.0
+        for bucket in health_by_provider.values():
+            bucket['success_rate'] = bucket['ok'] / bucket['calls'] if bucket['calls'] else 0.0
+            bucket['error_rate'] = bucket['error'] / bucket['calls'] if bucket['calls'] else 0.0
+            bucket['timeout_rate'] = bucket['timeout'] / bucket['calls'] if bucket['calls'] else 0.0
+            bucket['avg_duration_ms'] = bucket['duration_ms'] / bucket['calls'] if bucket['calls'] else 0.0
+        health = evaluate_adapter_health(health_total, health_by_provider, thresholds)
         note = f"{path} ({total['calls']} calls)"
     elif os.path.exists(path):
         thresholds = load_llm_adapter_thresholds()
@@ -641,6 +755,11 @@ def collect_llm_adapter():
         'by_provider': dict(by_provider),
         'by_caller': dict(by_caller),
         'by_adapter': dict(by_adapter),
+        'by_health_class': dict(by_health_class),
+        'by_failure_reason': dict(by_failure_reason),
+        'health_total': health_total,
+        'health_by_provider': dict(health_by_provider),
+        'health_excluded_classes': sorted(ADAPTER_HEALTH_EXCLUDED_CLASSES),
         'thresholds': thresholds,
         'health': health,
         'schema_versions': sorted(v for v in schema_versions if v is not None),
@@ -735,6 +854,32 @@ def print_human(data, days):
             f"/ 성공률 {at.get('success_rate', 0.0) * 100:.1f}% "
             f"/ 평균 {at.get('avg_duration_ms', 0.0):.0f}ms"
         )
+        health_total = ad.get('health_total', {})
+        excluded = {
+            name: bucket
+            for name, bucket in ad.get('by_health_class', {}).items()
+            if name in set(ad.get('health_excluded_classes', []))
+        }
+        print(
+            f"   Health sample: {health_total.get('calls', 0):,} actionable calls "
+            f"(excluded {sum(bucket.get('calls', 0) for bucket in excluded.values()):,})"
+        )
+        if excluded:
+            excluded_text = ", ".join(
+                f"{name}={bucket.get('calls', 0)}"
+                for name, bucket in sorted(excluded.items())
+            )
+            print(f"   Excluded: {excluded_text}")
+        failure_reasons = ad.get('by_failure_reason', {})
+        if failure_reasons:
+            reason_text = ", ".join(
+                f"{name}={bucket.get('calls', 0)}"
+                for name, bucket in sorted(
+                    failure_reasons.items(),
+                    key=lambda item: -item[1].get('calls', 0),
+                )[:5]
+            )
+            print(f"   Failure reasons: {reason_text}")
         health = ad.get('health', {})
         print(f"   Health: {health.get('overall', 'unknown')}")
         for alert in health.get('alerts', [])[:5]:
@@ -747,7 +892,7 @@ def print_human(data, days):
                 f"avg={alert.get('avg_duration_ms', 0.0):.0f}ms"
             )
         print("   Provider별:")
-        for provider, p in sorted(ad['by_provider'].items(), key=lambda x: -x[1].get('calls', 0)):
+        for provider, p in sorted(ad.get('health_by_provider', ad['by_provider']).items(), key=lambda x: -x[1].get('calls', 0)):
             print(
                 f"     {provider:12s} {p['calls']:>4}회 / "
                 f"성공률 {p.get('success_rate', 0.0) * 100:>5.1f}% / "

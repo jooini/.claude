@@ -5,7 +5,7 @@
     "scripts/*.sh",
     "scripts/*.py"
   ],
-  "file_count": 82,
+  "file_count": 83,
   "provider_counts": [
     {
       "provider": "gemini_or_agy",
@@ -17,15 +17,15 @@
     },
     {
       "provider": "ollama",
-      "file_count": 46
+      "file_count": 47
     },
     {
       "provider": "gemma",
-      "file_count": 42
+      "file_count": 43
     },
     {
       "provider": "qwen_ini",
-      "file_count": 28
+      "file_count": 30
     }
   ],
   "entries": [
@@ -4260,7 +4260,7 @@
         "gemma",
         "qwen_ini"
       ],
-      "hit_count": 20,
+      "hit_count": 24,
       "hits": [
         {
           "provider": "gemini_or_agy",
@@ -4276,12 +4276,12 @@
               "text": "Usage: llm-call.sh <gemini|codex|ini> [--caller NAME] [--timeout SECONDS] [--prompt TEXT|-] [provider options]"
             },
             {
-              "line": 120,
+              "line": 148,
               "pattern": "\\bagy\\b",
               "text": "gemini|agy)"
             },
             {
-              "line": 121,
+              "line": 149,
               "pattern": "\\bgemini\\b",
               "text": "GEMINI_WRAPPER=\"$ROOT/scripts/gemini-wrapped.sh\""
             }
@@ -4301,7 +4301,7 @@
               "text": "Usage: llm-call.sh <gemini|codex|ini> [--caller NAME] [--timeout SECONDS] [--prompt TEXT|-] [provider options]"
             },
             {
-              "line": 135,
+              "line": 163,
               "pattern": "codex exec",
               "text": "echo \"llm-call: codex executable not found\" >&2"
             }
@@ -4331,9 +4331,14 @@
               "text": "--num-ctx N         ini context window. Ignored by the Python Ollama fallback path."
             },
             {
-              "line": 141,
+              "line": 169,
               "pattern": "\\bollama\\b",
               "text": "ini|ollama|gemma|qwen)"
+            },
+            {
+              "line": 279,
+              "pattern": "\\bollama\\b",
+              "text": "if provider in {\"ini\", \"ollama\", \"gemma\", \"qwen\"}:"
             }
           ]
         },
@@ -4351,9 +4356,19 @@
               "text": "Usage: llm-call.sh <gemini|codex|ini> [--caller NAME] [--timeout SECONDS] [--prompt TEXT|-] [provider options]"
             },
             {
-              "line": 141,
+              "line": 169,
               "pattern": "\\bgemma\\b",
               "text": "ini|ollama|gemma|qwen)"
+            },
+            {
+              "line": 279,
+              "pattern": "\\bgemma\\b",
+              "text": "if provider in {\"ini\", \"ollama\", \"gemma\", \"qwen\"}:"
+            },
+            {
+              "line": 283,
+              "pattern": "\\bgemma\\b",
+              "text": "gemma_status = health.get(\"providers\", {}).get(\"gemma\", {}).get(\"status\")"
             }
           ]
         },
@@ -4381,9 +4396,14 @@
               "text": "--num-ctx N         ini context window. Ignored by the Python Ollama fallback path."
             },
             {
-              "line": 141,
+              "line": 169,
               "pattern": "\\bini\\b",
               "text": "ini|ollama|gemma|qwen)"
+            },
+            {
+              "line": 279,
+              "pattern": "\\bini\\b",
+              "text": "if provider in {\"ini\", \"ollama\", \"gemma\", \"qwen\"}:"
             }
           ]
         }
@@ -4397,7 +4417,7 @@
         "gemma",
         "qwen_ini"
       ],
-      "hit_count": 27,
+      "hit_count": 34,
       "hits": [
         {
           "provider": "gemini_or_agy",
@@ -4418,29 +4438,34 @@
               "text": "\"gemini\": \"gemini\","
             },
             {
-              "line": 139,
+              "line": 150,
               "pattern": "\\bgemini\\b",
               "text": "elif provider in {\"gemini\", \"antigravity\"}:"
             },
             {
-              "line": 140,
+              "line": 151,
               "pattern": "\\bgemini\\b",
               "text": "wrapper = ROOT / \"scripts\" / \"gemini-wrapped.sh\""
             },
             {
-              "line": 141,
+              "line": 152,
               "pattern": "\\bagy\\b",
               "text": "cli = shutil.which(\"agy\") or shutil.which(\"gemini\")"
             },
             {
-              "line": 143,
+              "line": 154,
               "pattern": "\\bgemini\\b",
               "text": "detail = str(wrapper if wrapper.exists() else cli or \"missing gemini-wrapped.sh\")"
             },
             {
-              "line": 234,
+              "line": 265,
               "pattern": "\\bgemini\\b",
               "text": "critical_unavailable = unavailable.intersection({\"codex\", \"gemini\"})"
+            },
+            {
+              "line": 426,
+              "pattern": "\\bgemini\\b",
+              "text": "if any(statuses.get(provider) == \"unavailable\" for provider in {\"codex\", \"gemini\"}):"
             }
           ]
         },
@@ -4453,19 +4478,34 @@
               "text": "\"ollama\": \"ini\","
             },
             {
-              "line": 203,
+              "line": 175,
+              "pattern": "\\bollama\\b",
+              "text": "\"Expected offline: Gemma/Ollama is an office-only Windows host. \""
+            },
+            {
+              "line": 223,
               "pattern": "leonard\\.local:11434",
               "text": "for candidate in candidates or [\"leonard.local:11434\"]:"
             },
             {
-              "line": 214,
+              "line": 234,
               "pattern": "/api/tags",
               "text": "url = f\"http://{normalize_host(host)}/api/tags\""
             },
             {
-              "line": 221,
+              "line": 241,
               "pattern": "\\bollama\\b",
               "text": "detail = \"Ollama unreachable for candidates: \" + \", \".join("
+            },
+            {
+              "line": 461,
+              "pattern": "\\bollama\\b",
+              "text": "return \"Office Windows Ollama is required; external providers are intentionally excluded.\""
+            },
+            {
+              "line": 484,
+              "pattern": "\\bollama\\b",
+              "text": "\"office-only Gemma/Ollama host.\""
             }
           ]
         },
@@ -4478,19 +4518,34 @@
               "text": "\"gemma\": \"ini\","
             },
             {
-              "line": 148,
+              "line": 159,
               "pattern": "\\bgemma\\b",
               "text": "elif provider == \"gemma\":"
             },
             {
-              "line": 199,
+              "line": 171,
+              "pattern": "\\bgemma\\b",
+              "text": "availability = provider_policy.get(\"gemma\", {}).get(\"availability\", {})"
+            },
+            {
+              "line": 175,
+              "pattern": "\\bgemma\\b",
+              "text": "\"Expected offline: Gemma/Ollama is an office-only Windows host. \""
+            },
+            {
+              "line": 219,
               "pattern": "\\bgemma\\b",
               "text": "registry.get(\"providers\", {}).get(\"gemma\", {}).get(\"host_candidates\", [])"
             },
             {
-              "line": 294,
+              "line": 395,
               "pattern": "\\bgemma\\b",
               "text": "selected = health.get(\"providers\", {}).get(\"gemma\", {}).get(\"selected_host\")"
+            },
+            {
+              "line": 484,
+              "pattern": "\\bgemma\\b",
+              "text": "\"office-only Gemma/Ollama host.\""
             }
           ]
         },
@@ -4518,37 +4573,37 @@
               "text": "\"qwen\": \"ini\","
             },
             {
-              "line": 149,
+              "line": 160,
               "pattern": "\\bini\\b",
               "text": "ini = Path.home() / \".local\" / \"bin\" / \"ini\""
             },
             {
-              "line": 150,
+              "line": 161,
               "pattern": "\\bini\\b",
               "text": "if not ini.exists() or not os.access(ini, os.X_OK):"
             },
             {
-              "line": 152,
+              "line": 163,
               "pattern": "\\bini\\b",
               "text": "detail = str(ini)"
             },
             {
-              "line": 180,
+              "line": 200,
               "pattern": "\\bini\\b",
               "text": "config = Path.home() / \".config\" / \"ini\" / \"config.toml\""
             },
             {
-              "line": 356,
+              "line": 655,
               "pattern": "\\bini\\b",
               "text": "if adapter_provider == \"ini\":"
             },
             {
-              "line": 568,
+              "line": 878,
               "pattern": "\\bini\\b",
               "text": "parser.add_argument(\"--profile\", help=\"ini profile for local providers\")"
             },
             {
-              "line": 569,
+              "line": 879,
               "pattern": "\\bini\\b",
               "text": "parser.add_argument(\"--num-ctx\", help=\"ini context window for local providers\")"
             }
@@ -4562,9 +4617,10 @@
         "gemini_or_agy",
         "codex",
         "ollama",
-        "gemma"
+        "gemma",
+        "qwen_ini"
       ],
-      "hit_count": 33,
+      "hit_count": 36,
       "hits": [
         {
           "provider": "gemini_or_agy",
@@ -4645,27 +4701,27 @@
               "text": "note = ' / '.join(sources) if sources else 'telemetry/wrapper/agy 미작동'"
             },
             {
-              "line": 705,
+              "line": 824,
               "pattern": "\\bgemini\\b",
               "text": "# Gemini"
             },
             {
-              "line": 706,
+              "line": 825,
               "pattern": "\\bgemini\\b",
               "text": "gm = data['gemini']"
             },
             {
-              "line": 707,
+              "line": 826,
               "pattern": "\\bgemini\\b",
               "text": "print(f\"\\n📕 Gemini\")"
             },
             {
-              "line": 718,
+              "line": 837,
               "pattern": "\\bgemini\\b",
               "text": "print(f\"        해결: ~/.claude/scripts/gemini-wrapped.sh 사용 또는 telemetry 활성화\")"
             },
             {
-              "line": 768,
+              "line": 913,
               "pattern": "\\bgemini\\b",
               "text": "for src in [cc['daily'], cx.get('daily', {}), data['gemini'].get('daily', {}), ol.get('daily', {}), ad.get('daily', {})]:"
             }
@@ -4675,7 +4731,7 @@
           "provider": "codex",
           "hits": [
             {
-              "line": 799,
+              "line": 944,
               "pattern": "codex:",
               "text": "print(\"   Codex:       ~/.codex/state_5.sqlite        (threads.tokens_used)\")"
             }
@@ -4695,27 +4751,32 @@
               "text": "'note': '부분 기록 — 다른 ollama hook들은 이 파일에 안 씀'"
             },
             {
-              "line": 665,
+              "line": 549,
+              "pattern": "\\bollama\\b",
+              "text": "if provider in {'ini', 'ollama', 'gemma', 'qwen'} and provider_health.get('gemma') == 'expected_offline':"
+            },
+            {
+              "line": 784,
               "pattern": "\\bollama\\b",
               "text": "ol = data['ollama']"
             },
             {
-              "line": 720,
+              "line": 839,
               "pattern": "\\bollama\\b",
               "text": "# Ollama"
             },
             {
-              "line": 721,
+              "line": 840,
               "pattern": "\\bollama\\b",
               "text": "print(f\"\\n📙 Ollama (로컬)\")"
             },
             {
-              "line": 803,
+              "line": 948,
               "pattern": "\\bollama\\b",
               "text": "print(\"   Ollama:      ~/.claude/cache/gemma-calls.jsonl       (부분 기록)\")"
             },
             {
-              "line": 818,
+              "line": 963,
               "pattern": "\\bollama\\b",
               "text": "'ollama': collect_ollama(),"
             }
@@ -4740,14 +4801,29 @@
               "text": "path = os.path.expanduser(\"~/.claude/cache/gemma-calls.jsonl\")"
             },
             {
-              "line": 727,
+              "line": 549,
+              "pattern": "\\bgemma\\b",
+              "text": "if provider in {'ini', 'ollama', 'gemma', 'qwen'} and provider_health.get('gemma') == 'expected_offline':"
+            },
+            {
+              "line": 846,
               "pattern": "\\bgemma\\b",
               "text": "print(f\"   ⚠️  부분 기록만 — gemma-calls.jsonl 비어있음\")"
             },
             {
-              "line": 803,
+              "line": 948,
               "pattern": "\\bgemma\\b",
               "text": "print(\"   Ollama:      ~/.claude/cache/gemma-calls.jsonl       (부분 기록)\")"
+            }
+          ]
+        },
+        {
+          "provider": "qwen_ini",
+          "hits": [
+            {
+              "line": 549,
+              "pattern": "\\bini\\b",
+              "text": "if provider in {'ini', 'ollama', 'gemma', 'qwen'} and provider_health.get('gemma') == 'expected_offline':"
             }
           ]
         }
@@ -4829,6 +4905,47 @@
               "line": 221,
               "pattern": "\\bgemini\\b",
               "text": "<div class=\"card\"><h3>Gemini</h3><div class=\"big\">{fmt_usd(fo['gemini'])}</div></div>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/normalize-llm-adapter-telemetry.py",
+      "providers": [
+        "ollama",
+        "gemma",
+        "qwen_ini"
+      ],
+      "hit_count": 3,
+      "hits": [
+        {
+          "provider": "ollama",
+          "hits": [
+            {
+              "line": 61,
+              "pattern": "\\bollama\\b",
+              "text": "if provider in {\"ini\", \"ollama\", \"gemma\", \"qwen\"} and provider_health.get(\"gemma\") == \"expected_offline\":"
+            }
+          ]
+        },
+        {
+          "provider": "gemma",
+          "hits": [
+            {
+              "line": 61,
+              "pattern": "\\bgemma\\b",
+              "text": "if provider in {\"ini\", \"ollama\", \"gemma\", \"qwen\"} and provider_health.get(\"gemma\") == \"expected_offline\":"
+            }
+          ]
+        },
+        {
+          "provider": "qwen_ini",
+          "hits": [
+            {
+              "line": 61,
+              "pattern": "\\bini\\b",
+              "text": "if provider in {\"ini\", \"ollama\", \"gemma\", \"qwen\"} and provider_health.get(\"gemma\") == \"expected_offline\":"
             }
           ]
         }

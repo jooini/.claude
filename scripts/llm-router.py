@@ -37,9 +37,20 @@ ADAPTER_PROVIDER = {
     "qwen": "ini",
 }
 
+SKIP_HEALTH_STATUSES = {"unavailable", "expected_offline"}
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def parse_utc(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def load_registry() -> dict[str, Any]:
@@ -154,7 +165,16 @@ def detect_providers(registry: dict[str, Any]) -> dict[str, dict[str, Any]]:
                 reachable, detail, extra = probe_ollama_hosts(
                     configured_ollama_hosts(registry)
                 )
-                status = "available" if reachable else "unavailable"
+                if reachable:
+                    status = "available"
+                else:
+                    availability = provider_policy.get("gemma", {}).get("availability", {})
+                    status = availability.get("expected_offline_status", "unavailable")
+                    if status == "expected_offline":
+                        detail = (
+                            "Expected offline: Gemma/Ollama is an office-only Windows host. "
+                            + detail
+                        )
         else:
             status = "configured"
             detail = "No active health probe is defined."
@@ -224,12 +244,23 @@ def probe_ollama_hosts(hosts: list[str], timeout: int = 2) -> tuple[bool, str, d
     return False, detail, {"host_candidates": hosts, "failures": failures}
 
 
-def doctor(registry: dict[str, Any], as_json: bool, strict: bool) -> int:
+def doctor(
+    registry: dict[str, Any],
+    as_json: bool,
+    strict: bool,
+    live_providers: list[str] | None = None,
+    live_timeout: int = 20,
+) -> int:
     providers = detect_providers(registry)
     unavailable = {
         provider
         for provider, info in providers.items()
         if provider != "claude" and info["status"] == "unavailable"
+    }
+    expected_offline = {
+        provider
+        for provider, info in providers.items()
+        if provider != "claude" and info["status"] == "expected_offline"
     }
     critical_unavailable = unavailable.intersection({"codex", "gemini"})
     overall_status = (
@@ -237,14 +268,37 @@ def doctor(registry: dict[str, Any], as_json: bool, strict: bool) -> int:
         else "degraded" if unavailable
         else "ok"
     )
+    if strict and (unavailable or expected_offline):
+        overall_status = "failed"
+    live_smoke: dict[str, Any] = {}
+    if live_providers is not None:
+        selected_live_providers = normalized_providers({"providers": live_providers}, None)
+        if not selected_live_providers:
+            selected_live_providers = [
+                provider
+                for provider, info in providers.items()
+                if provider in ADAPTER_PROVIDER and info.get("status") == "available"
+            ]
+        live_smoke = run_live_smoke(
+            registry,
+            selected_live_providers,
+            live_timeout,
+        )
+        if any(item.get("status") != "ok" for item in live_smoke.get("results", [])):
+            overall_status = "failed"
+    score = provider_score(providers, strict)
     record = {
         "schema_version": 1,
         "generated_at": utc_now(),
         "overall_status": overall_status,
+        "score": score,
         "router_entrypoint": registry.get("router", {}).get("entrypoint"),
         "adapter_entrypoint": registry.get("router", {}).get("adapter_entrypoint"),
+        "expected_offline_providers": sorted(expected_offline),
         "providers": providers,
     }
+    if live_smoke:
+        record["live_smoke"] = live_smoke
     HEALTH_PATH.parent.mkdir(parents=True, exist_ok=True)
     HEALTH_PATH.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -252,11 +306,18 @@ def doctor(registry: dict[str, Any], as_json: bool, strict: bool) -> int:
         print(json.dumps(record, ensure_ascii=False, indent=2))
     else:
         print(f"overall\t{overall_status}")
+        print(f"score\t{score}")
         for provider, info in providers.items():
             print(f"{provider}\t{info['status']}\t{info['detail']}")
+        if live_smoke:
+            for item in live_smoke.get("results", []):
+                print(
+                    f"live\t{item['provider']}\t{item['status']}\t"
+                    f"{item.get('duration_ms', 0)}ms\t{item.get('stdout_preview', '')}"
+                )
         print(f"health\twritten\t{HEALTH_PATH}")
     if strict:
-        return 1 if unavailable else 0
+        return 1 if unavailable or expected_offline else 0
     return 1 if critical_unavailable else 0
 
 
@@ -269,18 +330,58 @@ def task_policy(registry: dict[str, Any], task: str) -> dict[str, Any]:
     raise SystemExit(f"unknown task and no default route: {task}")
 
 
-def unavailable_from_health() -> set[str]:
+def provider_statuses_from_health() -> dict[str, str]:
     if not HEALTH_PATH.exists():
-        return set()
+        return {}
     try:
         health = json.loads(HEALTH_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return set()
+        return {}
     providers = health.get("providers", {})
     return {
-        provider
+        provider: str(info.get("status", "unknown"))
         for provider, info in providers.items()
-        if info.get("status") == "unavailable"
+    }
+
+
+def health_cache_metadata() -> dict[str, Any]:
+    if not HEALTH_PATH.exists():
+        return {
+            "path": str(HEALTH_PATH),
+            "exists": False,
+            "generated_at": None,
+            "age_seconds": None,
+            "is_stale": True,
+        }
+    try:
+        health = json.loads(HEALTH_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {
+            "path": str(HEALTH_PATH),
+            "exists": True,
+            "generated_at": None,
+            "age_seconds": None,
+            "is_stale": True,
+        }
+    generated_at = health.get("generated_at")
+    generated = parse_utc(generated_at if isinstance(generated_at, str) else None)
+    age_seconds = None
+    if generated:
+        age_seconds = max(0, int((datetime.now(timezone.utc) - generated).total_seconds()))
+    return {
+        "path": str(HEALTH_PATH),
+        "exists": True,
+        "generated_at": generated_at,
+        "age_seconds": age_seconds,
+        "is_stale": age_seconds is None or age_seconds > 300,
+    }
+
+
+def skip_provider_statuses_from_health() -> dict[str, str]:
+    return {
+        provider: status
+        for provider, status in provider_statuses_from_health().items()
+        if status in SKIP_HEALTH_STATUSES
     }
 
 
@@ -314,6 +415,204 @@ def normalized_providers(policy: dict[str, Any], forced: list[str] | None) -> li
         if provider not in normalized:
             normalized.append(provider)
     return normalized
+
+
+def provider_score(providers: dict[str, dict[str, Any]], strict: bool = False) -> int:
+    statuses = {
+        provider: info.get("status")
+        for provider, info in providers.items()
+        if provider != "claude"
+    }
+    if any(statuses.get(provider) == "unavailable" for provider in {"codex", "gemini"}):
+        return 0
+    score = 100
+    for provider, status in statuses.items():
+        if status == "unavailable":
+            score -= 20
+        elif status == "expected_offline" and strict:
+            score -= 12
+    return max(0, min(100, score))
+
+
+def route_score(
+    *,
+    status: str,
+    privacy_tier: str,
+    configured: list[str],
+    available: list[str],
+    skipped: dict[str, str],
+) -> int:
+    if status == "unavailable":
+        return 0
+    if status == "expected_offline":
+        return 95 if privacy_tier == "local_only" and skipped else 70
+    score = 100
+    expected_skipped = sum(1 for value in skipped.values() if value == "expected_offline")
+    hard_skipped = sum(1 for value in skipped.values() if value == "unavailable")
+    score -= hard_skipped * 25
+    score -= expected_skipped * 8
+    if privacy_tier == "local_preferred" and configured and configured[0] not in available:
+        score -= 8
+    return max(0, min(100, score))
+
+
+def route_action(status: str, privacy_tier: str, skipped: dict[str, str]) -> str:
+    if status == "expected_offline" and privacy_tier == "local_only":
+        return "Office Windows Ollama is required; external providers are intentionally excluded."
+    if status == "unavailable":
+        return "Run doctor, inspect skipped providers, or pass --ignore-health only for manual recovery."
+    if skipped:
+        return "Fallback providers are active; skipped providers are documented in skipped_providers."
+    return "Ready."
+
+
+def route_empty_message(
+    task: str,
+    policy: dict[str, Any],
+    configured: list[str],
+    skipped: dict[str, str],
+) -> str:
+    privacy_tier = str(policy.get("privacy_tier", ""))
+    skipped_text = ", ".join(
+        f"{provider}={status}" for provider, status in skipped.items() if provider in configured
+    ) or "none"
+    if privacy_tier == "local_only":
+        return (
+            f"llm-router: {task} route is local_only and has no reachable local provider. "
+            f"Configured providers: {', '.join(configured) or 'none'}; skipped by health: {skipped_text}. "
+            "External providers are intentionally excluded. If you are offsite, this is expected for the "
+            "office-only Gemma/Ollama host."
+        )
+    return (
+        f"llm-router: no providers remain for {task} after health filters. "
+        f"Configured providers: {', '.join(configured) or 'none'}; skipped by health: {skipped_text}."
+    )
+
+
+def route_health(registry: dict[str, Any], as_json: bool) -> int:
+    providers = detect_providers(registry)
+    provider_statuses = {
+        provider: str(info.get("status", "unknown"))
+        for provider, info in providers.items()
+    }
+    tasks = registry.get("tasks", {})
+    routes: dict[str, Any] = {}
+    for task_name, policy in tasks.items():
+        configured = normalized_providers(policy, None)
+        available = [
+            provider
+            for provider in configured
+            if provider_statuses.get(provider) == "available"
+        ]
+        skipped = {
+            provider: provider_statuses.get(provider, "unknown")
+            for provider in configured
+            if provider_statuses.get(provider) in SKIP_HEALTH_STATUSES
+        }
+        minimum_successes = safe_int(policy.get("minimum_successes", 1), 1)
+        privacy_tier = str(policy.get("privacy_tier", ""))
+        if len(available) >= minimum_successes:
+            status = "ok"
+        elif privacy_tier == "local_only" and skipped and all(
+            status == "expected_offline" for status in skipped.values()
+        ):
+            status = "expected_offline"
+        else:
+            status = "unavailable"
+        score = route_score(
+            status=status,
+            privacy_tier=privacy_tier,
+            configured=configured,
+            available=available,
+            skipped=skipped,
+        )
+        routes[task_name] = {
+            "status": status,
+            "score": score,
+            "strategy": policy.get("strategy", "first_success"),
+            "privacy_tier": privacy_tier,
+            "configured_providers": configured,
+            "available_providers": available,
+            "skipped_providers": skipped,
+            "minimum_successes": minimum_successes,
+            "action": route_action(status, privacy_tier, skipped),
+            "purpose": policy.get("purpose", ""),
+        }
+    route_scores = [route["score"] for route in routes.values()]
+    record = {
+        "schema_version": 1,
+        "generated_at": utc_now(),
+        "overall_status": "failed"
+        if any(route["status"] == "unavailable" for route in routes.values())
+        else "ok",
+        "overall_score": int(sum(route_scores) / len(route_scores)) if route_scores else 0,
+        "health_cache": health_cache_metadata(),
+        "providers": providers,
+        "routes": routes,
+    }
+    if as_json:
+        print(json.dumps(record, ensure_ascii=False, indent=2))
+    else:
+        print(f"overall\t{record['overall_status']}")
+        cache = record["health_cache"]
+        print(
+            "health-cache\t"
+            f"age={cache.get('age_seconds') if cache.get('age_seconds') is not None else '-'}s\t"
+            f"stale={cache.get('is_stale')}"
+        )
+        for task_name, route in routes.items():
+            available = ",".join(route["available_providers"]) or "-"
+            skipped = ",".join(
+                f"{provider}:{status}"
+                for provider, status in route["skipped_providers"].items()
+            ) or "-"
+            print(
+                f"{task_name}\t{route['status']}\tscore={route['score']}\t"
+                f"available={available}\tskipped={skipped}\taction={route['action']}"
+            )
+    return 0 if record["overall_status"] == "ok" else 1
+
+
+def provider_timeout_seconds(policy: dict[str, Any], provider: str, default_timeout: int) -> int:
+    overrides = policy.get("provider_timeouts_seconds") or {}
+    if not isinstance(overrides, dict):
+        return default_timeout
+    return safe_int(overrides.get(provider), default_timeout)
+
+
+def run_live_smoke(registry: dict[str, Any], providers: list[str], timeout_seconds: int) -> dict[str, Any]:
+    prompt = "Reply with only: ok"
+    results = []
+    for provider in providers:
+        item = call_provider(
+            provider,
+            "doctor-live",
+            "doctor-live",
+            prompt,
+            timeout_seconds,
+            0,
+            registry,
+            None,
+            None,
+            None,
+        )
+        stdout = item.get("stdout", "").strip()
+        results.append(
+            {
+                "provider": provider,
+                "status": item.get("status"),
+                "exit_code": item.get("exit_code"),
+                "duration_ms": item.get("duration_ms"),
+                "stdout_preview": stdout[:80],
+                "stderr_preview": first_nonempty_line(item.get("stderr", ""))[:200],
+            }
+        )
+    return {
+        "prompt_length": len(prompt),
+        "timeout_seconds": timeout_seconds,
+        "providers": providers,
+        "results": results,
+    }
 
 
 def call_provider(
@@ -395,18 +694,20 @@ def route(args: argparse.Namespace, registry: dict[str, Any]) -> int:
     depth = safe_int(os.environ.get(depth_env, "0") or "0", 0)
     max_depth = safe_int(router.get("max_call_depth", 2), 2)
     parent_provider = args.from_provider or os.environ.get(active_env) or os.environ.get(parent_env)
-    providers = normalized_providers(policy, args.provider)
+    configured_providers = normalized_providers(policy, args.provider)
+    providers = list(configured_providers)
     if parent_provider and not args.allow_self_provider:
         providers = [provider for provider in providers if provider != parent_provider]
+    skipped_by_health: dict[str, str] = {}
     if not args.ignore_health and not args.provider:
-        unavailable = unavailable_from_health()
-        providers = [provider for provider in providers if provider not in unavailable]
+        skipped_by_health = skip_provider_statuses_from_health()
+        providers = [provider for provider in providers if provider not in skipped_by_health]
 
     if depth >= max_depth:
         print(f"llm-router: max call depth reached ({depth}/{max_depth})", file=sys.stderr)
         return 2
     if not providers:
-        print("llm-router: no providers remain after routing filters", file=sys.stderr)
+        print(route_empty_message(task, policy, configured_providers, skipped_by_health), file=sys.stderr)
         return 2
     if not ADAPTER_PATH.exists() or not os.access(ADAPTER_PATH, os.X_OK):
         print(f"llm-router: missing executable adapter {ADAPTER_PATH}", file=sys.stderr)
@@ -445,7 +746,7 @@ def route(args: argparse.Namespace, registry: dict[str, Any]) -> int:
                     task,
                     args.caller,
                     prompt,
-                    timeout_seconds,
+                    provider_timeout_seconds(policy, provider, timeout_seconds),
                     depth,
                     registry,
                     args.model,
@@ -494,7 +795,7 @@ def route(args: argparse.Namespace, registry: dict[str, Any]) -> int:
                 task,
                 args.caller,
                 prompt,
-                timeout_seconds,
+                provider_timeout_seconds(policy, provider, timeout_seconds),
                 depth,
                 registry,
                 args.model,
@@ -551,8 +852,15 @@ def route(args: argparse.Namespace, registry: dict[str, Any]) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Route LLM calls through a neutral fallback policy.")
-    parser.add_argument("command", nargs="?", default="default", help="task name, doctor, or list-tasks")
+    parser = argparse.ArgumentParser(
+        description="Route LLM calls through a neutral fallback policy.",
+        epilog=(
+            "doctor treats office-only providers marked expected_offline as non-fatal. "
+            "doctor --strict counts expected_offline providers as failures. "
+            "doctor --live performs a short real provider call."
+        ),
+    )
+    parser.add_argument("command", nargs="?", default="default", help="task name, doctor, route-health, or list-tasks")
     parser.add_argument("--caller", default="manual", help="logical caller name for telemetry")
     parser.add_argument("--timeout", type=int, help="provider timeout in seconds")
     parser.add_argument("--prompt", help="prompt text, or '-' to read stdin")
@@ -561,7 +869,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--allow-self-provider", action="store_true", help="allow routing back to caller provider")
     parser.add_argument("--dry-run", action="store_true", help="print selected route without calling a provider")
     parser.add_argument("--json", action="store_true", help="emit JSON for metadata commands")
-    parser.add_argument("--strict", action="store_true", help="doctor exits non-zero when any provider is unavailable")
+    parser.add_argument("--strict", action="store_true", help="doctor exits non-zero when any provider is unavailable or expected_offline")
+    parser.add_argument("--live", action="store_true", help="doctor performs a short live provider call")
+    parser.add_argument("--live-timeout", type=int, default=20, help="timeout seconds for doctor --live provider smoke calls")
     parser.add_argument("--no-handoff", action="store_true", help="do not update handoff cache")
     parser.add_argument("--ignore-health", action="store_true", help="do not skip providers marked unavailable by doctor")
     parser.add_argument("--model", help="model override for providers that support it")
@@ -576,7 +886,15 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "doctor":
-        return doctor(registry, args.json, args.strict)
+        return doctor(
+            registry,
+            args.json,
+            args.strict,
+            args.provider or [] if args.live else None,
+            args.live_timeout,
+        )
+    if args.command == "route-health":
+        return route_health(registry, args.json)
     if args.command == "list-tasks":
         tasks = sorted(registry.get("tasks", {}))
         if args.json:

@@ -24,6 +24,11 @@
         "gemma"
       ],
       "timeout_seconds": 90,
+      "provider_timeouts_seconds": {
+        "codex": 90,
+        "gemini": 120,
+        "gemma": 60
+      },
       "privacy_tier": "external_ok",
       "purpose": "General fallback when the caller has no stronger task classification."
     },
@@ -35,6 +40,11 @@
         "gemma"
       ],
       "timeout_seconds": 120,
+      "provider_timeouts_seconds": {
+        "gemini": 180,
+        "codex": 120,
+        "gemma": 60
+      },
       "privacy_tier": "external_ok",
       "purpose": "Large-context structure scan, impact analysis, migration review."
     },
@@ -45,6 +55,10 @@
         "gemini"
       ],
       "timeout_seconds": 120,
+      "provider_timeouts_seconds": {
+        "codex": 150,
+        "gemini": 120
+      },
       "privacy_tier": "external_ok",
       "purpose": "Patch drafting or implementation alternative when the active provider needs handoff."
     },
@@ -56,6 +70,11 @@
         "gemma"
       ],
       "timeout_seconds": 120,
+      "provider_timeouts_seconds": {
+        "codex": 120,
+        "gemini": 180,
+        "gemma": 60
+      },
       "minimum_successes": 1,
       "max_parallel": 3,
       "privacy_tier": "external_ok",
@@ -67,6 +86,9 @@
         "gemma"
       ],
       "timeout_seconds": 60,
+      "provider_timeouts_seconds": {
+        "gemma": 60
+      },
       "privacy_tier": "local_only",
       "purpose": "Sensitive or local-only question. External providers are intentionally excluded."
     },
@@ -78,6 +100,11 @@
         "gemma"
       ],
       "timeout_seconds": 150,
+      "provider_timeouts_seconds": {
+        "codex": 150,
+        "gemini": 180,
+        "gemma": 60
+      },
       "privacy_tier": "external_ok",
       "purpose": "Recovery after repeated debug/test failure or active-provider quota exhaustion."
     },
@@ -89,6 +116,11 @@
         "gemini"
       ],
       "timeout_seconds": 60,
+      "provider_timeouts_seconds": {
+        "gemma": 60,
+        "codex": 90,
+        "gemini": 90
+      },
       "privacy_tier": "local_preferred",
       "purpose": "Short summary, Korean draft, session note, or low-risk text transform."
     }
@@ -156,6 +188,11 @@
     "gemma": {
       "role": "local_private_second_opinion",
       "default_model": "gemma4:e4b",
+      "availability": {
+        "mode": "office_only_remote",
+        "expected_offline_status": "expected_offline",
+        "description": "Ollama runs on a Windows host at the office. It is expected to be unreachable from home or offsite networks."
+      },
       "host_candidates": [
         "leonard.local:11434",
         "192.168.11.10:11434",

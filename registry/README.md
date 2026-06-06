@@ -50,6 +50,7 @@
 | `hook-output-contracts.json` | Stop/PreToolUse 등 사용자 가시 출력과 차단 의미가 있는 훅의 stdout/stderr/status/audio/exit 계약 |
 | `llm-calls-inventory.json` | 런타임 hooks/scripts 기준 LLM 호출 가능 파일 인벤토리 |
 | `llm-routing.json` | provider-neutral task route, fallback, handoff, provider 역할과 호출 경로 |
+| `llm-route-health-schema.json` | `llm-router.sh route-health --json` 출력 계약과 route score/status 의미 |
 | `llm-adapter-policy.json` | 직접 LLM CLI 호출 금지 기준과 승인된 예외 |
 | `llm-log-schema.json` | shell/Python LLM 어댑터 JSONL 공통 로그 필드 |
 | `llm-adapter-thresholds.json` | LLM adapter 실패율, timeout, provider별 지연시간 경고/위험 임계치 |
@@ -58,6 +59,7 @@
 | `../scripts/llm-router.py` | `llm-router.sh`의 실행 본체 |
 | `../scripts/llm-call.sh` | shell 훅용 공통 LLM 호출 어댑터(provider/caller/timeout telemetry) |
 | `../scripts/llm-usage.py` | Claude/Codex/Gemini/Ollama 사용량과 LLM 어댑터 성공률/지연시간 리포트 |
+| `../scripts/normalize-llm-adapter-telemetry.py` | 기존 adapter JSONL에 `health_class`와 `failure_reason`을 보정 |
 | `../scripts/generate-hook-manifest.py` | `settings.json:hooks` full manifest 생성 |
 | `../scripts/generate-hook-consolidation-candidates.py` | hook 통합 후보 생성 |
 | `../scripts/generate-hook-consolidation-plan.py` | hook 통합 실행계획 문서 생성 |
