@@ -4,6 +4,9 @@ set -euo pipefail
 set -- "$@"
 
 resolve_real_moai() {
+  local self_path
+  self_path="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+
   local candidates=(
     /Users/leonard/go/bin/moai
     "$HOME/go/bin/moai"
@@ -11,17 +14,22 @@ resolve_real_moai() {
     /usr/local/go/bin/moai
   )
 
-  for candidate in "$${candidates[@]}"; do
-    if [ -x "$candidate" ]; then
+  for candidate in "${candidates[@]}"; do
+    if [ -x "$candidate" ] && [ "$candidate" != "$self_path" ]; then
       printf '%s\n' "$candidate"
       return 0
     fi
   done
 
-  if command -v moai >/dev/null 2>&1; then
-    command -v moai
-    return 0
-  fi
+  local path_dir
+  local path_candidate
+  for path_dir in ${(s/:/)PATH}; do
+    path_candidate="$path_dir/moai"
+    if [ -x "$path_candidate" ] && [ "$path_candidate" != "$self_path" ]; then
+      printf '%s\n' "$path_candidate"
+      return 0
+    fi
+  done
 
   return 1
 }
@@ -32,10 +40,12 @@ if [ -z "$REAL_MOAI" ]; then
   exit 127
 fi
 
+set +e
 "$REAL_MOAI" "$@"
 RC=$?
+set -e
 
-if (( $# >= 1 )) && [ "$1" = "update" ]; then
+if [ "$RC" -eq 0 ] && (( $# >= 1 )) && [ "$1" = "update" ]; then
   if [ -x "$HOME/.claude/hooks/moai-update-post-hook.sh" ]; then
     "$HOME/.claude/hooks/moai-update-post-hook.sh" || true
   fi
