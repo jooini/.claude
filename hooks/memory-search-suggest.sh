@@ -8,6 +8,11 @@
 #   1. 작업 키워드 감지 (구현/버그/리팩터/디자인/배포/문서)
 #   2. 너무 짧은 프롬프트(질문/대화) 스킵
 #   3. 이미 mem-search/RAG 호출 명시한 경우 스킵
+#
+# 2026-06-07 변경: 권고 메시지에 limit 명시 추가 (local-rag default 10→5, claude-mem 20→10)
+#   - 근거: /status 24h "MCP local-rag 29%" 분석 — 호출 빈도가 아닌 결과 컨텍스트 잔존이 비용
+#   - 게이트를 "결정/디버깅만"으로 좁히면 후속/확인 정정 케이스를 잃음 (실측, 본 세션 4건 회수)
+#   - 대안: 권고는 유지하되 limit 작게 → 잔존 토큰 절반
 
 : "${HOME:?}"
 
@@ -82,6 +87,7 @@ case "$ROUTING" in
 
 ⚠️ 답변 시작 전 **mcp__local-rag__query_documents** 호출 권고:
   - query: "$KEYWORDS"
+  - **limit: 5** (컨텍스트 잔존 줄이려 default 10 → 5)
   - 4951 docs / 75365 chunks 에서 의미론적 코드/문서 검색
 
 규칙:
@@ -96,6 +102,7 @@ EOF
 
 ⚠️ 답변 시작 전 **mcp__plugin_claude-mem_mcp-search__search** 호출 권고:
   - query: "$KEYWORDS"
+  - **limit: 10** (default 20 → 10, 인덱스만 받고 필요 시 get_observations로 본문)
   - 과거 세션 결정/실패 패턴/유사 처리 기록 검색
 
 규칙:
@@ -108,14 +115,16 @@ EOF
         cat <<EOF
 [지식 검색 필수] 작업 유형: $TRIGGER → 둘 다 호출 (디버깅/설계 — 고위험)
 
-⚠️ 답변 시작 전 다음 2개 **반드시** 호출:
+⚠️ 답변 시작 전 다음 2개 **반드시** 호출 (컨텍스트 잔존 절감을 위해 limit 명시):
 
 1. **mcp__plugin_claude-mem_mcp-search__search**
    - query: "$KEYWORDS"
+   - **limit: 10** (default 20 → 10)
    - 과거 세션 결정/실패 패턴
 
 2. **mcp__local-rag__query_documents**
    - query: "$KEYWORDS"
+   - **limit: 5** (default 10 → 5)
    - 현재 코드/문서 의미 검색
 
 규칙:

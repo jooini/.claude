@@ -140,6 +140,7 @@ Claude quota가 떨어진 뒤 이어받을 때는 우선 `~/.claude/scripts/llm-
 ## 자동 위임 트리거 (룰 — 명시 지시 없을 때 적용)
 
 > **실측 근거 (2026-05-25)**: 14일 사용량 Claude 99.5% / Codex 0.7% / Gemini 0.05%. 위임 hook이 권유만 하던 시기의 결과. **50줄+ Edit/Write는 hook이 차단형(exit 2)으로 동작 — 우회 키워드는 "직접 구현해"/"직접 작성해"**.
+> **추가 근거 (2026-06-07)**: moai-adk v2.14.0 도입(5/25~) 후 Codex 세션 ~16/일 → ~8/일로 반감. moai workflow가 Codex/Gemini 위임을 내부 Claude 에이전트(manager-tdd/expert-backend)로 흡수했지만 명시적 외부 위임 트리거가 없어서 발생. moai workflow 진입 시에도 위 표 적용. `/usage 7`로 회복 확인.
 
 | 조건 (조기 매칭 우선) | 1순위 위임 | 모델 | 비고 |
 |----------------------|------------|------|------|
@@ -147,6 +148,8 @@ Claude quota가 떨어진 뒤 이어받을 때는 우선 `~/.claude/scripts/llm-
 | **50줄+ 단순 반복 보일러플레이트** | **Codex CLI/Plugin** | **gpt-5.4** | 단가 1/2, 단순 패턴엔 충분 |
 | **신규 파일 100줄+** | **Codex CLI/Plugin** | **gpt-5.5** | 토큰 효율 + 장문 일관성 |
 | **코드베이스 영향도 조사 (3파일+ 스캔/분석)** | **Skill(ask-gemini)** — Gemini 1M 컨텍스트 | gemini-3-flash | Claude는 합성만, 토큰 절약 |
+| **`/moai:plan` 진입 (3파일+ 영향 신호)** | **Skill(ask-gemini)** 사전 영향 스캔 | gemini-3-flash | moai workflow 안에서도 위임 트리거 유효. moai skill 자체는 수정 금지 |
+| **`/moai:run` 진입 시 50줄+ 신규파일/대량 구현** | **Codex CLI/Plugin** (`codex exec`, `Skill(ask-codex)`) | gpt-5.5 | moai의 manager-tdd/expert-backend 안에서도 Edit 50줄+은 위임. delegation-enforcer.sh가 차단 |
 | **리팩터링 사전 스캔 (TYPE C)** | **Gemini** Phase 0 (자동) | gemini-3-pro | `workflows/standard-routines.md` |
 | **단순 번역/요약/문법 (200자 이하)** | **Skill(ask-ollama)** | qwen3.5:9b | 로컬, 무료, 빠름 |
 | **세컨드 오피니언 / 패치 검토** | **Codex + Gemini 병렬** | gpt-5.5 + gemini-3-pro | 편향 방지, 단일 메시지 병렬 |
