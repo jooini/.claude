@@ -95,3 +95,7 @@ llm-configs/**/history.jsonl
 llm-configs/**/*-state.json
 llm-configs/**/*.bak
 llm-configs/**/*.bak-*
+
+# codex 쓰기 권한 probe 잔여물 (0바이트 임시 파일)
+.codex_write_probe
+*write_probe
