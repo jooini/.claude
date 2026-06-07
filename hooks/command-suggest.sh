@@ -59,7 +59,7 @@ fi
 # 검색/찾기
 if echo "$PROMPT" | grep -qiE '(찾아|어디|어디에|where|어떻게.*했|이전에)'; then
     SUGGESTIONS+=("mcp__plugin_claude-mem_mcp-search__search — 과거 세션 검색 (252+ 세션)")
-    SUGGESTIONS+=("mcp__local-rag__query_documents — 의미론적 검색 (13594 청크)")
+    SUGGESTIONS+=("mcp__local-rag__query_documents — 의미론적 검색 (75365 청크)")
 fi
 
 # PRD/기획/문서
