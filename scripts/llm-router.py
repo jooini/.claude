@@ -38,6 +38,8 @@ ADAPTER_PROVIDER = {
 }
 
 SKIP_HEALTH_STATUSES = {"unavailable", "expected_offline"}
+LOCAL_PROVIDER_PRIVACY_TIERS = {"local"}
+LOCAL_ADAPTER_PROVIDERS = {"ini"}
 
 
 def utc_now() -> str:
@@ -169,7 +171,10 @@ def detect_providers(registry: dict[str, Any]) -> dict[str, dict[str, Any]]:
                     status = "available"
                 else:
                     availability = provider_policy.get("gemma", {}).get("availability", {})
-                    status = availability.get("expected_offline_status", "unavailable")
+                    if is_office_only_expected_offline_policy(availability):
+                        status = availability.get("expected_offline_status", "expected_offline")
+                    else:
+                        status = "unavailable"
                     if status == "expected_offline":
                         detail = (
                             "Expected offline: Gemma/Ollama is an office-only Windows host. "
@@ -180,6 +185,54 @@ def detect_providers(registry: dict[str, Any]) -> dict[str, dict[str, Any]]:
             detail = "No active health probe is defined."
         providers[provider] = {"status": status, "detail": detail, **extra}
     return providers
+
+
+def is_office_only_expected_offline_policy(availability: dict[str, Any]) -> bool:
+    return (
+        availability.get("policy") == "office_only_locked"
+        and availability.get("mode") == "office_only_remote"
+        and availability.get("offsite_status_is_normal") is True
+        and availability.get("expected_offline_status") == "expected_offline"
+    )
+
+
+def provider_is_local(registry: dict[str, Any], provider: str) -> bool:
+    provider_policy = registry.get("providers", {}).get(provider, {})
+    adapter_provider = ADAPTER_PROVIDER.get(provider, provider)
+    privacy_tier = provider_policy.get("privacy_tier")
+    return bool(provider_policy) and (
+        privacy_tier in LOCAL_PROVIDER_PRIVACY_TIERS
+        or adapter_provider in LOCAL_ADAPTER_PROVIDERS
+    )
+
+
+def route_policy_violation(
+    registry: dict[str, Any],
+    policy: dict[str, Any],
+    providers: list[str],
+) -> str | None:
+    privacy_tier = str(policy.get("privacy_tier", ""))
+    external_fallback_allowed = policy.get("external_fallback_allowed")
+    if privacy_tier != "local_only" and external_fallback_allowed is not False:
+        return None
+
+    external_providers = [
+        provider
+        for provider in providers
+        if not provider_is_local(registry, provider)
+    ]
+    if not external_providers:
+        return None
+
+    if privacy_tier == "local_only":
+        return (
+            "local_only route forbids external providers: "
+            + ", ".join(external_providers)
+        )
+    return (
+        "external_fallback_allowed=false forbids external providers: "
+        + ", ".join(external_providers)
+    )
 
 
 def normalize_host(value: str) -> str:
@@ -499,6 +552,7 @@ def route_health(registry: dict[str, Any], as_json: bool) -> int:
     routes: dict[str, Any] = {}
     for task_name, policy in tasks.items():
         configured = normalized_providers(policy, None)
+        policy_violation = route_policy_violation(registry, policy, configured)
         available = [
             provider
             for provider in configured
@@ -511,7 +565,9 @@ def route_health(registry: dict[str, Any], as_json: bool) -> int:
         }
         minimum_successes = safe_int(policy.get("minimum_successes", 1), 1)
         privacy_tier = str(policy.get("privacy_tier", ""))
-        if len(available) >= minimum_successes:
+        if policy_violation:
+            status = "unavailable"
+        elif len(available) >= minimum_successes:
             status = "ok"
         elif privacy_tier == "local_only" and skipped and all(
             status == "expected_offline" for status in skipped.values()
@@ -535,7 +591,8 @@ def route_health(registry: dict[str, Any], as_json: bool) -> int:
             "available_providers": available,
             "skipped_providers": skipped,
             "minimum_successes": minimum_successes,
-            "action": route_action(status, privacy_tier, skipped),
+            "policy_violation": policy_violation,
+            "action": policy_violation or route_action(status, privacy_tier, skipped),
             "purpose": policy.get("purpose", ""),
         }
     route_scores = [route["score"] for route in routes.values()]
@@ -695,6 +752,10 @@ def route(args: argparse.Namespace, registry: dict[str, Any]) -> int:
     max_depth = safe_int(router.get("max_call_depth", 2), 2)
     parent_provider = args.from_provider or os.environ.get(active_env) or os.environ.get(parent_env)
     configured_providers = normalized_providers(policy, args.provider)
+    policy_violation = route_policy_violation(registry, policy, configured_providers)
+    if policy_violation:
+        print(f"llm-router: {policy_violation}", file=sys.stderr)
+        return 2
     providers = list(configured_providers)
     if parent_provider and not args.allow_self_provider:
         providers = [provider for provider in providers if provider != parent_provider]

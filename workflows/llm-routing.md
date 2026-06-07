@@ -23,6 +23,12 @@ Claude, Codex, Gemini/agy, Gemma/Ollama를 한쪽 전용 설정이 아니라 공
 ~/.claude/scripts/llm-router.sh doctor --live --provider codex --provider gemini
 ~/.claude/scripts/llm-router.sh route-health
 ~/.claude/scripts/llm-router.sh route-health --json
+moai-system-check
+moai-system-check --live
+moai-e2e-check
+moai-regression-check --force
+moai-telemetry-report --days 7
+moai-telemetry-report --days 7 --require-e2e
 ~/.claude/scripts/llm-router.sh scan --caller manual --prompt "영향 범위 분석"
 ~/.claude/scripts/llm-router.sh implement --caller manual --prompt "패치 초안 작성"
 ~/.claude/scripts/llm-router.sh review --caller manual --prompt "현재 diff 리뷰"
@@ -51,11 +57,23 @@ Claude 토큰이 소진되면 `rescue` 또는 `implement` 경로가 Codex를 우
 
 `doctor --strict`는 `expected_offline`도 실패로 본다. 회사 Windows Ollama까지 반드시 살아 있어야 하는 사무실 점검용이고, 집이나 외부 네트워크에서 실패하는 것은 정상이다.
 
+`moai-system-check`도 같은 기준을 쓴다. 기본 실행에서는 Gemma provider와 `private` route의 `expected_offline`을 PASS로 처리한다. 이 상태는 “집/외부망이라 office-only provider에 닿지 않음”이라는 정책 결과이지 장애가 아니다. `moai-system-check --strict`만 사무실망 검증 모드이며, 이때는 Gemma/Ollama가 실제로 reachable이어야 한다.
+
+`moai-system-check --live`는 구조 점검을 넘어 실제 Codex/Gemini/agy provider smoke, MoAI-ADK bridge smoke, handoff/log 업데이트, telemetry E2E evidence까지 확인한다. 성공하면 `cache/moai-bridge-live.jsonl`에 bridge runner별 결과가 남고, `moai-telemetry-report --require-e2e`에서 `complete=True`로 잡혀야 한다.
+
+`moai-e2e-check`는 10점권 통합 게이트다. 단위 테스트, 기본 system check, live provider/bridge smoke, `private` 외부 provider 차단, 실제 Workspace 프로젝트 cwd에서 router dry-run과 read-only Codex provider 호출, telemetry current E2E evidence를 한 번에 검증한다.
+
+`moai-regression-check`는 sync 이후 자동 실행되는 가벼운 회귀 게이트다. 기본은 `moai-e2e-check --skip-live --skip-project-live`를 rate-limit해서 돌리고 결과를 `cache/moai-regression-check.json`에 남긴다. 실패하면 다음 SessionStart에서 `moai-regression-session-warn.sh`가 경고한다. 수동 재검증은 `moai-regression-check --force`를 쓴다.
+
 `doctor --live`는 provider CLI 존재 여부만 보지 않고 짧은 실제 호출을 보낸다. 비용과 시간이 드는 smoke test라서 수동 점검이나 릴리즈 전 검증에만 쓴다. 실패 결과는 `cache/llm-adapter-calls.jsonl`에 `health_class=smoke`, `failure_reason=smoke_failure`로 남아 adapter health 경고율에서는 제외된다.
 
 `route-health`는 provider 단위가 아니라 task route 단위로 현재 실행 가능성을 보여준다. 각 route는 `status`, `score`, `available_providers`, `skipped_providers`, `action`을 가진다. 예를 들어 집에서는 `scan`/`implement`/`review`가 Codex/Gemini로 `ok`이고, `private`는 외부 provider를 의도적으로 금지하기 때문에 `expected_offline`으로 보일 수 있다.
 
 `route-health --json`의 출력 계약은 `registry/llm-route-health-schema.json`에 둔다. `health_cache.age_seconds`와 `health_cache.is_stale`을 같이 보고, doctor cache가 5분보다 오래됐으면 `doctor`를 다시 실행한 뒤 route 점수를 판단한다.
+
+Gemma/Ollama는 `registry/llm-routing.json`에서 `office_only_locked`로 고정한다. 외부 provider fallback은 허용하지 않는다. 특히 `private` route는 Gemma only이고, 외부망에서 Gemma가 `expected_offline`이면 실행 불가 상태로 두는 것이 맞다.
+
+라우터는 이 정책을 실행 시점에도 강제한다. `private --provider codex` 같은 수동 override도 `local_only route forbids external providers`로 차단되어야 한다.
 
 Gemma/Ollama host 탐색 순서:
 
@@ -73,7 +91,7 @@ Gemma/Ollama host 탐색 순서:
 
 `route-health`의 `overall_score`는 route별 `score` 평균이다. `private`처럼 local-only route가 office-only Gemma 때문에 `expected_offline`이면 전체 장애가 아니라 “현재 네트워크에서 의도적으로 실행 불가”로 본다.
 
-`scripts/llm-call.sh`는 모든 provider 호출을 `cache/llm-adapter-calls.jsonl`에 남긴다. 실패 레코드는 `health_class`와 `failure_reason`을 가진다.
+`scripts/llm-call.sh`는 모든 provider 호출을 `cache/llm-adapter-calls.jsonl`에 남긴다. 실패 레코드는 `health_class`와 `failure_reason`을 가진다. `moai-telemetry-report`는 최신 E2E 기준의 `current.status`와 7일 누적 기준의 `history.status`를 분리한다. 과거 runtime failure가 남아 있어도 최신 E2E 이후 health-relevant error가 없으면 `MoAI telemetry report: OK (history=DEGRADED)`처럼 표시한다.
 
 Adapter timeout은 `timeout` → `gtimeout` → Python `subprocess.run(timeout=...)` 순서로 강제한다. macOS에서 GNU timeout이 PATH에 없더라도 provider CLI가 무기한 대기하지 않게 해야 한다.
 

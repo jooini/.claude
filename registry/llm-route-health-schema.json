@@ -6,7 +6,7 @@
   "top_level_fields": {
     "schema_version": "integer contract version emitted by the command",
     "generated_at": "UTC ISO-8601 timestamp",
-    "overall_status": "ok when no route is unavailable; failed when at least one route cannot run",
+    "overall_status": "ok when no route is unavailable; expected_offline local-only routes are non-fatal office-only states",
     "overall_score": "integer 0-100 average of route scores",
     "health_cache": "metadata for cache/llm-provider-health.json freshness",
     "providers": "current provider probe result keyed by provider name",
@@ -28,12 +28,13 @@
     "available_providers": "configured providers currently available",
     "skipped_providers": "configured providers skipped because doctor marked them unavailable or expected_offline",
     "minimum_successes": "required successful provider count for this route",
+    "policy_violation": "null or a route policy violation such as local_only external provider leakage",
     "action": "operator-facing next action",
     "purpose": "human description copied from registry/llm-routing.json"
   },
   "route_statuses": {
     "ok": "minimum_successes can be met with currently available providers",
-    "expected_offline": "route is intentionally local-only and the only missing provider is marked expected_offline",
+    "expected_offline": "route is intentionally local-only or office-only and the only missing provider is marked expected_offline",
     "unavailable": "route cannot meet minimum_successes with current provider health"
   },
   "scoring": {

@@ -1193,6 +1193,12 @@ print_summary() {
     echo "  ~/.claude/scripts/sync-external.sh --dry-run"
 }
 
+schedule_regression_check() {
+    [[ "$DRY_RUN" == "false" ]] || return 0
+    [[ -x "$CLAUDE_DIR/scripts/moai-regression-check.py" ]] || return 0
+    nohup "$CLAUDE_DIR/scripts/moai-regression-check.py" --quiet >/dev/null 2>&1 &
+}
+
 main() {
     parse_args "$@"
     check_dependencies
@@ -1232,6 +1238,7 @@ main() {
     log "8/8 MCP 서버 등록 동기화 (Claude → Codex/Gemini 단방향)"
     sync_mcp_servers
 
+    schedule_regression_check
     print_summary
 }
 

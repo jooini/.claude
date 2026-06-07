@@ -90,6 +90,8 @@
         "gemma": 60
       },
       "privacy_tier": "local_only",
+      "external_fallback_allowed": false,
+      "local_provider_policy": "office_only_locked",
       "purpose": "Sensitive or local-only question. External providers are intentionally excluded."
     },
     "rescue": {
@@ -190,7 +192,11 @@
       "default_model": "gemma4:e4b",
       "availability": {
         "mode": "office_only_remote",
+        "policy": "office_only_locked",
         "expected_offline_status": "expected_offline",
+        "offsite_status_is_normal": true,
+        "strict_required_for_office_check": true,
+        "external_fallback_allowed": false,
         "description": "Ollama runs on a Windows host at the office. It is expected to be unreachable from home or offsite networks."
       },
       "host_candidates": [
@@ -210,7 +216,7 @@
         "error summary",
         "commit draft",
         "session summary",
-        "external-provider fallback for sensitive tasks"
+        "office-only local fallback for sensitive tasks"
       ],
       "privacy_tier": "local",
       "cache_paths": [
@@ -237,7 +243,7 @@
     "scripts/llm-call.sh owns provider execution and adapter telemetry.",
     "Gemini/agy handles broad context and integration checks.",
     "Codex is the preferred implementation and rescue fallback when Claude quota is exhausted.",
-    "Gemma/Ollama is preferred for sensitive or local-only review.",
+    "Gemma/Ollama is office-only locked; offsite expected_offline is normal and private route never falls back to external providers.",
     "LLM outputs are evidence, not final authority."
   ]
 }
