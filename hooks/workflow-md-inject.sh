@@ -94,7 +94,7 @@ done
 # 파일별 1줄 핵심 요약 (룰 인지용 — 키워드만으로 무슨 룰인지 알게)
 summarize() {
     case "$1" in
-        codex.md)             echo "Codex CLI 호출 규약(codex exec, codex: 명령)" ;;
+        codex.md)             echo "Codex CLI 호출 규약 + Claude Code read-only 병행 규칙" ;;
         sso.md)               echo "SSO/Identity Hub/BFF 연동 컨텍스트" ;;
         debugging.md)         echo "7단계 디버깅 절차(추측금지, 2회실패 재검토, 3회 rescue)" ;;
         llm-routing.md)       echo "Gemma/Gemini/Codex/Ollama 라우팅 규약" ;;

@@ -329,6 +329,9 @@ Claude 전용 에이전트 파이프라인, MCP 검색 규칙, 제품 고유 워
 
 ## Hybrid Orchestration
 
+- Codex가 작업을 시작한 세션에서는 Codex가 구현/검증/최종 응답의 작업 소유자다.
+- Claude Code는 같은 워크트리를 직접 수정하는 두 번째 작업자가 아니라 read-only 판단 보조자/리뷰어/오케스트레이터로 병행한다.
+- `claude 같이`, `claude도`, `둘 다`, `하이브리드`, `hybrid` 또는 아키텍처/설계/API/DB/auth 변경처럼 판단 비용이 큰 요청에서는 `~/.codex/workflows/codex.md`의 "Codex 주도 + Claude Code 병행 워크플로우"를 적용한다.
 - Codex의 `UserPromptSubmit` 훅이 필요 시 Gemini와 Claude 보조 실행을 백그라운드로 시작할 수 있다.
 - 생성되는 보조 컨텍스트:
   - `~/.claude/cache/gemini/{project}-scan.md`
@@ -340,6 +343,8 @@ Claude 전용 에이전트 파이프라인, MCP 검색 규칙, 제품 고유 워
   - 리뷰 프리스캔: 10분
   - Claude brief: 15분
 - 이 보조 출력은 참고 자료다. 프로젝트 실제 코드와 규칙이 더 우선한다.
+- Claude brief와 Codex 판단이 충돌하면 파일 읽기, 테스트, git diff로 검증하고 추정으로 채택하지 않는다.
+- 같은 워크트리에 Codex와 Claude Code가 동시에 write하지 않는다. 병렬 구현이 필요하면 worktree를 분리한다.
 
 ## Claude Compatibility
 
