@@ -82,56 +82,13 @@ esac
 
 case "$ROUTING" in
     "local-rag")
-        cat <<EOF
-[지식 검색 권고] 작업 유형: $TRIGGER → local-rag 우선
-
-⚠️ 답변 시작 전 **mcp__local-rag__query_documents** 호출 권고:
-  - query: "$KEYWORDS"
-  - **limit: 5** (컨텍스트 잔존 줄이려 default 10 → 5)
-  - 4951 docs / 75365 chunks 에서 의미론적 코드/문서 검색
-
-규칙:
-- 결과 있으면 → "이전에 [요약] 처리한 기록 있음" 명시 후 진행
-- 결과 없으면 → "검색 결과 없음, 신규 작업" 명시 후 진행
-- 호출 자체 생략 시 "같은 추정 두 번 금지" 규칙 위반
-EOF
+        echo "[검색권고:$TRIGGER] mcp__local-rag__query_documents(\"$KEYWORDS\", limit=5). 결과 있으면 \"이전 [요약] 있음\", 없으면 \"신규 작업\" 명시 후 진행."
         ;;
     "claude-mem")
-        cat <<EOF
-[지식 검색 권고] 작업 유형: $TRIGGER → claude-mem 우선
-
-⚠️ 답변 시작 전 **mcp__plugin_claude-mem_mcp-search__search** 호출 권고:
-  - query: "$KEYWORDS"
-  - **limit: 10** (default 20 → 10, 인덱스만 받고 필요 시 get_observations로 본문)
-  - 과거 세션 결정/실패 패턴/유사 처리 기록 검색
-
-규칙:
-- 결과 있으면 → "이전에 [요약] 처리한 기록 있음" 명시 후 진행
-- 결과 없으면 → "검색 결과 없음, 신규 작업" 명시 후 진행
-- 호출 자체 생략 시 "같은 추정 두 번 금지" 규칙 위반
-EOF
+        echo "[검색권고:$TRIGGER] mcp__plugin_claude-mem_mcp-search__search(\"$KEYWORDS\", limit=10). 결과 있으면 \"이전 [요약] 있음\", 없으면 \"신규 작업\" 명시 후 진행."
         ;;
     "both")
-        cat <<EOF
-[지식 검색 필수] 작업 유형: $TRIGGER → 둘 다 호출 (디버깅/설계 — 고위험)
-
-⚠️ 답변 시작 전 다음 2개 **반드시** 호출 (컨텍스트 잔존 절감을 위해 limit 명시):
-
-1. **mcp__plugin_claude-mem_mcp-search__search**
-   - query: "$KEYWORDS"
-   - **limit: 10** (default 20 → 10)
-   - 과거 세션 결정/실패 패턴
-
-2. **mcp__local-rag__query_documents**
-   - query: "$KEYWORDS"
-   - **limit: 5** (default 10 → 5)
-   - 현재 코드/문서 의미 검색
-
-규칙:
-- 결과 있으면 → "이전에 [요약] 처리한 기록 있음" 명시 후 진행
-- 결과 없으면 → "검색 결과 없음, 신규 작업" 명시 후 진행
-- 호출 생략 시 "같은 추정 두 번 금지" 규칙 위반
-EOF
+        echo "[검색필수:$TRIGGER] 둘 다 호출 — claude-mem search(\"$KEYWORDS\", limit=10) + local-rag query_documents(\"$KEYWORDS\", limit=5). 결과 있으면 \"이전 [요약] 있음\", 없으면 \"신규 작업\" 명시 후 진행."
         ;;
 esac
 

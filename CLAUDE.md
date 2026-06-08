@@ -1,49 +1,51 @@
 # Claude Code 글로벌 설정
 
-## 핵심 원칙
+> **본문 정책 (룰)** 만 남기고 근거·표·디테일은 `shared/` `references/` `workflows/` 로 분리됨. 본 파일은 룰을 빠르게 훑어보는 인덱스 역할.
+> **외부 LLM (Codex/Gemini/Antigravity) 공통 룰**: [`AGENTS.md`](AGENTS.md) — sync 파이프라인으로 자동 배포.
 
-### 위험도 기반 분기 (룰 우선순위 — 충돌 시 이것 우선)
+## 1. 핵심 원칙
 
-| 도메인 | 모드 | 적용 |
-|--------|------|------|
-| 🔴 **인프라 / 시크릿 / 배포 / 외부 시스템 / 파괴적 명령** | 검증 우선 (추정 절대 금지) | Read/Grep/Bash 100% 사전 검증 후 답변 |
-| 🟡 **사실 확인 질문** ("있어?", "되어있어?", "컨벤션이?") | 검증 우선 | 위와 동일 |
-| 🟢 **로컬 / 가역 / 저위험 / 코드 수정** | 자율 진행 | 묻지 않고 끝까지. 합리적 가정 허용 |
+### 위험도 기반 분기 (충돌 시 최우선)
 
-### 도구 호출 형식 [HARD — 최우선, 모든 룰보다 위]
-
-> **진짜 원인 (2026-06-02 재귀속 — 공식 이슈트래커 + 2.1.160 바이너리 실측으로 기존 진단 반증)**: malformed 의 근본 원인은 **Opus 4.8 모델 레이어의 tool_use 생성 회귀**다. ⚠️ 과거 "streaming `stop_sequence` truncation — 2.1.157+ 클라이언트 회귀" 설명은 **틀렸다(반증)**: GitHub #63604/#64076 이 **2.1.156(회귀 전 버전)에서도 재현** → 클라 버전 회귀가 아님. 모든 malformed 이슈가 `area:model`/`api:anthropic` 라벨 + **Opus 4.8 특정**(같은 세션·버전에서 4.7/Sonnet 4.6 은 깨끗). 증상은 동일: 모델이 tool_use XML 생성 중 꼬리 토큰(`call`/`count`/`court`)이 평문으로 누출 → `<invoke>` 앞에 굳음 → 파서가 text 처리 → `Your tool call was malformed and could not be parsed`. 실측 빈도 ~3.1~4%, **1M+effortLevel:xhigh 최고위험**(#64235/#64150), 재시도 시 대개 성공(비결정적). **모델 레이어 버그라 env 토글·바이너리 다운그레이드로 못 고침**. ✅ **유일한 효과적 client 레버 = Opus 4.7 모델 다운그레이드**(`/model claude-opus-4-7`, maintainer 문서화 #63604 "즉시 정상화"). ❌ FGTS=0 (firstParty 이미 OFF, 바이너리 확인된 placebo), ❌ `DISABLE_NONSTREAMING_FALLBACK`(반대방향), ❌ 2.1.156 다운그레이드(디스크에서 삭제됨 + 156 에서도 재현). 근본 수정은 Anthropic. OPEN: #63604/#63875/#64129/#64076/#64150/#64235/#64112. 자세한 정정: [[malformed-toolcall-streaming-regression]].
->
-> 아래 HARD 룰은 **근본 수정이 아니라 증상 완화/복구 절차**다(누출 자체는 모델이 의도한 게 아니라 막을 수 없지만, 1회 발생 후 즉시 형식 교정·재시도로 루프를 끊는다).
-
-- [HARD] 모든 도구 호출은 올바른 function_calls 여는 토큰 + 올바른 invoke 태그(네임스페이스 포함) 형식으로만 출력
-- [HARD] **`call`, `course`, 네임스페이스 없는 invoke, 기타 어떤 평문 단어로도 도구 호출 블록을 시작 절대 금지** — 실측(2026-06-01 세션 89ada186): 누출 20건 100% 가 `<invoke>` 바로 앞에 평문 `call\n` 을 출력한 패턴. 즉 여는 토큰 자리에 `call` 이라는 단어가 들어가면 파서가 전체를 text로 처리 → malformed. `<invoke>` 직전 토큰은 반드시 올바른 function_calls 여는 토큰이어야 하며, 그 앞 줄에 `call`/`course`/설명문구를 두면 100% 깨진다
-- [HARD] malformed 1회 발생 시: 다음 호출에서 즉시 올바른 형식으로 재시도. 같은 깨진 형식 두 번 금지 (재시도는 비결정적이라 대개 성공 — 자가복구가 정상 동작이다)
-- [HARD] 연속 malformed 시 우회책(Bash sed/python 인플레이스)으로 작업은 진행. **단 "형식 교정 = 근본 해결" 아님** — 누출은 Opus 4.8 모델 레이어 생성 회귀라 모델이 형식을 의도해도 또 샐 수 있다. **연속/빈발 시 근본 완화 = `/model claude-opus-4-7` 로 모델 다운그레이드**(maintainer 문서화 #63604, 즉시 정상화). 2.1.156 바이너리 다운그레이드는 **죽은 길**(디스크 삭제됨 + 156에서도 재현). 근본 수정은 Anthropic 패치 대기
+| 도메인 | 모드 |
+|--------|------|
+| 🔴 인프라/시크릿/배포/외부 시스템/파괴적 명령 | 검증 우선, 추정 금지 |
+| 🟡 사실 확인 질문 ("있어?" / "되어있어?" / "컨벤션이?") | 검증 우선 |
+| 🟢 로컬/가역/저위험/코드 수정 | 자율 진행, 합리적 가정 허용 |
 
 ### 공통 룰
 
-- 코드 수정 시 파이프라인 실행. 혼자 수정하고 "완료" 선언 금지
-- 병렬 가능한 단계 반드시 병렬 (순차 금지)
-- "~하겠습니다" 식 확인 반복 금지. 결과 나오면 바로 다음 단계
-- 🔴/🟡 도메인 추정 답이 틀렸으면 즉시 사과 + 검증 + 정정. **같은 추정 두 번 금지**
+- 코드 수정 시 파이프라인 실행 (혼자 수정 후 "완료" 선언 금지)
+- 병렬 가능 단계 반드시 병렬
+- "~하겠습니다" 식 확인 반복 금지
+- 🔴/🟡 추정 답이 틀렸으면 즉시 사과+검증+정정. **같은 추정 두 번 금지**
 - 🟢 도메인도 검증 못 한 부분은 "추정" 또는 "검증 필요" 명시
 
-### AskUserQuestion 한글 버그 회피 [HARD — 최우선]
+상세 응답 스타일: [`shared/response-style.md`](shared/response-style.md)
 
-> **근거 (검증 2026-05-31 포렌식 18 transcript / 2026-06-01 실측)**: `AskUserQuestion` 호출 시 한글 텍스트를 `\uXXXX` escape 직렬화하는 과정에서 버퍼 경계 버그로 hex 손상 → `questions` 배열이 string으로 폴백 → `InputValidationError: questions type expected array but provided string` → 멈춤. 실측 한 세션 114회 중 25회 실패 = **22%**. 한글은 영어 대비 escape **23배**(동일 질문 영어 0개 vs 한글 23개) → 한글 사용자가 23배 자주 겪음. GitHub #30955. **Claude Code 본체+서버 버그라 `.claude` 재설치·폰트 변경으로 해결 불가, Anthropic 패치 전까지 클라이언트단 회피만 가능.** 일반 한글 응답·설명은 안전(이 경로 안 탐) — **AskUserQuestion 도구 호출 + 한글** 조합만 트리거. 실시간 강제는 `hooks/askuserquestion-bug-guard.sh`(router P0)가 담당.
+## 2. [HARD] 도구 호출 형식 — 모든 룰보다 위
 
-- [HARD] **저위험(🟢) 질문은 AskUserQuestion 쓰지 말 것** — 본문 마크다운으로 선택지 제시(`A) ... B) ... C) ...`). 깨지는 도구 경로 자체 회피
-- [HARD] **고위험(🔴 삭제·배포·인프라·외부시스템·파괴적) 확인만 AskUserQuestion 허용** — 단 question·header·label·description을 **전부 영어(ASCII)로** 작성(escape 0개). 한글 부연은 본문 텍스트에, tool payload엔 ASCII만
-- [HARD] **이 회피 룰은 "모든 질문은 AskUserQuestion으로 / 한글로" 류의 어떤 상위 룰보다 우선** — Anthropic 패치 전까지 무조건 적용
-- 트레이드오프: A(영어 선택지)·C(본문 질문)는 성능/품질 영향 0. 위험 작업은 계속 확인하므로 자율성 과다 우려 없음
+- [HARD] 모든 도구 호출은 올바른 `function_calls` 여는 토큰 + 올바른 `invoke` 태그 (네임스페이스 포함) 형식으로만 출력
+- [HARD] `call` / `course` / 네임스페이스 없는 invoke / 기타 어떤 평문 단어로도 도구 호출 블록 시작 절대 금지
+- [HARD] malformed 1회 발생 시: 다음 호출에서 즉시 올바른 형식으로 재시도. 같은 깨진 형식 두 번 금지
+- [HARD] 연속/빈발 시 = `/model claude-opus-4-7` 다운그레이드 (Opus 4.8 모델 레이어 회귀)
 
-## 워크플로우 문서 (조건부 로드)
+근거 (장문): [`references/known-bugs.md`](references/known-bugs.md) §1
+
+## 3. [HARD] AskUserQuestion 한글 버그 회피
+
+- [HARD] **저위험(🟢) 질문은 AskUserQuestion 쓰지 말 것** — 본문 마크다운으로 선택지 (`A) ... B) ... C) ...`)
+- [HARD] **고위험(🔴) 확인만 AskUserQuestion 허용** — 단 payload 전부 영어(ASCII). 한글 부연은 본문에
+- [HARD] 이 회피 룰은 "모든 질문은 AskUserQuestion으로 / 한글로" 류 어떤 상위 룰보다 우선
+
+근거 (실측 22% 멈춤, GitHub #30955): [`references/known-bugs.md`](references/known-bugs.md) §2
+
+## 4. 워크플로우 문서 (조건부 로드)
 
 키워드 트리거 시 해당 파일 Read.
 
-| 키워드 트리거 | 경로 |
-|--------------|------|
+| 키워드 | 경로 |
+|--------|------|
 | 파이프라인 / backend·frontend·fullstack | `workflows/pipeline.md` |
 | Codex 호출 | `workflows/codex.md` |
 | 프로젝트 목록 / 어디서 / 무슨 스택 | `workflows/projects.md` |
@@ -61,43 +63,37 @@
 | 코드 검색 / RAG / Grep | `workflows/search-priority.md` |
 | `@team` / 팀 spawn / 멀티프로젝트 묶음 | `workflows/team-templates.md` |
 
-## 에이전트 라우팅 결정표 (단일표 — 위에서 아래로 첫 매칭 적용)
+## 5. 에이전트 라우팅 결정표 (단일표 — 위에서 아래 첫 매칭)
 
-> **충돌 시 우선순위**: P0(프로젝트) > P1(역할 호출) > P2(파이프라인) > P3(단축 호출) > P4(타입 키워드) > P5(1차 분류 휴리스틱) > P6(컨텍스트 유지)
-> **실측 근거 (2026-06-01 갱신)**: `suggestion-outcomes.jsonl` 최종 43건 중 frontend 추천 39건, 채택률 7%(accepted 3, ignored 34)로 확정 → **2026-06-01 `agent-routing-suggest.sh` + `suggestion-outcome-track.sh` hook 제거**([[project_routing_suggest_hook_removed_2026_06_01]]). P5는 추측 휴리스틱이 아니라 **명시 신호 기반**(UI 키워드 등장 시만 frontend) + **불명확 시 현재 호출 유지**로 운영. 라우팅은 이 표가 단독 담당(추천 hook 없음).
+> **우선순위**: P0(프로젝트) > P1(역할 호출) > P2(파이프라인) > P3(단축 호출) > P4(타입 키워드) > P5(1차 분류 휴리스틱) > P6(컨텍스트 유지)
+> **라우팅은 이 표 단독 담당** — 추천 hook 없음 (2026-06-01 채택률 7%로 `agent-routing-suggest.sh` 제거)
 
 | P | 입력 신호 | 결정 | 비고 |
 |---|----------|------|------|
-| **P0** | `@dev` 호출 | 프로젝트 `.claude/agents/dev.md` 라우팅. 글로벌 파이프라인 **비적용** | 이중 실행 방지 |
-| **P0** | `@dev` + 프로젝트 `dev.md` 없음 | `dev-lead`로 폴백 | dev-lead는 @dev의 폴백, 대체 아님 |
-| **P0** | `@team` 호출 | 크로스 프로젝트 팀 라우팅 | 영향 범위 기준 병렬. 템플릿: `workflows/team-templates.md` |
+| **P0** | `@dev` 호출 | 프로젝트 `.claude/agents/dev.md` 라우팅. 글로벌 파이프라인 비적용 | 이중 실행 방지 |
+| **P0** | `@dev` + 프로젝트 `dev.md` 없음 | `dev-lead` 로 폴백 | |
+| **P0** | `@team` 호출 | 크로스 프로젝트 팀 라우팅 (`workflows/team-templates.md`) | 영향 범위 기준 병렬 |
 | **P1** | 한글 호출명 (복수 → 병렬) | `백엔드→backend-developer` / `프론트→frontend-developer` / `AI엔지니어→ai-engineer` / `리뷰어→code-reviewer` / `디자이너→designer` / `피오→po` / `데이터→data-analyst` / `옵스→ops-lead` / `프롬프트→prompt-engineer` | 명시 호출 최우선 |
-| **P1** | `큐에이` | `qa` — **테스트 설계/케이스/시나리오 전담** | 명령 실행 안 함 |
-| **P1** | `테스터` | `code-tester` — **lint/build/test 실행 전담** | 설계 안 함 |
-| **P2** | `@dev` 없이 파이프라인 키워드 (`backend`/`frontend`/`fullstack`/`파이프라인`) | `workflows/pipeline.md` 적용 | 직접 작업 모드 |
-| **P2** | `@dev` 없이 **코드 파일 수정 발생** (키워드 없어도) | Gemini 스캔 → developer → 병렬(reviewer + codex:review) → code-tester | 기본 파이프라인 |
+| **P1** | `큐에이` | `qa` — 테스트 설계/케이스/시나리오 전담 | 명령 실행 안 함 |
+| **P1** | `테스터` | `code-tester` — lint/build/test 실행 전담 | 설계 안 함 |
+| **P2** | `@dev` 없이 파이프라인 키워드 | `workflows/pipeline.md` 적용 | 직접 작업 모드 |
+| **P2** | `@dev` 없이 코드 파일 수정 발생 | Gemini 스캔 → developer → 병렬(reviewer + codex:review) → code-tester | 기본 파이프라인 |
 | **P2** | 설정/프롬프트/문서만 수정 | 파이프라인 생략 | 코드 변경 0건일 때만 |
-| **P3** | 단축 호출 충돌 시 우선순위 | `단독으로` > `코드만/구현만` > `TDD로` > `리뷰 없이` > `테스트 없이` > `스펙 없이` | 상위가 하위 덮어씀 |
-| **P3** | `단독으로` | 지정 에이전트만 | 파이프라인 단계 축소 |
-| **P3** | `코드만`/`구현만` | developer만 | 리뷰/테스트 생략 |
-| **P3** | `TDD로` | qa 설계 → 사용자 확인 → developer Green → code-tester 실행 | qa/code-tester 분리 강제 |
-| **P3** | `리뷰 없이` | 리뷰 단계 생략 | 구현/테스트 유지 |
-| **P3** | `테스트 없이` | 테스트 단계 생략 | 구현/리뷰 유지 |
-| **P3** | `스펙 없이` | SDD 스펙 생략 | 나머지 유지 |
-| **P4** | `"기능 추가"`, `"feature"` | TYPE A: feature — TDD + 3중 리뷰 | `standard-routines.md` |
-| **P4** | `"버그"`, `"fix"`, `"안 돼"` | TYPE B: bugfix — `/debug` → 회귀 | |
-| **P4** | `"리팩터"`, `"정리"` (3파일+) | TYPE C: refactor — Gemini Phase 0 + worktree | |
-| **P4** | `"UI"`, `"디자인"`, `"스타일"` | TYPE D: design — designer + Playwright | |
-| **P4** | `"쿼리"`, `"대시보드"`, `"ClickHouse"` | TYPE E: data — data-analyst 필수 | |
-| **P4** | `"배포"`, `"Docker"`, `"Terraform"`, `"SPI"` | TYPE F: ops — 🔴 사람 승인 + 단계별 검증 | |
-| **P4** | `"문서"`, `"PRD"`, `"스펙"` | TYPE G: docs — po/prompt-engineer + Obsidian | |
-| **P5** | UI 신호 감지 (`component`, `page`, `style`, `css`, `tsx`, `jsx`, `Tailwind`, `shadcn`, `버튼`, `화면`, `레이아웃`) | 1차 라우팅을 **frontend-developer 우선** | 재지정 21건 완화 |
-| **P5** | 백엔드 신호 명시 (`API`, `endpoint`, `DB`, `migration`, `auth`, `JWT`, `FastAPI`, `Spring`) | backend-developer | UI 신호 없을 때만 |
-| **P5** | 풀스택 혼합 신호 | **2트랙 병렬**: frontend-developer(UI) + backend-developer(API), 통합은 dev-lead | 재지정/왕복 감소 |
-| **P5** | 신호 불명확 | **현재 호출/직전 에이전트 유지** (추천 hook 제거됨 2026-06-01, 채택률 7%였음) | 추측 라우팅 금지 |
-| **P6** | 운영성 명령 (`재시작`, `재설치`, `서비스`, `로그 봐`, `상태 확인`, `restart`, `재배포`) | 현재 작업 컨텍스트 유지 (직전 에이전트 재사용) — 없으면 ops-lead | 세션 35cdacf2 실측: "서비스 재시작해줘" 등이 ops로 빗나갔다가 frontend로 재지정 3회. **운영 명령은 메인 작업 흐름 끊지 말 것** |
-| **P6** | 세션 내 직전 에이전트 동일 도메인 (UI/API/ops) 3턴 이상 지속 시 | **sticky routing** — 동일 에이전트 재사용. 짧은 운영 명령에 재분류 금지 | 같은 세션 1차 분류 반복 빗나감 방지 |
-| **P6** | `codex:rescue` 종료 후 다음 발화 | rescue 직전 작업 컨텍스트 유지 (frontend/backend 분류 그대로) | rescue 후 frontend로 빗나간 2회 패턴 차단 |
+| **P3** | 단축 호출 우선순위 | `단독으로` > `코드만/구현만` > `TDD로` > `리뷰 없이` > `테스트 없이` > `스펙 없이` | 상위가 하위 덮어씀 |
+| **P4** | `"기능 추가"` / `"feature"` | TYPE A: feature — TDD + 3중 리뷰 | `standard-routines.md` |
+| **P4** | `"버그"` / `"fix"` / `"안 돼"` | TYPE B: bugfix — `/debug` → 회귀 | |
+| **P4** | `"리팩터"` / `"정리"` (3파일+) | TYPE C: refactor — Gemini Phase 0 + worktree | |
+| **P4** | `"UI"` / `"디자인"` / `"스타일"` | TYPE D: design — designer + Playwright | |
+| **P4** | `"쿼리"` / `"대시보드"` / `"ClickHouse"` | TYPE E: data — data-analyst 필수 | |
+| **P4** | `"배포"` / `"Docker"` / `"Terraform"` / `"SPI"` | TYPE F: ops — 🔴 사람 승인 + 단계별 검증 | |
+| **P4** | `"문서"` / `"PRD"` / `"스펙"` | TYPE G: docs — po/prompt-engineer + Obsidian | |
+| **P5** | UI 신호 (`component`, `page`, `style`, `css`, `tsx`, `jsx`, `Tailwind`, `shadcn`, `버튼`, `화면`, `레이아웃`) | 1차 라우팅 frontend-developer 우선 | |
+| **P5** | 백엔드 신호 (`API`, `endpoint`, `DB`, `migration`, `auth`, `JWT`, `FastAPI`, `Spring`) | backend-developer (UI 신호 없을 때) | |
+| **P5** | 풀스택 혼합 | 2트랙 병렬: frontend + backend, 통합은 dev-lead | |
+| **P5** | 신호 불명확 | **현재 호출/직전 에이전트 유지**. 추측 라우팅 금지 | |
+| **P6** | 운영성 명령 (`재시작` / `재설치` / `서비스` / `로그 봐` / `상태 확인` / `restart` / `재배포`) | 현재 작업 컨텍스트 유지 (직전 에이전트 재사용). 없으면 ops-lead | 메인 작업 흐름 끊지 말 것 |
+| **P6** | 직전 에이전트 동일 도메인 3턴 이상 지속 | sticky routing — 동일 에이전트 재사용 | 짧은 운영 명령에 재분류 금지 |
+| **P6** | `codex:rescue` 종료 후 다음 발화 | rescue 직전 작업 컨텍스트 유지 | rescue 후 frontend 로 빗나간 2회 패턴 차단 |
 
 ### @dev 태스크 관리 (P0 보조)
 
@@ -107,127 +103,42 @@
 - `@dev active {파일명}` — 특정 active 파일만
 - `@dev {직접 지시}` — 즉시 라우팅
 
-## 도구 역할 분담
+## 6. 도구 역할 & LLM 라우터
 
-- **Claude Code**: 판단/채택/최종 구현/의사결정
-- **Codex CLI/Plugin**: 병렬 구현+검증+리뷰+세컨드 오피니언 (`codex exec`, `codex:*`, `Skill(ask-codex)`)
-- **Gemini**: Phase 0 스캔(1M토큰)+테스트 생성+3중 리뷰+최종 통합 검증
-- **Antigravity**: 멀티 에이전트 디스패치
-- **Jules**: 백그라운드(테스트/문서/PR)
-- **Deep Research**: 기술 조사/전략
+도구 분담 + 공통 라우터(`llm-router.sh`) 전체 정책: [`shared/tool-roles.md`](shared/tool-roles.md)
 
-## LLM 공통 라우터
+## 7. 자동 위임 트리거
 
-Claude 토큰 소진이나 provider 장애 시에는 `~/.claude/scripts/llm-router.sh`를 공통 진입점으로 쓴다. 정책 정본은 `~/.claude/registry/llm-routing.json`이고, 실제 provider 실행은 항상 `~/.claude/scripts/llm-call.sh`가 담당한다.
+명시 지시 없을 때 적용. **50줄+ Edit/Write 는 hook 이 차단형(exit 2)** — 우회: "직접 구현해" / "직접 작성해".
 
-- active orchestrator가 결과를 통합한다. Claude가 항상 가능하다고 가정하지 않는다.
-- 이어받기 컨텍스트는 `~/.claude/cache/llm-handoff/current.json`에 기록한다.
-- provider 상태는 `~/.claude/scripts/llm-router.sh doctor`로 확인하고 `~/.claude/cache/llm-provider-health.json`에 기록한다. `doctor`는 핵심 외부 provider가 살아 있으면 degraded도 허용하고, `doctor --strict`는 모든 provider를 요구한다.
-- self-recursion 방지: `LLM_PARENT_PROVIDER`, `LLM_ACTIVE_PROVIDER`, `LLM_CALL_DEPTH`를 사용한다.
-- 로컬 Ollama/Gemma host는 `OLLAMA_HOST_LAN` 또는 `OLLAMA_HOST_URL`로 강제할 수 있고, 없으면 `~/.config/ini/config.toml`과 `registry/llm-routing.json`의 `host_candidates` 순서로 탐색한다.
+| 조건 (조기 매칭 우선) | 1순위 위임 | 모델 |
+|----------------------|------------|------|
+| 50줄+ 코드 작성/Edit (장문/복잡) | **Codex** (`codex exec`, `codex:*`, `Skill(ask-codex)`) | gpt-5.5 |
+| 50줄+ 단순 반복 보일러플레이트 | Codex | gpt-5.4 |
+| 신규 파일 100줄+ | Codex | gpt-5.5 |
+| 코드베이스 영향도 조사 (3파일+ 스캔) | **`Skill(ask-gemini)`** — Gemini 1M | gemini-3-flash |
+| `/moai:plan` 진입 (3파일+ 영향 신호) | `Skill(ask-gemini)` 사전 영향 스캔 | gemini-3-flash |
+| `/moai:run` 진입 시 50줄+ 신규파일/대량 구현 | Codex | gpt-5.5 |
+| 리팩터링 사전 스캔 (TYPE C) | Gemini Phase 0 (자동) | gemini-3-pro |
+| 단순 번역/요약/문법 (200자 이하) | `Skill(ask-ollama)` | qwen3.5:9b |
+| 세컨드 오피니언 / 패치 검토 | **Codex + Gemini 병렬** (단일 메시지) | gpt-5.5 + gemini-3-pro |
+| 빠른 질의 / 리뷰 코멘트 / 짧은 분석 | Codex | gpt-5.5 default |
+| 디버깅 2회 실패 | 접근 재검토 | — |
+| 디버깅 3회 실패 | `codex:rescue` (hook 자동) | gpt-5.5 |
+| 테스트 3회 실패 / PR 생성 / 프로젝트 전환 | 각 hook 자동 발동 | Codex/Gemini |
+| 사용자 "직접 구현해" 명시 | Claude 직접 (위임 우회) | — |
 
-| task | fallback |
-|------|----------|
-| `scan` | Gemini/agy → Codex → Gemma |
-| `implement` | Codex → Gemini/agy |
-| `review` | Codex + Gemini/agy + Gemma 병렬 best-effort |
-| `private` | Gemma only |
-| `rescue` | Codex → Gemini/agy → Gemma |
-| `summarize` | Gemma → Codex → Gemini/agy |
+Codex 모델별 가격·강점·실비용: [`references/codex-models.md`](references/codex-models.md)
+위임 효과 측정 + 우회 조건 + 시계열 근거: [`references/delegation-metrics.md`](references/delegation-metrics.md)
 
-Claude quota가 떨어진 뒤 이어받을 때는 우선 `~/.claude/scripts/llm-router.sh rescue --caller <caller> --prompt <작업요약>` 또는 `implement`를 사용한다. 민감 데이터는 `private` route만 사용한다. 상세는 `workflows/llm-routing.md`.
+## 8. 기타 룰
 
-## 자동 위임 트리거 (룰 — 명시 지시 없을 때 적용)
-
-> **실측 근거 (2026-05-25)**: 14일 사용량 Claude 99.5% / Codex 0.7% / Gemini 0.05%. 위임 hook이 권유만 하던 시기의 결과. **50줄+ Edit/Write는 hook이 차단형(exit 2)으로 동작 — 우회 키워드는 "직접 구현해"/"직접 작성해"**.
-> **추가 근거 (2026-06-07)**: moai-adk v2.14.0 도입(5/25~) 후 Codex 세션 ~16/일 → ~8/일로 반감. moai workflow가 Codex/Gemini 위임을 내부 Claude 에이전트(manager-tdd/expert-backend)로 흡수했지만 명시적 외부 위임 트리거가 없어서 발생. moai workflow 진입 시에도 위 표 적용. `/usage 7`로 회복 확인.
-
-| 조건 (조기 매칭 우선) | 1순위 위임 | 모델 | 비고 |
-|----------------------|------------|------|------|
-| **50줄+ 코드 작성/Edit (장문/복잡)** | **Codex CLI/Plugin** (`codex exec`, `codex:*`, `Skill(ask-codex)`) | **gpt-5.5** | hook이 차단. 장문 컨텍스트 +37pp 우수 |
-| **50줄+ 단순 반복 보일러플레이트** | **Codex CLI/Plugin** | **gpt-5.4** | 단가 1/2, 단순 패턴엔 충분 |
-| **신규 파일 100줄+** | **Codex CLI/Plugin** | **gpt-5.5** | 토큰 효율 + 장문 일관성 |
-| **코드베이스 영향도 조사 (3파일+ 스캔/분석)** | **Skill(ask-gemini)** — Gemini 1M 컨텍스트 | gemini-3-flash | Claude는 합성만, 토큰 절약 |
-| **`/moai:plan` 진입 (3파일+ 영향 신호)** | **Skill(ask-gemini)** 사전 영향 스캔 | gemini-3-flash | moai workflow 안에서도 위임 트리거 유효. moai skill 자체는 수정 금지 |
-| **`/moai:run` 진입 시 50줄+ 신규파일/대량 구현** | **Codex CLI/Plugin** (`codex exec`, `Skill(ask-codex)`) | gpt-5.5 | moai의 manager-tdd/expert-backend 안에서도 Edit 50줄+은 위임. delegation-enforcer.sh가 차단 |
-| **리팩터링 사전 스캔 (TYPE C)** | **Gemini** Phase 0 (자동) | gemini-3-pro | `workflows/standard-routines.md` |
-| **단순 번역/요약/문법 (200자 이하)** | **Skill(ask-ollama)** | qwen3.5:9b | 로컬, 무료, 빠름 |
-| **세컨드 오피니언 / 패치 검토** | **Codex + Gemini 병렬** | gpt-5.5 + gemini-3-pro | 편향 방지, 단일 메시지 병렬 |
-| **빠른 질의 / 리뷰 코멘트 / 짧은 분석** | **Codex** | **gpt-5.5** (default) | 실측: 세션당 252K 토큰 가벼움 |
-| **디버깅 2회 실패** | 접근 재검토 | — | `workflows/debugging.md` |
-| **디버깅 3회 실패** | **codex:rescue** | gpt-5.5 | hook 자동 트리거 |
-| **테스트 3회 실패 / PR 생성 / 프로젝트 전환** | 각 hook이 자동 발동 | Codex/Gemini | `workflows/automation.md` |
-| **사용자 "직접 구현해" / "직접 작성해" 명시** | Claude 직접 (위임 우회) | — | hook 통과 |
-
-### Codex 모델 선택 가이드 (실측 + 벤치 근거)
-
-| 모델 | 단가(입/출, /1M) | 강점 | 사용처 |
-|------|------------------|------|--------|
-| **gpt-5.5** | $5 / $30 (2×) | 장문 컨텍스트 512K~1M 74% (vs 5.4 36.6%), Terminal-Bench 82.7%, ARC-AGI-2 +11.7pp, 동일 작업 시 토큰 적게 씀 | **기본값** — 코드 생성, 리뷰, 장문 분석, 복잡한 추론 |
-| **gpt-5.4** | $2.50 / $15 (1×) | 단순 반복 패턴엔 5.5와 차이 미미, 단가 1/2 | 단순 보일러플레이트, 단발성 짧은 작업 |
-| **gpt-5.3-codex** | — | Codex 전용 튜닝 | codex-rescue, 디버깅 |
-| **gpt-5.4-mini** | 최저 | 빠른 응답 | 분류/라우팅 |
-
-**기본 규칙**: 모델 명시 안 했을 때 Codex 호출은 **gpt-5.5 default**. 단순 반복 패턴이 명확하면 gpt-5.4로 비용 절감.
-
-**근거**: GPT-5.5는 단가 2배지만 동일 작업 토큰 효율 좋아 실비용 차이 작음. 14일 실측: 5.5 세션당 $1.68 (252K토큰) / 5.4 세션당 $16.30 (2.86M토큰).
-
-Sources:
-- [LLM Stats — GPT-5.5 vs 5.4](https://llm-stats.com/blog/research/gpt-5-5-vs-gpt-5-4)
-- [OpenAI — Introducing GPT-5.5](https://openai.com/index/introducing-gpt-5-5/)
-
-### 위임 우회 조건 (정당한 직접 작성)
-
-다음 경우만 50줄+ 직접 작성 허용 (위임 hook 우회 시 사용자 확인 받을 것):
-- 사용자가 명시적으로 "직접" 키워드 사용
-- 긴급 hotfix (5분 내 운영 복구 필요)
-- 1줄짜리 반복 패턴 (예: import 50개 일괄 정리 — 이건 codemod가 더 빠름)
-- Claude의 판단/통합/최종 정리 단계 (Codex 결과물 머지)
-
-### 위임 효과 측정 (2026-06-01 지표 재설계)
-
-- **주지표 = 조건 충족률** (비율 아님): "위임 트리거 조건(50줄+ 구현 / 신규파일 100줄+ / 3파일+ 조사 / 세컨드오피니언·리뷰)이 발생했을 때 실제로 위임됐는가"의 충족률. 단순 질의·짧은 패치까지 위임 강요하지 않으므로 전체 Claude 비율 99%대는 정상일 수 있음.
-- 참고지표: 주간 `/usage` 로 Codex/Gemini 누적 토큰·호출 추세 (절대 비율 목표 아님). 실측 14일: Codex 104회 / Gemini~agy 30회 — 위임 인프라 작동 중.
-- 폐기: "Claude 70%" 절대 비율 목표 (측정 지표로 부적절, 14일 미동 확인 2026-06-01).
-
-## 디버깅 규칙
-
-추측 금지. 7단계 절차(재현→수집→범위축소→가설→검증→수정→확인). 2회 실패 시 접근 재검토, 3회 실패 시 `codex:rescue`. 상세: `workflows/debugging.md`
-
-## SSH 접속 규칙
-
-- `expect` 스크립트로 접속 (비밀번호 자동 입력). `ssh` 직접 실행 시 대화형에서 멈춤
-- MCP SSH 도구(`mcp__ssh__runRemoteCommand`) 가능하면 우선 사용
-
-## 커밋 규칙
-
-- **Co-Authored-By 절대 금지** (PreToolUse 훅이 차단)
-- 커밋 메시지 한글
-
-## 코딩 컨벤션
-
-공백 4칸(Makefile/Go 제외). 파일 상단 수정이력 주석 금지. FastAPI 는 `Annotated` 앨리어스. 약어/줄임 네이밍 금지. 상세: `workflows/coding-convention.md`
-
-## 문서 작성 규칙
-
-상세: `@~/.claude/workflows/docs-convention.md`
-
-- Obsidian Vault: `~/Workspace/weaversbrain/weaversbrain/`
-- 파일명에 시분: `YYYY-MM-DD-HHMM-{파일명}.md`
-- YAML frontmatter 필수
-- 프로젝트 내부(docs/) 금지 → Obsidian Vault
-
-### 문서 링크 표기 규칙 (필수)
-
-| 위치 | 표기 |
+| 항목 | 정본 |
 |------|------|
-| **Obsidian Vault 내부** (`~/Workspace/weaversbrain/weaversbrain/` 하위) | **두 링크 모두 병기** — ① `obsidian://open?vault=weaversbrain&file={vault_root_기준_경로(확장자 제외, URL 인코딩)}` ② `antigravity-ide://file/{절대경로}` (또는 `open -a "Antigravity IDE" {절대경로}`) |
-| **Vault 외부 일반 파일** (코드/프로젝트/.claude/ 등) | **Antigravity IDE 링크만** — `antigravity-ide://file/{절대경로}` (URL 미지원 환경이면 `open -a "Antigravity IDE" {절대경로}`) |
-
-- Obsidian 링크는 vault 외부 파일에는 동작하지 않음 → 외부 파일에 obsidian:// 절대 쓰지 말 것
-- Antigravity IDE URL 스킴: `antigravity-ide://` (앱 번들 `com.google.antigravity-ide`, `/Applications/Antigravity IDE.app`). 구버전 `Antigravity.app` (`com.google.antigravity`)이 등록한 `antigravity://` 와 다름 — 사용자 환경의 IDE 본체는 `antigravity-ide://` 이다. 환경별로 동작 다를 수 있어 `open -a "Antigravity IDE"` 폴백 함께 안내
-- 검증 명령: `/usr/bin/plutil -p "/Applications/Antigravity IDE.app/Contents/Info.plist" | grep -A 5 CFBundleURLSchemes` 로 실측 가능
-
-## 워크플로우 자동화
-
-hooks 가 자동 처리: 의존성 변경→Gemini, 테스트 3회 실패→Codex rescue, PR 생성→Codex 요약, 프로젝트 전환→Gemini 스캔. 규모 자동 판별(S/M/L), 파이프라인 메트릭, 결정 자동 캡처도 훅으로. 회고: `/retro [N일]`, `/decisions [검색어]`. 상세: `workflows/automation.md`
+| 커밋 규칙 | [`shared/commit-rules.md`](shared/commit-rules.md) |
+| 코딩 컨벤션 | [`shared/coding-convention.md`](shared/coding-convention.md) — 공백 4칸, 약어 금지, FastAPI Annotated 등 |
+| 문서 작성 / Obsidian Vault | [`shared/project-defaults.md`](shared/project-defaults.md) §문서 작성 |
+| 문서 링크 표기 (Obsidian / Antigravity IDE) | [`references/doc-link-format.md`](references/doc-link-format.md) |
+| SSH 접속 (expect / MCP) | [`references/ssh-rules.md`](references/ssh-rules.md) |
+| 디버깅 절차 (7단계 / 2회 재검토 / 3회 rescue) | [`workflows/debugging.md`](workflows/debugging.md) |
+| 워크플로우 자동화 (hooks 동작) | [`workflows/automation.md`](workflows/automation.md) — `/retro [N일]`, `/decisions [검색어]` |

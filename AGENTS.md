@@ -1,59 +1,44 @@
-# 공용 에이전트 규칙
+# 공용 에이전트 규칙 (Codex / Gemini / Antigravity / 외부 LLM)
 
-이 파일은 Claude Code, Antigravity, Gemini CLI, Codex CLI 공통 규칙입니다.
+이 파일은 **Codex CLI, Gemini CLI, Antigravity 등 외부 LLM 도구**가 ~/.claude 와 같은 컨벤션을 따르도록 안내한다. Claude Code 전용 룰은 [`CLAUDE.md`](CLAUDE.md).
 
-## 커밋 규칙
+> ⚠️ **이 파일은 직접 수정하지 마라.** 실제로 외부 LLM 이 읽는 본은 sync 파이프라인이 생성한다:
+> - `~/.codex/AGENTS.md` (Codex CLI 가 읽음)
+> - `~/.gemini/GEMINI.md` (Gemini CLI 가 읽음)
+> - 생성 스크립트: `~/.claude/scripts/sync-external.sh` (src: `~/.claude/CLAUDE.md` + `shared/`)
+>
+> 이 파일(`~/.claude/AGENTS.md`)은 그 sync 사양의 **요약 인덱스** + **표준 OpenAI/Anthropic `AGENTS.md` 컨벤션 호환용**이다.
 
-- Co-Authored-By 포함하지 않음
-- 커밋 메시지는 한글로 작성
+---
 
-## 응답 스타일
+## 공통 정책 (SSOT 링크)
 
-- 묻지 말고 알아서 끝까지 진행. 중간 확인/상태 업데이트 금지
-- 병렬 실행 우선. 순차 실행 금지
-- "~하겠습니다" 식 확인 반복 금지. 결과 나오면 바로 다음 단계
+| 항목 | 정본 |
+|------|------|
+| 커밋 규칙 | [`shared/commit-rules.md`](shared/commit-rules.md) |
+| 코딩 컨벤션 | [`shared/coding-convention.md`](shared/coding-convention.md) |
+| 응답 스타일 (위험도 분기/병렬/자율성) | [`shared/response-style.md`](shared/response-style.md) |
+| 도구 역할 분담 + LLM 라우터 | [`shared/tool-roles.md`](shared/tool-roles.md) |
+| 프로젝트 기본값 (스택/SSO/티켓/문서) | [`shared/project-defaults.md`](shared/project-defaults.md) |
 
-## 코딩 컨벤션
+위 5개 파일이 이 폴더에서 **유일한 정본**. 다른 곳(CLAUDE.md, README.md, ~/.codex/AGENTS.md, ~/.gemini/GEMINI.md) 은 모두 이 파일을 인용/포함만 한다.
 
-- FastAPI: `Depends()` 직접 사용 금지 → `Annotated` 앨리어스 사용
-- 클래스 리네이밍 시 파일명도 함께 변경
-- 약어/줄임 네이밍 금지 → 풀네임 사용
+## 외부 LLM 별 차이
 
-## 코드 수정 워크플로우
+| 도구 | 받는 파일 | sync 시점 | Claude 전용 룰 제외? |
+|------|----------|-----------|---------------------|
+| Codex CLI | `~/.codex/AGENTS.md` (~28KB, 34 sections) | `sync-external.sh` | ✅ 에이전트 파이프라인/MCP 룰 제외 |
+| Gemini CLI / agy | `~/.gemini/GEMINI.md` (~22KB) | `sync-external.sh` | ✅ Claude 전용 hook 룰 제외 |
+| Antigravity | 자체 워크스페이스 설정 + IDE 직접 | 수동 | ✅ |
 
-코드를 수정할 때는 반드시 구현 → 리뷰 → 테스트 파이프라인을 실행한다.
+상세 동작: `~/.claude/scripts/sync-external.sh` 의 필터 로직.
 
-- 수정 후 반드시 테스트 실행. 테스트 안 돌리고 완료 선언 금지
-- 리뷰 → 재수정 루프 최대 3회. 초과 시 사용자에게 판단 요청
-- 보안/DB/인프라/API breaking change 시 추가 보안 리뷰 수행
+## 수정 방법
 
-## 도구 역할 분담
+1. 정책 변경은 **반드시 `shared/` 의 해당 파일** 수정 (이 파일 직접 수정 X)
+2. 그 후 `~/.claude/scripts/sync-external.sh` 실행
+3. `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md` 자동 갱신 확인
 
-- **Claude Code**: 메인 두뇌 — 구현, 추론, 리뷰, 의사결정
-- **Codex CLI**: 검증/대안 — adversarial review, 세컨드 오피니언
-- **Gemini CLI**: 스캐너 — 대규모 코드베이스 전체 로딩 후 요약 추출 (1M 토큰)
-- **Antigravity**: 병렬 일손 — Manager Surface로 멀티 에이전트 동시 디스패치
-- **Jules**: 백그라운드 워커 — 테스트/문서/의존성 PR 자동 생성
-- **Deep Research**: 조사관 — 기술 조사, 보안 분석, 마이그레이션 전략
+---
 
-## 문서 작성 규칙
-
-- Obsidian Vault: `~/Workspace/weaversbrain/weaversbrain/`
-- 파일명에 시분 포함: `YYYY-MM-DD-HHMM-{파일명}.md`
-- YAML frontmatter 필수
-- 프로젝트 내부(docs/)에 만들지 말 것 → 반드시 옵시디언 Vault에 생성
-
-## 프로젝트 공통 규칙
-
-- Kotlin Spring Boot 우선 (백엔드 신규)
-- PostgreSQL (관계형), Redis (캐시/세션)
-- Prometheus 메트릭 + 구조화 로그로 관측성 확보
-- 티켓: EPIC-NNN 형식, 1-2일 단위, acceptance criteria 필수
-- 알 수 없는 비즈니스 요구사항을 만들어내지 말 것
-
-## SSO 핵심 정책
-
-- 계정 중복 허용: 전화번호/이메일 중복 허용 (레거시 유지)
-- SSO 폴백: identity-nginx에서 502/503/504 시 레거시 폴백
-- BFF 패턴: client_secret은 Identity Hub만 보유
-- Keycloak: `getUserByUsername`에 반드시 `exact=True`
+> 과거 이 파일에 있던 60줄짜리 본문 룰(2026-04-15 ~ 2026-06-08)은 `shared/` 로 이관됨. 이력은 git log 참조.

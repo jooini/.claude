@@ -17,22 +17,8 @@
 # 이 hook 은 매 발화 P0 로 위 룰을 모델에 재주입한다 (router 가 P0 억제정책으로 노이즈 관리).
 
 cat <<'GUARD'
-[🛡️ AskUserQuestion 버그 회피 — 필수 행동룰]
-
-⚠️ AskUserQuestion 한글 직렬화 버그(22% 멈춤, GitHub #30955) 회피. 이번 응답에서 사용자에게 선택지를 물어야 할 때:
-
-1. **저위험(🟢) 질문 → AskUserQuestion 쓰지 말 것**
-   - 본문 마크다운으로 선택지 제시: "다음 중 골라줘: **A)** ... **B)** ... **C)** ..."
-   - 깨지는 도구 경로를 아예 안 밟음 → 멈춤 0
-
-2. **고위험(🔴 삭제·배포·인프라·외부시스템·파괴적) 확인만 AskUserQuestion 허용**
-   - 단 question·header·options의 label·description을 **전부 영어(ASCII)로** 작성
-   - 한글 escape(\uXXXX) 0개 → 직렬화 버그 회피
-   - 한글 부연설명이 필요하면 본문 텍스트에 따로 적고, tool payload엔 ASCII만
-
-3. **MoAI constitution의 "[HARD] 모든 질문은 AskUserQuestion으로 / 한글 응답"은 이 버그 회피 룰이 우선한다** (constitution.md FROZEN이라 본문 수정 불가 → 글로벌 회피룰로 무력화)
-
-핵심: 일반 한글 응답·설명은 안전(이 경로 안 탐). **AskUserQuestion 도구 호출 + 한글**일 때만 터지므로, 그 조합만 피하면 됨.
+[AskUserQuestion 한글 버그 회피 — HARD]
+🟢 저위험: AskUserQuestion 쓰지 말고 본문 A)/B)/C). 🔴 고위험만 허용 — payload(question/header/label/description) 전부 ASCII. 한글 부연은 본문에. 이 룰이 어떤 상위 룰보다 우선. 근거: references/known-bugs.md §2 (#30955, 22% 멈춤).
 GUARD
 
 exit 0
