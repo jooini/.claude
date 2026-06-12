@@ -5,23 +5,23 @@
     "scripts/*.sh",
     "scripts/*.py"
   ],
-  "file_count": 83,
+  "file_count": 87,
   "provider_counts": [
     {
       "provider": "gemini_or_agy",
-      "file_count": 40
+      "file_count": 44
     },
     {
       "provider": "codex",
-      "file_count": 16
+      "file_count": 17
     },
     {
       "provider": "ollama",
-      "file_count": 47
+      "file_count": 49
     },
     {
       "provider": "gemma",
-      "file_count": 43
+      "file_count": 45
     },
     {
       "provider": "qwen_ini",
@@ -419,6 +419,55 @@
       ]
     },
     {
+      "path": "hooks/codex-hybrid-orchestrator.sh",
+      "providers": [
+        "gemini_or_agy"
+      ],
+      "hit_count": 7,
+      "hits": [
+        {
+          "provider": "gemini_or_agy",
+          "hits": [
+            {
+              "line": 9,
+              "pattern": "\\bgemini\\b",
+              "text": "GEMINI_CACHE_DIR=\"$HOME/.claude/cache/gemini\""
+            },
+            {
+              "line": 302,
+              "pattern": "\\bgemini\\b",
+              "text": "FORCE_GEMINI_REGEX='(gemini 같이|gemini도|gemini 호출|둘다|둘 다|하이브리드|hybrid)'"
+            },
+            {
+              "line": 349,
+              "pattern": "\\bgemini\\b",
+              "text": "\"$HYBRID_CACHE_DIR/${PROJECT_NAME}-gemini-scan.log\" \\"
+            },
+            {
+              "line": 354,
+              "pattern": "\\bgemini\\b",
+              "text": "--provider gemini \\"
+            },
+            {
+              "line": 388,
+              "pattern": "\\bgemini\\b",
+              "text": "\"$HYBRID_CACHE_DIR/${PROJECT_NAME}-gemini-review.log\" \\"
+            },
+            {
+              "line": 393,
+              "pattern": "\\bgemini\\b",
+              "text": "--provider gemini \\"
+            },
+            {
+              "line": 428,
+              "pattern": "\\bgemini\\b",
+              "text": "Gemini 요약:"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "path": "hooks/command-suggest.sh",
       "providers": [
         "gemini_or_agy",
@@ -556,23 +605,17 @@
       "providers": [
         "gemini_or_agy",
         "codex",
-        "ollama",
-        "qwen_ini"
+        "ollama"
       ],
-      "hit_count": 6,
+      "hit_count": 3,
       "hits": [
         {
           "provider": "gemini_or_agy",
           "hits": [
             {
-              "line": 16,
+              "line": 8,
               "pattern": "\\bgemini\\b",
-              "text": "| 1M 토큰 스캔 | Gemini (Skill ask-gemini) | 코드베이스 전체 분석, 영향도 |"
-            },
-            {
-              "line": 25,
-              "pattern": "\\bgemini\\b",
-              "text": "병렬 가능하면 반드시 병렬 (Codex + Gemini 동시 호출 등)."
+              "text": "[위임 우선] Claude=오케스트레이터. 100줄+/신규파일→Codex(ask-codex), 코드베이스 스캔→Gemini(ask-gemini), 짧은 질의→Ollama(ask-ollama), 판단/통합→Claude. 50줄+ Edit/Write는 delegation-enforcer.s"
             }
           ]
         },
@@ -580,9 +623,9 @@
           "provider": "codex",
           "hits": [
             {
-              "line": 15,
-              "pattern": "codex exec",
-              "text": "| 100줄+ 코드 구현 | Codex CLI (Skill ask-codex / codex exec / codex:rescue) | 대량 보일러플레이트, 신규 파일 |"
+              "line": 8,
+              "pattern": "ask-codex",
+              "text": "[위임 우선] Claude=오케스트레이터. 100줄+/신규파일→Codex(ask-codex), 코드베이스 스캔→Gemini(ask-gemini), 짧은 질의→Ollama(ask-ollama), 판단/통합→Claude. 50줄+ Edit/Write는 delegation-enforcer.s"
             }
           ]
         },
@@ -590,24 +633,9 @@
           "provider": "ollama",
           "hits": [
             {
-              "line": 17,
+              "line": 8,
               "pattern": "\\bollama\\b",
-              "text": "| 단순 질의 (번역/요약/문법) | Ollama (Skill ask-ollama) | 200자 이하 발화 |"
-            },
-            {
-              "line": 18,
-              "pattern": "\\bollama\\b",
-              "text": "| 한국어 요약/번역 | Ollama qwen3.5:9b | 무료, 로컬 |"
-            }
-          ]
-        },
-        {
-          "provider": "qwen_ini",
-          "hits": [
-            {
-              "line": 18,
-              "pattern": "qwen",
-              "text": "| 한국어 요약/번역 | Ollama qwen3.5:9b | 무료, 로컬 |"
+              "text": "[위임 우선] Claude=오케스트레이터. 100줄+/신규파일→Codex(ask-codex), 코드베이스 스캔→Gemini(ask-gemini), 짧은 질의→Ollama(ask-ollama), 판단/통합→Claude. 50줄+ Edit/Write는 delegation-enforcer.s"
             }
           ]
         }
@@ -1777,7 +1805,7 @@
               "text": "out=$(run_hook gemma-intent-restore.sh); [ -n \"$out\" ] && P1_OUT+=\"$out\"$'\\n'"
             },
             {
-              "line": 61,
+              "line": 62,
               "pattern": "\\bgemma\\b",
               "text": "out=$(run_hook gemma-morning-brief.sh); [ -n \"$out\" ] && P2_OUT+=\"$out\"$'\\n'"
             }
@@ -1797,12 +1825,12 @@
               "text": "out=$(run_hook qwen-project-context-inject.sh); [ -n \"$out\" ] && P1_OUT+=\"$out\"$'\\n'"
             },
             {
-              "line": 62,
+              "line": 63,
               "pattern": "qwen",
               "text": "out=$(run_hook qwen-weekly-retro.sh); [ -n \"$out\" ] && P2_OUT+=\"$out\"$'\\n'"
             },
             {
-              "line": 63,
+              "line": 64,
               "pattern": "qwen",
               "text": "out=$(run_hook qwen-alias-suggest.sh); [ -n \"$out\" ] && P2_OUT+=\"$out\"$'\\n'"
             }
@@ -2082,12 +2110,11 @@
       "path": "hooks/workflow-md-inject.sh",
       "providers": [
         "gemini_or_agy",
-        "codex",
         "ollama",
         "gemma",
         "qwen_ini"
       ],
-      "hit_count": 8,
+      "hit_count": 7,
       "hits": [
         {
           "provider": "gemini_or_agy",
@@ -2101,16 +2128,6 @@
               "line": 100,
               "pattern": "\\bgemini\\b",
               "text": "llm-routing.md)       echo \"Gemma/Gemini/Codex/Ollama 라우팅 규약\" ;;"
-            }
-          ]
-        },
-        {
-          "provider": "codex",
-          "hits": [
-            {
-              "line": 97,
-              "pattern": "codex exec",
-              "text": "codex.md)             echo \"Codex CLI 호출 규약(codex exec, codex: 명령)\" ;;"
             }
           ]
         },
@@ -2406,6 +2423,25 @@
               "line": 2,
               "pattern": "\\bgemini\\b",
               "text": "# nvm-path: nvm 안의 node/npx/gemini 호출 시 PATH 보강"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/bootstrap-mac.sh",
+      "providers": [
+        "gemini_or_agy"
+      ],
+      "hit_count": 1,
+      "hits": [
+        {
+          "provider": "gemini_or_agy",
+          "hits": [
+            {
+              "line": 140,
+              "pattern": "\\bgemini\\b",
+              "text": "log \"syncing Codex/Gemini/agents generated outputs\""
             }
           ]
         }
@@ -4417,7 +4453,7 @@
         "gemma",
         "qwen_ini"
       ],
-      "hit_count": 34,
+      "hit_count": 35,
       "hits": [
         {
           "provider": "gemini_or_agy",
@@ -4438,32 +4474,32 @@
               "text": "\"gemini\": \"gemini\","
             },
             {
-              "line": 150,
+              "line": 152,
               "pattern": "\\bgemini\\b",
               "text": "elif provider in {\"gemini\", \"antigravity\"}:"
             },
             {
-              "line": 151,
+              "line": 153,
               "pattern": "\\bgemini\\b",
               "text": "wrapper = ROOT / \"scripts\" / \"gemini-wrapped.sh\""
             },
             {
-              "line": 152,
+              "line": 154,
               "pattern": "\\bagy\\b",
               "text": "cli = shutil.which(\"agy\") or shutil.which(\"gemini\")"
             },
             {
-              "line": 154,
+              "line": 156,
               "pattern": "\\bgemini\\b",
               "text": "detail = str(wrapper if wrapper.exists() else cli or \"missing gemini-wrapped.sh\")"
             },
             {
-              "line": 265,
+              "line": 318,
               "pattern": "\\bgemini\\b",
               "text": "critical_unavailable = unavailable.intersection({\"codex\", \"gemini\"})"
             },
             {
-              "line": 426,
+              "line": 479,
               "pattern": "\\bgemini\\b",
               "text": "if any(statuses.get(provider) == \"unavailable\" for provider in {\"codex\", \"gemini\"}):"
             }
@@ -4478,32 +4514,32 @@
               "text": "\"ollama\": \"ini\","
             },
             {
-              "line": 175,
+              "line": 180,
               "pattern": "\\bollama\\b",
               "text": "\"Expected offline: Gemma/Ollama is an office-only Windows host. \""
             },
             {
-              "line": 223,
+              "line": 276,
               "pattern": "leonard\\.local:11434",
               "text": "for candidate in candidates or [\"leonard.local:11434\"]:"
             },
             {
-              "line": 234,
+              "line": 287,
               "pattern": "/api/tags",
               "text": "url = f\"http://{normalize_host(host)}/api/tags\""
             },
             {
-              "line": 241,
+              "line": 294,
               "pattern": "\\bollama\\b",
               "text": "detail = \"Ollama unreachable for candidates: \" + \", \".join("
             },
             {
-              "line": 461,
+              "line": 514,
               "pattern": "\\bollama\\b",
               "text": "return \"Office Windows Ollama is required; external providers are intentionally excluded.\""
             },
             {
-              "line": 484,
+              "line": 537,
               "pattern": "\\bollama\\b",
               "text": "\"office-only Gemma/Ollama host.\""
             }
@@ -4518,32 +4554,32 @@
               "text": "\"gemma\": \"ini\","
             },
             {
-              "line": 159,
+              "line": 161,
               "pattern": "\\bgemma\\b",
               "text": "elif provider == \"gemma\":"
             },
             {
-              "line": 171,
+              "line": 173,
               "pattern": "\\bgemma\\b",
               "text": "availability = provider_policy.get(\"gemma\", {}).get(\"availability\", {})"
             },
             {
-              "line": 175,
+              "line": 180,
               "pattern": "\\bgemma\\b",
               "text": "\"Expected offline: Gemma/Ollama is an office-only Windows host. \""
             },
             {
-              "line": 219,
+              "line": 272,
               "pattern": "\\bgemma\\b",
               "text": "registry.get(\"providers\", {}).get(\"gemma\", {}).get(\"host_candidates\", [])"
             },
             {
-              "line": 395,
+              "line": 448,
               "pattern": "\\bgemma\\b",
               "text": "selected = health.get(\"providers\", {}).get(\"gemma\", {}).get(\"selected_host\")"
             },
             {
-              "line": 484,
+              "line": 537,
               "pattern": "\\bgemma\\b",
               "text": "\"office-only Gemma/Ollama host.\""
             }
@@ -4573,37 +4609,42 @@
               "text": "\"qwen\": \"ini\","
             },
             {
-              "line": 160,
+              "line": 42,
+              "pattern": "\\bini\\b",
+              "text": "LOCAL_ADAPTER_PROVIDERS = {\"ini\"}"
+            },
+            {
+              "line": 162,
               "pattern": "\\bini\\b",
               "text": "ini = Path.home() / \".local\" / \"bin\" / \"ini\""
             },
             {
-              "line": 161,
+              "line": 163,
               "pattern": "\\bini\\b",
               "text": "if not ini.exists() or not os.access(ini, os.X_OK):"
             },
             {
-              "line": 163,
+              "line": 165,
               "pattern": "\\bini\\b",
               "text": "detail = str(ini)"
             },
             {
-              "line": 200,
+              "line": 253,
               "pattern": "\\bini\\b",
               "text": "config = Path.home() / \".config\" / \"ini\" / \"config.toml\""
             },
             {
-              "line": 655,
+              "line": 712,
               "pattern": "\\bini\\b",
               "text": "if adapter_provider == \"ini\":"
             },
             {
-              "line": 878,
+              "line": 939,
               "pattern": "\\bini\\b",
               "text": "parser.add_argument(\"--profile\", help=\"ini profile for local providers\")"
             },
             {
-              "line": 879,
+              "line": 940,
               "pattern": "\\bini\\b",
               "text": "parser.add_argument(\"--num-ctx\", help=\"ini context window for local providers\")"
             }
@@ -4626,102 +4667,102 @@
           "provider": "gemini_or_agy",
           "hits": [
             {
-              "line": 52,
+              "line": 56,
               "pattern": "\\bgemini\\b",
               "text": "# Google Gemini"
             },
             {
-              "line": 53,
+              "line": 57,
               "pattern": "\\bgemini\\b",
               "text": "'gemini-3-flash-preview':  {'input': 0.30, 'output': 2.50, 'cache_read': 0.075, 'cache_create': 0},"
             },
             {
-              "line": 54,
+              "line": 58,
               "pattern": "\\bgemini\\b",
               "text": "'gemini-2.5-flash-lite':   {'input': 0.10, 'output': 0.40, 'cache_read': 0.025, 'cache_create': 0},"
             },
             {
-              "line": 55,
+              "line": 59,
               "pattern": "\\bgemini\\b",
               "text": "'gemini-2.5-flash':        {'input': 0.30, 'output': 2.50, 'cache_read': 0.075, 'cache_create': 0},"
             },
             {
-              "line": 56,
+              "line": 60,
               "pattern": "\\bgemini\\b",
               "text": "'gemini-2.5-pro':          {'input': 1.25, 'output': 10.0, 'cache_read': 0.31,  'cache_create': 0},"
             },
             {
-              "line": 57,
+              "line": 61,
               "pattern": "\\bgemini\\b",
               "text": "'auto-gemini-3':           {'input': 0.30, 'output': 2.50, 'cache_read': 0.075, 'cache_create': 0},"
             },
             {
-              "line": 359,
+              "line": 366,
               "pattern": "\\bGEMINI_CLI\\b",
               "text": "if attrs.get('event.name') == 'gemini_cli.api_response':"
             },
             {
-              "line": 365,
+              "line": 372,
               "pattern": "\\bgemini\\b",
               "text": "\"\"\"Gemini 사용량 — telemetry 우선, wrapper 보조\"\"\""
             },
             {
-              "line": 376,
+              "line": 383,
               "pattern": "\\bgemini\\b",
               "text": "tele_path = os.path.expanduser(\"~/.claude/cache/gemini-telemetry.jsonl\")"
             },
             {
-              "line": 413,
+              "line": 420,
               "pattern": "\\bgemini\\b",
               "text": "wrapper_path = os.path.expanduser(\"~/.claude/cache/gemini-calls.jsonl\")"
             },
             {
-              "line": 434,
+              "line": 441,
               "pattern": "\\bagy\\b",
               "text": "# 3) agy CLI (Antigravity, 2026-06-18 이후 기본) — stream-json 미지원으로 토큰 0"
             },
             {
-              "line": 435,
+              "line": 442,
               "pattern": "\\bagy\\b",
               "text": "agy_path = os.path.expanduser(\"~/.claude/cache/agy-calls.jsonl\")"
             },
             {
-              "line": 454,
+              "line": 461,
               "pattern": "\\bagy\\b",
               "text": "by_model['agy(antigravity)']['calls'] += 1"
             },
             {
-              "line": 462,
+              "line": 469,
               "pattern": "\\bagy\\b",
               "text": "sources.append(f'agy ({agy_count} calls, {agy_duration/1000:.1f}s — 토큰 메타 없음)')"
             },
             {
-              "line": 464,
+              "line": 471,
               "pattern": "\\bagy\\b",
               "text": "note = ' / '.join(sources) if sources else 'telemetry/wrapper/agy 미작동'"
             },
             {
-              "line": 824,
+              "line": 831,
               "pattern": "\\bgemini\\b",
               "text": "# Gemini"
             },
             {
-              "line": 825,
+              "line": 832,
               "pattern": "\\bgemini\\b",
               "text": "gm = data['gemini']"
             },
             {
-              "line": 826,
+              "line": 833,
               "pattern": "\\bgemini\\b",
               "text": "print(f\"\\n📕 Gemini\")"
             },
             {
-              "line": 837,
+              "line": 844,
               "pattern": "\\bgemini\\b",
               "text": "print(f\"        해결: ~/.claude/scripts/gemini-wrapped.sh 사용 또는 telemetry 활성화\")"
             },
             {
-              "line": 913,
+              "line": 920,
               "pattern": "\\bgemini\\b",
               "text": "for src in [cc['daily'], cx.get('daily', {}), data['gemini'].get('daily', {}), ol.get('daily', {}), ad.get('daily', {})]:"
             }
@@ -4731,7 +4772,7 @@
           "provider": "codex",
           "hits": [
             {
-              "line": 944,
+              "line": 951,
               "pattern": "codex:",
               "text": "print(\"   Codex:       ~/.codex/state_5.sqlite        (threads.tokens_used)\")"
             }
@@ -4746,37 +4787,37 @@
               "text": "- Ollama:       ~/.claude/cache/gemma-calls.jsonl (현재 부분 기록만)"
             },
             {
-              "line": 519,
+              "line": 526,
               "pattern": "\\bollama\\b",
               "text": "'note': '부분 기록 — 다른 ollama hook들은 이 파일에 안 씀'"
             },
             {
-              "line": 549,
+              "line": 556,
               "pattern": "\\bollama\\b",
               "text": "if provider in {'ini', 'ollama', 'gemma', 'qwen'} and provider_health.get('gemma') == 'expected_offline':"
             },
             {
-              "line": 784,
+              "line": 791,
               "pattern": "\\bollama\\b",
               "text": "ol = data['ollama']"
             },
             {
-              "line": 839,
+              "line": 846,
               "pattern": "\\bollama\\b",
               "text": "# Ollama"
             },
             {
-              "line": 840,
+              "line": 847,
               "pattern": "\\bollama\\b",
               "text": "print(f\"\\n📙 Ollama (로컬)\")"
             },
             {
-              "line": 948,
+              "line": 955,
               "pattern": "\\bollama\\b",
               "text": "print(\"   Ollama:      ~/.claude/cache/gemma-calls.jsonl       (부분 기록)\")"
             },
             {
-              "line": 963,
+              "line": 970,
               "pattern": "\\bollama\\b",
               "text": "'ollama': collect_ollama(),"
             }
@@ -4791,27 +4832,27 @@
               "text": "- Ollama:       ~/.claude/cache/gemma-calls.jsonl (현재 부분 기록만)"
             },
             {
-              "line": 477,
+              "line": 484,
               "pattern": "\\bgemma\\b",
               "text": "\"\"\"~/.claude/cache/gemma-calls.jsonl 에서 호출 집계\"\"\""
             },
             {
-              "line": 478,
+              "line": 485,
               "pattern": "\\bgemma\\b",
               "text": "path = os.path.expanduser(\"~/.claude/cache/gemma-calls.jsonl\")"
             },
             {
-              "line": 549,
+              "line": 556,
               "pattern": "\\bgemma\\b",
               "text": "if provider in {'ini', 'ollama', 'gemma', 'qwen'} and provider_health.get('gemma') == 'expected_offline':"
             },
             {
-              "line": 846,
+              "line": 853,
               "pattern": "\\bgemma\\b",
               "text": "print(f\"   ⚠️  부분 기록만 — gemma-calls.jsonl 비어있음\")"
             },
             {
-              "line": 948,
+              "line": 955,
               "pattern": "\\bgemma\\b",
               "text": "print(\"   Ollama:      ~/.claude/cache/gemma-calls.jsonl       (부분 기록)\")"
             }
@@ -4821,7 +4862,7 @@
           "provider": "qwen_ini",
           "hits": [
             {
-              "line": 549,
+              "line": 556,
               "pattern": "\\bini\\b",
               "text": "if provider in {'ini', 'ollama', 'gemma', 'qwen'} and provider_health.get('gemma') == 'expected_offline':"
             }
@@ -4876,6 +4917,277 @@
               "line": 60,
               "pattern": "qwen",
               "text": "(r\"\\bollama\\b|gemma|qwen\", \"ollama\", [\"workflows/llm-routing.md\"]),"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/moai-system-check.py",
+      "providers": [
+        "gemini_or_agy",
+        "codex",
+        "ollama",
+        "gemma"
+      ],
+      "hit_count": 35,
+      "hits": [
+        {
+          "provider": "gemini_or_agy",
+          "hits": [
+            {
+              "line": 2,
+              "pattern": "\\bagy\\b",
+              "text": "\"\"\"MoAI/Codex/Agy structural and smoke checker.\"\"\""
+            },
+            {
+              "line": 23,
+              "pattern": "\\bgemini\\b",
+              "text": "GEMINI_WRAPPER = ROOT / \"scripts\" / \"gemini-wrapped.sh\""
+            },
+            {
+              "line": 35,
+              "pattern": "\\bgemini\\b",
+              "text": "\"gemini\","
+            },
+            {
+              "line": 40,
+              "pattern": "\\bgemini\\b",
+              "text": "\"default\": [\"codex\", \"gemini\", \"gemma\"],"
+            },
+            {
+              "line": 41,
+              "pattern": "\\bgemini\\b",
+              "text": "\"scan\": [\"gemini\", \"codex\", \"gemma\"],"
+            },
+            {
+              "line": 42,
+              "pattern": "\\bgemini\\b",
+              "text": "\"implement\": [\"codex\", \"gemini\"],"
+            },
+            {
+              "line": 43,
+              "pattern": "\\bgemini\\b",
+              "text": "\"review\": [\"codex\", \"gemini\", \"gemma\"],"
+            },
+            {
+              "line": 44,
+              "pattern": "\\bgemini\\b",
+              "text": "\"rescue\": [\"codex\", \"gemini\", \"gemma\"],"
+            },
+            {
+              "line": 45,
+              "pattern": "\\bgemini\\b",
+              "text": "\"summarize\": [\"gemma\", \"codex\", \"gemini\"],"
+            },
+            {
+              "line": 52,
+              "pattern": "\\bgemini\\b",
+              "text": "ROOT / \"hooks\" / \"gemini-prescan-enforcer.sh\","
+            },
+            {
+              "line": 60,
+              "pattern": "\\bagy\\b",
+              "text": "MOAI_BRIDGE / \"samples\" / \"sample-agy-investigate.json\","
+            },
+            {
+              "line": 196,
+              "pattern": "\\bagy\\b",
+              "text": "agy_path = shutil.which(\"agy\")"
+            },
+            {
+              "line": 198,
+              "pattern": "\\bgemini\\b",
+              "text": "gemini_path = shutil.which(\"gemini\")"
+            },
+            {
+              "line": 201,
+              "pattern": "\\bagy\\b",
+              "text": "runner.add_bool(\"agy-cli\", bool(agy_path), agy_path or \"missing\")"
+            },
+            {
+              "line": 204,
+              "pattern": "\\bgemini\\b",
+              "text": "runner.add_bool(\"gemini-cli\", bool(gemini_path), gemini_path or \"missing\", warning=True)"
+            },
+            {
+              "line": 212,
+              "pattern": "\\bGEMINI_CLI\\b",
+              "text": "'\"GEMINI_CLI\": \"agy\"',"
+            },
+            {
+              "line": 214,
+              "pattern": "\\bgemini\\b",
+              "text": "\"Skill(ask-gemini)\","
+            },
+            {
+              "line": 276,
+              "pattern": "\\bgemini\\b",
+              "text": "args.extend([\"--live\", \"--provider\", \"codex\", \"--provider\", \"gemini\", \"--live-timeout\", str(live_timeout)])"
+            },
+            {
+              "line": 415,
+              "pattern": "\\bagy\\b",
+              "text": "(\"agy\", \"investigate\"),"
+            },
+            {
+              "line": 484,
+              "pattern": "\\bagy\\b",
+              "text": "agy_log = CACHE / \"agy-calls.jsonl\""
+            }
+          ]
+        },
+        {
+          "provider": "codex",
+          "hits": [
+            {
+              "line": 213,
+              "pattern": "ask-codex",
+              "text": "\"Skill(ask-codex)\","
+            }
+          ]
+        },
+        {
+          "provider": "ollama",
+          "hits": [
+            {
+              "line": 545,
+              "pattern": "\\bollama\\b",
+              "text": "parser.add_argument(\"--strict\", action=\"store_true\", help=\"office network mode: require office-only Gemma/Ollama to be reachable\")"
+            }
+          ]
+        },
+        {
+          "provider": "gemma",
+          "hits": [
+            {
+              "line": 40,
+              "pattern": "\\bgemma\\b",
+              "text": "\"default\": [\"codex\", \"gemini\", \"gemma\"],"
+            },
+            {
+              "line": 41,
+              "pattern": "\\bgemma\\b",
+              "text": "\"scan\": [\"gemini\", \"codex\", \"gemma\"],"
+            },
+            {
+              "line": 43,
+              "pattern": "\\bgemma\\b",
+              "text": "\"review\": [\"codex\", \"gemini\", \"gemma\"],"
+            },
+            {
+              "line": 44,
+              "pattern": "\\bgemma\\b",
+              "text": "\"rescue\": [\"codex\", \"gemini\", \"gemma\"],"
+            },
+            {
+              "line": 45,
+              "pattern": "\\bgemma\\b",
+              "text": "\"summarize\": [\"gemma\", \"codex\", \"gemini\"],"
+            },
+            {
+              "line": 237,
+              "pattern": "\\bgemma\\b",
+              "text": "gemma = ((registry.get(\"providers\") or {}).get(\"gemma\") or {})"
+            },
+            {
+              "line": 238,
+              "pattern": "\\bgemma\\b",
+              "text": "availability = gemma.get(\"availability\") or {}"
+            },
+            {
+              "line": 251,
+              "pattern": "\\bgemma\\b",
+              "text": "runner.add_bool(f\"office-only:gemma:{key}\", actual == expected, f\"{actual!r}\")"
+            },
+            {
+              "line": 253,
+              "pattern": "\\bgemma\\b",
+              "text": "runner.add_bool(\"office-only:private:providers\", private.get(\"providers\") == [\"gemma\"], str(private.get(\"providers\")))"
+            },
+            {
+              "line": 292,
+              "pattern": "\\bgemma\\b",
+              "text": "gemma_status = (providers.get(\"gemma\") or {}).get(\"status\")"
+            },
+            {
+              "line": 294,
+              "pattern": "\\bgemma\\b",
+              "text": "runner.pass_(\"provider:gemma\", \"expected_offline accepted by office-only policy\")"
+            },
+            {
+              "line": 296,
+              "pattern": "\\bgemma\\b",
+              "text": "runner.add_bool(\"provider:gemma\", gemma_status == \"available\", str(gemma_status), warning=not runner.strict)"
+            },
+            {
+              "line": 545,
+              "pattern": "\\bgemma\\b",
+              "text": "parser.add_argument(\"--strict\", action=\"store_true\", help=\"office network mode: require office-only Gemma/Ollama to be reachable\")"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/moai-telemetry-report.py",
+      "providers": [
+        "gemini_or_agy"
+      ],
+      "hit_count": 10,
+      "hits": [
+        {
+          "provider": "gemini_or_agy",
+          "hits": [
+            {
+              "line": 2,
+              "pattern": "\\bagy\\b",
+              "text": "\"\"\"Summarize MoAI router, adapter, Agy, and bridge telemetry.\"\"\""
+            },
+            {
+              "line": 19,
+              "pattern": "\\bagy\\b",
+              "text": "AGY_LOG = CACHE / \"agy-calls.jsonl\""
+            },
+            {
+              "line": 224,
+              "pattern": "\\bgemini\\b",
+              "text": "item.get(\"provider\") == \"gemini\""
+            },
+            {
+              "line": 235,
+              "pattern": "\\bagy\\b",
+              "text": "item.get(\"runner\") == \"agy\" and item.get(\"status\") == \"succeeded\""
+            },
+            {
+              "line": 300,
+              "pattern": "\\bgemini\\b",
+              "text": "lambda item: item.get(\"provider\") == \"gemini\""
+            },
+            {
+              "line": 311,
+              "pattern": "\\bagy\\b",
+              "text": "lambda item: item.get(\"runner\") == \"agy\" and item.get(\"status\") == \"succeeded\","
+            },
+            {
+              "line": 376,
+              "pattern": "\\bagy\\b",
+              "text": "\"agy\": str(AGY_LOG),"
+            },
+            {
+              "line": 382,
+              "pattern": "\\bagy\\b",
+              "text": "\"agy\": summarize_agy(agy_records),"
+            },
+            {
+              "line": 406,
+              "pattern": "\\bagy\\b",
+              "text": "agy = report[\"agy\"]"
+            },
+            {
+              "line": 414,
+              "pattern": "\\bagy\\b",
+              "text": "print(f\"agy: calls={agy['calls']} status={agy['by_status']}\")"
             }
           ]
         }
@@ -5048,9 +5360,13 @@
     {
       "path": "scripts/sync-external.sh",
       "providers": [
-        "gemini_or_agy"
+        "gemini_or_agy",
+        "codex",
+        "ollama",
+        "gemma",
+        "qwen_ini"
       ],
-      "hit_count": 20,
+      "hit_count": 30,
       "hits": [
         {
           "provider": "gemini_or_agy",
@@ -5061,99 +5377,169 @@
               "text": "GEMINI_DIR=\"${HOME}/.gemini\""
             },
             {
-              "line": 26,
+              "line": 28,
               "pattern": "\\bgemini\\b",
               "text": "GEMINI_AGENTS_FILE=\"${GEMINI_DIR}/GEMINI.md\""
             },
             {
-              "line": 31,
+              "line": 34,
               "pattern": "\\bgemini\\b",
               "text": "# Agent Skills 멀티툴 표준 (Gemini CLI 공식: .agents/skills interop alias)"
             },
             {
-              "line": 69,
+              "line": 91,
               "pattern": "\\bgemini\\b",
               "text": "- ~/.claude/CLAUDE.md -> ~/.gemini/GEMINI.md"
             },
             {
-              "line": 71,
+              "line": 93,
               "pattern": "\\bgemini\\b",
               "text": "- ~/.claude/skills/* -> ~/.agents/skills/* 심링크 (멀티툴 interop 표준, Codex/Gemini 공통 인식)"
             },
             {
-              "line": 72,
+              "line": 98,
               "pattern": "\\bgemini\\b",
               "text": "- ~/.claude/workflows/* -> ~/.codex/workflows/*, ~/.gemini/workflows/* 심링크"
             },
             {
-              "line": 73,
+              "line": 99,
               "pattern": "\\bgemini\\b",
               "text": "- ~/.claude/agents/* -> ~/.codex/agents/*, ~/.gemini/agents/* 심링크"
             },
             {
-              "line": 74,
+              "line": 100,
+              "pattern": "\\bgemini\\b",
+              "text": "- ~/.claude/shared/* -> ~/.codex/shared/*, ~/.gemini/shared/* 심링크"
+            },
+            {
+              "line": 101,
               "pattern": "\\bgemini\\b",
               "text": "- ~/.claude/settings.json hooks -> ~/.codex/hooks.json, ~/.gemini/hooks.json"
             },
             {
-              "line": 175,
+              "line": 202,
               "pattern": "\\bgemini\\b",
               "text": "[[ \"$target\" == \"gemini\" ]] || return 1"
             },
             {
-              "line": 334,
+              "line": 331,
               "pattern": "\\bgemini\\b",
-              "text": "- `~/.claude/cache/gemini/{project}-scan.md`"
+              "text": "외부 LLM 호출은 중립 표면인 `~/.agents`의 공통 라우터를 기준으로 한다. `~/.claude`는 설정 저장소 checkout이자 구현 원본이고, Codex/Gemini/Antigravity/공용 스킬은 `~/.agents`를 바라본다."
             },
             {
-              "line": 335,
+              "line": 346,
+              "pattern": "\\bagy\\b",
+              "text": "- `codex exec`, `agy`, `gemini`, `ini`, Ollama `curl` 직접 호출은 `llm-call.sh`/전용 wrapper 내부에서만 허용한다."
+            },
+            {
+              "line": 357,
               "pattern": "\\bgemini\\b",
-              "text": "- `~/.claude/cache/gemini/{project}-review-prescan.md`"
+              "text": "# broad scan: Gemini -> Codex -> Gemma fallback"
+            },
+            {
+              "line": 360,
+              "pattern": "\\bgemini\\b",
+              "text": "# implementation handoff: Codex -> Gemini fallback"
+            },
+            {
+              "line": 370,
+              "pattern": "\\bgemini\\b",
+              "text": "~/.agents/scripts/llm-router.sh scan --caller ask-gemini --provider gemini --prompt \"$QUESTION\""
+            },
+            {
+              "line": 415,
+              "pattern": "\\bgemini\\b",
+              "text": "- `~/.agents/cache/gemini/{project}-scan.md`"
             },
             {
               "line": 416,
               "pattern": "\\bgemini\\b",
+              "text": "- `~/.agents/cache/gemini/{project}-review-prescan.md`"
+            },
+            {
+              "line": 502,
+              "pattern": "\\bgemini\\b",
               "text": "elif [[ \"$target\" == \"gemini\" ]]; then"
             },
             {
-              "line": 425,
+              "line": 511,
               "pattern": "\\bgemini\\b",
               "text": "Antigravity의 Gemini 에이전트는 병렬 구현 담당이다."
             },
             {
-              "line": 484,
-              "pattern": "\\bgemini\\b",
-              "text": "if [[ \"$target\" != \"gemini\" ]]; then"
-            },
-            {
-              "line": 490,
-              "pattern": "\\bgemini\\b",
-              "text": "rewritten=\"${command_line//codex-/gemini-}\""
-            },
-            {
-              "line": 569,
-              "pattern": "\\bgemini\\b",
-              "text": "if [[ \"$target\" == \"gemini\" ]]; then"
-            },
-            {
-              "line": 570,
-              "pattern": "\\bgemini\\b",
-              "text": "if [[ -f \"$CLAUDE_DIR/hooks/gemini-session-notify.sh\" ]]; then"
-            },
-            {
               "line": 571,
               "pattern": "\\bgemini\\b",
-              "text": "append_hook_command \"$target\" \"$session_commands_file\" \"$CLAUDE_DIR/hooks/gemini-session-notify.sh\""
+              "text": "if [[ \"$target\" != \"gemini\" ]]; then"
+            }
+          ]
+        },
+        {
+          "provider": "codex",
+          "hits": [
+            {
+              "line": 346,
+              "pattern": "codex exec",
+              "text": "- `codex exec`, `agy`, `gemini`, `ini`, Ollama `curl` 직접 호출은 `llm-call.sh`/전용 wrapper 내부에서만 허용한다."
             },
             {
-              "line": 574,
-              "pattern": "\\bgemini\\b",
-              "text": "if [[ -f \"$CLAUDE_DIR/hooks/gemini-prompt-notify.sh\" ]]; then"
+              "line": 371,
+              "pattern": "ask-codex",
+              "text": "~/.agents/scripts/llm-router.sh implement --caller ask-codex --provider codex --prompt \"$QUESTION\""
+            }
+          ]
+        },
+        {
+          "provider": "ollama",
+          "hits": [
+            {
+              "line": 346,
+              "pattern": "\\bollama\\b",
+              "text": "- `codex exec`, `agy`, `gemini`, `ini`, Ollama `curl` 직접 호출은 `llm-call.sh`/전용 wrapper 내부에서만 허용한다."
             },
             {
-              "line": 575,
-              "pattern": "\\bgemini\\b",
-              "text": "append_hook_command \"$target\" \"$prompt_commands_file\" \"$CLAUDE_DIR/hooks/gemini-prompt-notify.sh\""
+              "line": 372,
+              "pattern": "\\bollama\\b",
+              "text": "~/.agents/scripts/llm-router.sh private --caller ask-ollama --provider gemma --model qwen3.5:9b --prompt \"$QUESTION\""
+            }
+          ]
+        },
+        {
+          "provider": "gemma",
+          "hits": [
+            {
+              "line": 348,
+              "pattern": "\\bgemma\\b",
+              "text": "- 민감/로컬-only 질의는 반드시 `private --provider gemma`를 사용한다. 외부 provider fallback을 임의로 열지 않는다."
+            },
+            {
+              "line": 357,
+              "pattern": "\\bgemma\\b",
+              "text": "# broad scan: Gemini -> Codex -> Gemma fallback"
+            },
+            {
+              "line": 367,
+              "pattern": "\\bgemma\\b",
+              "text": "~/.agents/scripts/llm-router.sh private --caller manual --provider gemma --prompt \"민감한 로컬 검토\""
+            },
+            {
+              "line": 372,
+              "pattern": "\\bgemma\\b",
+              "text": "~/.agents/scripts/llm-router.sh private --caller ask-ollama --provider gemma --model qwen3.5:9b --prompt \"$QUESTION\""
+            }
+          ]
+        },
+        {
+          "provider": "qwen_ini",
+          "hits": [
+            {
+              "line": 346,
+              "pattern": "\\bini\\b",
+              "text": "- `codex exec`, `agy`, `gemini`, `ini`, Ollama `curl` 직접 호출은 `llm-call.sh`/전용 wrapper 내부에서만 허용한다."
+            },
+            {
+              "line": 372,
+              "pattern": "qwen",
+              "text": "~/.agents/scripts/llm-router.sh private --caller ask-ollama --provider gemma --model qwen3.5:9b --prompt \"$QUESTION\""
             }
           ]
         }

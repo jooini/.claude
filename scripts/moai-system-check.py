@@ -212,8 +212,8 @@ def check_hook_wiring(runner: CheckRunner) -> None:
         '"GEMINI_CLI": "agy"',
         "Skill(ask-codex)",
         "Skill(ask-gemini)",
-        "Bash(codex exec *)",
-        "Bash(agy -p *)",
+        "Bash(~/.agents/scripts/llm-router.sh *)",
+        "Bash(/Users/leonard/.agents/scripts/llm-router.sh *)",
         "user-prompt-router.sh",
     ]
     for fragment in expected_settings_fragments:

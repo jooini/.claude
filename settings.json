@@ -451,11 +451,8 @@
       "mcp__plugin_claude-mem_mcp-search__smart_unfold",
       "mcp__plugin_claude-mem_mcp-search__timeline",
       "mcp__plugin_claude-mem_mcp-search__get_observations",
-      "Bash(gemini -p *)",
-      "Bash(agy -p *)",
-      "Bash(agy --print *)",
-      "Bash(codex exec *)",
-      "Bash(/Users/leonard/.nvm/versions/node/v22.22.0/bin/codex exec *)",
+      "Bash(~/.agents/scripts/llm-router.sh *)",
+      "Bash(/Users/leonard/.agents/scripts/llm-router.sh *)",
       "Skill(ask-codex)",
       "Skill(ask-gemini)"
     ],

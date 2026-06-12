@@ -8,6 +8,7 @@ WORKSPACE_DIR="${CODEX_HYBRID_WORKSPACE_DIR:-$HOME/Workspace}"
 CLAUDE_CACHE_DIR="$HOME/.claude/cache/claude"
 GEMINI_CACHE_DIR="$HOME/.claude/cache/gemini"
 HYBRID_CACHE_DIR="$HOME/.claude/cache/hybrid"
+LLM_ROUTER="${CODEX_HYBRID_LLM_ROUTER:-$HOME/.agents/scripts/llm-router.sh}"
 STATE_FILE="$HYBRID_CACHE_DIR/last-userprompt-state.txt"
 LAST_PAYLOAD_FILE="$HYBRID_CACHE_DIR/last-codex-userprompt.json"
 
@@ -205,13 +206,8 @@ command_exists() {
 }
 
 gemini_seems_available() {
-    local accounts_file="$HOME/.gemini/google_accounts.json"
-    local creds_file="$HOME/.gemini/oauth_creds.json"
-
     [[ "${HYBRID_DRY_RUN:-0}" == "1" ]] && return 0
-    command_exists gemini || return 1
-    [[ -s "$creds_file" || -s "$accounts_file" ]] || return 1
-    return 0
+    [[ -x "$LLM_ROUTER" ]]
 }
 
 claude_seems_available() {
@@ -353,7 +349,11 @@ EOF
         "$HYBRID_CACHE_DIR/${PROJECT_NAME}-gemini-scan.log" \
         "$PROJECT_ROOT" \
         90 \
-        gemini -p "$GEMINI_SCAN_PROMPT"
+        "$LLM_ROUTER" scan \
+            --caller codex-hybrid-orchestrator \
+            --provider gemini \
+            --timeout 90 \
+            --prompt "$GEMINI_SCAN_PROMPT"
 fi
 
 if [[ "$RUN_GEMINI_REVIEW" -eq 1 ]] && ! is_fresh_file "$GEMINI_REVIEW_FILE" 600; then
@@ -388,7 +388,11 @@ EOF
                 "$HYBRID_CACHE_DIR/${PROJECT_NAME}-gemini-review.log" \
                 "$PROJECT_ROOT" \
                 90 \
-                gemini -p "$GEMINI_REVIEW_PROMPT"
+                "$LLM_ROUTER" scan \
+                    --caller codex-hybrid-orchestrator-review \
+                    --provider gemini \
+                    --timeout 90 \
+                    --prompt "$GEMINI_REVIEW_PROMPT"
         fi
     fi
 fi

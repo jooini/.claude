@@ -134,7 +134,7 @@ git commit -m "{한글 커밋 메시지}"
 git push -u origin "$CURRENT_BRANCH"
 
 # 4. PR 생성 전 Codex 최종 리뷰
-# codex:review 호출 (또는 codex exec --skip-git-repo-check "diff 리뷰")
+# codex:review 호출 또는 ~/.agents/scripts/llm-router.sh review --caller go --provider codex --prompt "diff 리뷰"
 
 # 5. PR 생성
 gh pr create \

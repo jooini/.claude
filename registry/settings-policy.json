@@ -88,8 +88,8 @@
       "mcp__local-rag__query_documents",
       "mcp__local-rag__status",
       "mcp__plugin_claude-mem_mcp-search__search",
-      "Bash(agy -p *)",
-      "Bash(codex exec *)",
+      "Bash(~/.agents/scripts/llm-router.sh *)",
+      "Bash(/Users/leonard/.agents/scripts/llm-router.sh *)",
       "Skill(ask-codex)",
       "Skill(ask-gemini)"
     ],

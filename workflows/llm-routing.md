@@ -1,12 +1,12 @@
 # LLM 라우팅 규칙
 
-Claude, Codex, Gemini/agy, Gemma/Ollama를 한쪽 전용 설정이 아니라 공통 라우팅 계층으로 묶는다. 실행 정책의 정본은 `registry/llm-routing.json`이고, 실제 호출은 `scripts/llm-router.sh`가 담당한다.
+Claude, Codex, Gemini/agy, Gemma/Ollama를 한쪽 전용 설정이 아니라 공통 라우팅 계층으로 묶는다. 실행 정책의 정본은 `~/.agents/registry/llm-routing.json`이고, 실제 호출은 `~/.agents/scripts/llm-router.sh`가 담당한다. 구현 원본은 `~/.claude`에 있고 `~/.agents`는 공통 진입점 심링크 계층이다.
 
 ---
 
 ## 공통 라우터
 
-**진입점**: `~/.claude/scripts/llm-router.sh`
+**진입점**: `~/.agents/scripts/llm-router.sh`
 
 **역할**:
 - task별 provider fallback 결정
@@ -18,21 +18,21 @@ Claude, Codex, Gemini/agy, Gemma/Ollama를 한쪽 전용 설정이 아니라 공
 **기본 사용**:
 
 ```bash
-~/.claude/scripts/llm-router.sh doctor
-~/.claude/scripts/llm-router.sh doctor --strict
-~/.claude/scripts/llm-router.sh doctor --live --provider codex --provider gemini
-~/.claude/scripts/llm-router.sh route-health
-~/.claude/scripts/llm-router.sh route-health --json
+~/.agents/scripts/llm-router.sh doctor
+~/.agents/scripts/llm-router.sh doctor --strict
+~/.agents/scripts/llm-router.sh doctor --live --provider codex --provider gemini
+~/.agents/scripts/llm-router.sh route-health
+~/.agents/scripts/llm-router.sh route-health --json
 moai-system-check
 moai-system-check --live
 moai-e2e-check
 moai-regression-check --force
 moai-telemetry-report --days 7
 moai-telemetry-report --days 7 --require-e2e
-~/.claude/scripts/llm-router.sh scan --caller manual --prompt "영향 범위 분석"
-~/.claude/scripts/llm-router.sh implement --caller manual --prompt "패치 초안 작성"
-~/.claude/scripts/llm-router.sh review --caller manual --prompt "현재 diff 리뷰"
-~/.claude/scripts/llm-router.sh private --caller manual --prompt "민감한 로컬 검토"
+~/.agents/scripts/llm-router.sh scan --caller manual --prompt "영향 범위 분석"
+~/.agents/scripts/llm-router.sh implement --caller manual --prompt "패치 초안 작성"
+~/.agents/scripts/llm-router.sh review --caller manual --prompt "현재 diff 리뷰"
+~/.agents/scripts/llm-router.sh private --caller manual --prompt "민감한 로컬 검토"
 ```
 
 ## Task Routes

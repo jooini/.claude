@@ -1,13 +1,13 @@
 ---
 name: deep-research
-description: Gemini CLI로 기술 심층 조사를 수행합니다. 라이브러리 비교, 마이그레이션 전략, 보안 분석 등.
+description: 중앙 LLM 라우터를 통해 Gemini/Antigravity provider로 기술 심층 조사를 수행합니다. 라이브러리 비교, 마이그레이션 전략, 보안 분석 등.
 disable-model-invocation: true
-allowed-tools: Bash(gemini *), Bash(ls *), Read, Glob, Grep, Write
+allowed-tools: Bash(~/.agents/scripts/llm-router.sh *), Bash(/Users/leonard/.agents/scripts/llm-router.sh *), Bash(ls *), Read, Glob, Grep, Write
 ---
 
 # deep-research
 
-Gemini CLI의 대용량 컨텍스트를 활용하여 기술 심층 조사를 수행한다.
+Gemini/Antigravity provider의 대용량 컨텍스트를 활용하여 기술 심층 조사를 수행한다. provider CLI를 직접 실행하지 않고 `~/.agents/scripts/llm-router.sh scan --provider gemini`를 사용한다.
 
 ## 조사 유형
 
@@ -35,10 +35,11 @@ find . -type f \( -name '*.py' -o -name '*.ts' -o -name '*.kt' -o -name '*.php' 
   -not -path '*/node_modules/*' -not -path '*/__pycache__/*' -not -path '*/.git/*' | head -200
 ```
 
-### 3단계: Gemini 실행
+### 3단계: Gemini provider 실행
 
 ```bash
-"${GEMINI_CLI:-agy}" -p "[조사 주제]
+{
+  printf '%s\n' "[조사 주제]
 
 프로젝트 컨텍스트:
 [코드베이스 구조/관련 파일]
@@ -50,7 +51,9 @@ find . -type f \( -name '*.py' -o -name '*.ts' -o -name '*.kt' -o -name '*.php' 
 4. 실행 계획 (단계별)
 5. 리스크와 대응 방안
 
-한글로 답변, 기술 용어는 영어 유지." < <(관련 파일 내용)
+한글로 답변, 기술 용어는 영어 유지."
+  cat [관련 파일]
+} | ~/.agents/scripts/llm-router.sh scan --caller deep-research --provider gemini --prompt -
 ```
 
 ### 4단계: 결과 저장

@@ -1,7 +1,7 @@
 ---
 name: deep-learn
 description: "주간 심층 학습. 학습 큐(`Learning/learning-queue.md`)에 누적된 의문을 일괄 분석하여 학습 노트 생성. 또는 특정 주제 직접 입력 가능. /deep-learn [주제] 또는 /deep-learn queue로 실행."
-allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Skill
+allowed-tools: Bash(~/.agents/scripts/llm-router.sh *), Bash(/Users/leonard/.agents/scripts/llm-router.sh *), Bash(grep *), Bash(head *), Read, Write, Edit, Grep, Glob, Skill
 ---
 
 # Deep Learn — 주간 심층 학습
@@ -44,11 +44,11 @@ METRICS="$HOME/.claude/cache/metrics"
 
 ### 2단계: 3중 LLM 분석 (병렬)
 
-각 주제마다 **Gemini + Codex + Gemma 가용한 모두** 동시 호출:
+각 주제마다 **Gemini + Codex + Gemma 가용한 모두** 동시 호출한다. provider CLI를 직접 실행하지 않고 중앙 라우터 또는 라우터 기반 ask 스킬만 사용한다.
 
 #### Gemini (1M 컨텍스트)
 ```bash
-"${GEMINI_CLI:-agy}" -p "다음 개념을 심층 분석해줘:
+~/.agents/scripts/llm-router.sh scan --caller deep-learn --provider gemini --prompt "다음 개념을 심층 분석해줘:
 주제: [주제]
 
 다음 형식으로 답변:
@@ -63,7 +63,7 @@ METRICS="$HOME/.claude/cache/metrics"
 
 #### Codex (세컨드 오피니언)
 ```
-Skill(ask-codex) 또는 codex:rescue
+Skill(ask-codex)
 "이 개념을 다른 관점에서 설명해줘:
 - 만약 직접 구현한다면?
 - 트레이드오프는?

@@ -1735,7 +1735,11 @@ def main() -> int:
         "hooks/delegation-enforcer.sh",
         "hooks/error-codex-remind.sh",
     ]
-    combined = "\n".join(read_text(path) for path in important_files)
+    combined = "\n".join(
+        read_text(path)
+        for path in important_files
+        if (ROOT / path).exists()
+    )
     forbidden_phrases = [
         "Codex MCP",
         "codex:codex-rescue",
