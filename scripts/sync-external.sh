@@ -16,20 +16,27 @@ CLAUDE_SETTINGS_FILE="${CLAUDE_DIR}/settings.json"
 CLAUDE_SKILLS_DIR="${CLAUDE_DIR}/skills"
 CLAUDE_WORKFLOWS_DIR="${CLAUDE_DIR}/workflows"
 CLAUDE_AGENTS_DIR="${CLAUDE_DIR}/agents"
+CLAUDE_SHARED_DIR="${CLAUDE_DIR}/shared"
 SYNC_SCRIPT_FILE="${CLAUDE_DIR}/scripts/sync-external.sh"
 
 CODEX_AGENTS_FILE="${CODEX_DIR}/AGENTS.md"
 CODEX_HOOKS_FILE="${CODEX_DIR}/hooks.json"
 CODEX_WORKFLOWS_DIR="${CODEX_DIR}/workflows"
 CODEX_AGENTS_DIR="${CODEX_DIR}/agents"
+CODEX_SHARED_DIR="${CODEX_DIR}/shared"
 
 GEMINI_AGENTS_FILE="${GEMINI_DIR}/GEMINI.md"
 GEMINI_HOOKS_FILE="${GEMINI_DIR}/hooks.json"
 GEMINI_WORKFLOWS_DIR="${GEMINI_DIR}/workflows"
 GEMINI_AGENTS_DIR="${GEMINI_DIR}/agents"
+GEMINI_SHARED_DIR="${GEMINI_DIR}/shared"
 
 # Agent Skills 멀티툴 표준 (Gemini CLI 공식: .agents/skills interop alias)
 AGENTS_SKILLS_DIR="${AGENTS_DIR}/skills"
+AGENTS_SHARED_DIR="${AGENTS_DIR}/shared"
+AGENTS_REGISTRY_DIR="${AGENTS_DIR}/registry"
+AGENTS_SCRIPTS_DIR="${AGENTS_DIR}/scripts"
+AGENTS_CACHE_LINK="${AGENTS_DIR}/cache"
 
 TEMP_DIR=""
 
@@ -41,6 +48,15 @@ PROJECTS_SKIPPED=0
 AGENTS_SKILLS_TOTAL=0
 AGENTS_SKILLS_LINKED=0
 AGENTS_SKILLS_AVAILABLE=0
+AGENTS_SHARED_TOTAL=0
+AGENTS_SHARED_LINKED=0
+AGENTS_SHARED_AVAILABLE=0
+AGENTS_REGISTRY_TOTAL=0
+AGENTS_REGISTRY_LINKED=0
+AGENTS_REGISTRY_AVAILABLE=0
+AGENTS_SCRIPTS_TOTAL=0
+AGENTS_SCRIPTS_LINKED=0
+AGENTS_SCRIPTS_AVAILABLE=0
 CODEX_WORKFLOWS_TOTAL=0
 CODEX_WORKFLOWS_LINKED=0
 CODEX_WORKFLOWS_AVAILABLE=0
@@ -53,6 +69,12 @@ CODEX_AGENTS_AVAILABLE=0
 GEMINI_AGENTS_TOTAL=0
 GEMINI_AGENTS_LINKED=0
 GEMINI_AGENTS_AVAILABLE=0
+CODEX_SHARED_TOTAL=0
+CODEX_SHARED_LINKED=0
+CODEX_SHARED_AVAILABLE=0
+GEMINI_SHARED_TOTAL=0
+GEMINI_SHARED_LINKED=0
+GEMINI_SHARED_AVAILABLE=0
 CODEX_HOOKS_CHANGED=0
 GEMINI_HOOKS_CHANGED=0
 
@@ -69,8 +91,13 @@ usage() {
   - ~/.claude/CLAUDE.md -> ~/.gemini/GEMINI.md
   - ~/Workspace/*/CLAUDE.md 또는 ~/Workspace/*/.claude/CLAUDE.md -> 각 프로젝트 AGENTS.md
   - ~/.claude/skills/* -> ~/.agents/skills/* 심링크 (멀티툴 interop 표준, Codex/Gemini 공통 인식)
+  - ~/.claude/shared/* -> ~/.agents/shared/* 심링크 (중립 정책 표면)
+  - ~/.claude/registry/* -> ~/.agents/registry/* 심링크 (중립 정책 표면)
+  - ~/.claude/scripts/llm-* -> ~/.agents/scripts/* 심링크 (중립 실행 표면)
+  - ~/.claude/cache -> ~/.agents/cache 심링크 (로컬 런타임 상태 표면)
   - ~/.claude/workflows/* -> ~/.codex/workflows/*, ~/.gemini/workflows/* 심링크
   - ~/.claude/agents/* -> ~/.codex/agents/*, ~/.gemini/agents/* 심링크
+  - ~/.claude/shared/* -> ~/.codex/shared/*, ~/.gemini/shared/* 심링크
   - ~/.claude/settings.json hooks -> ~/.codex/hooks.json, ~/.gemini/hooks.json
 EOF
 }
@@ -297,6 +324,57 @@ EOF
     } > "$target_file"
 }
 
+emit_external_llm_router_rules() {
+    cat <<'EOF'
+## LLM Router Centralization
+
+외부 LLM 호출은 중립 표면인 `~/.agents`의 공통 라우터를 기준으로 한다. `~/.claude`는 설정 저장소 checkout이자 구현 원본이고, Codex/Gemini/Antigravity/공용 스킬은 `~/.agents`를 바라본다.
+
+- 중앙 표면: `~/.agents`
+- 정책 정본: `~/.agents/registry/llm-routing.json`
+- task 라우터: `~/.agents/scripts/llm-router.sh`
+- provider 어댑터: `~/.agents/scripts/llm-call.sh`
+- handoff: `~/.agents/cache/llm-handoff/current.json`
+- health: `~/.agents/cache/llm-provider-health.json`
+- 공용 스킬: `~/.agents/skills/*`
+- 구현 원본: `~/.claude` git checkout
+
+### 호출 규칙
+
+- task-level 위임은 `llm-router.sh`를 사용한다.
+- provider-specific 스킬도 직접 CLI 대신 `llm-router.sh --provider ...`를 사용한다.
+- `codex exec`, `agy`, `gemini`, `ini`, Ollama `curl` 직접 호출은 `llm-call.sh`/전용 wrapper 내부에서만 허용한다.
+- 예외는 라우터/어댑터 자체를 디버깅하거나 수동 복구하는 경우뿐이며, 그 경우 결과에 예외 사유를 명시한다.
+- 민감/로컬-only 질의는 반드시 `private --provider gemma`를 사용한다. 외부 provider fallback을 임의로 열지 않는다.
+
+### 표준 명령
+
+```bash
+# provider health / route health
+~/.agents/scripts/llm-router.sh doctor
+~/.agents/scripts/llm-router.sh route-health
+
+# broad scan: Gemini -> Codex -> Gemma fallback
+~/.agents/scripts/llm-router.sh scan --caller manual --prompt "영향 범위 분석"
+
+# implementation handoff: Codex -> Gemini fallback
+~/.agents/scripts/llm-router.sh implement --caller manual --prompt "패치 초안 작성"
+
+# multi-provider review
+~/.agents/scripts/llm-router.sh review --caller manual --prompt "현재 diff 리뷰"
+
+# local-only/private
+~/.agents/scripts/llm-router.sh private --caller manual --provider gemma --prompt "민감한 로컬 검토"
+
+# provider-specific, still centralized
+~/.agents/scripts/llm-router.sh scan --caller ask-gemini --provider gemini --prompt "$QUESTION"
+~/.agents/scripts/llm-router.sh implement --caller ask-codex --provider codex --prompt "$QUESTION"
+~/.agents/scripts/llm-router.sh private --caller ask-ollama --provider gemma --model qwen3.5:9b --prompt "$QUESTION"
+```
+
+EOF
+}
+
 build_global_agents_file() {
     local target="$1"
     local target_file="$2"
@@ -334,9 +412,9 @@ Claude 전용 에이전트 파이프라인, MCP 검색 규칙, 제품 고유 워
 - `claude 같이`, `claude도`, `둘 다`, `하이브리드`, `hybrid` 또는 아키텍처/설계/API/DB/auth 변경처럼 판단 비용이 큰 요청에서는 `~/.codex/workflows/codex.md`의 "Codex 주도 + Claude Code 병행 워크플로우"를 적용한다.
 - Codex의 `UserPromptSubmit` 훅이 필요 시 Gemini와 Claude 보조 실행을 백그라운드로 시작할 수 있다.
 - 생성되는 보조 컨텍스트:
-  - `~/.claude/cache/gemini/{project}-scan.md`
-  - `~/.claude/cache/gemini/{project}-review-prescan.md`
-  - `~/.claude/cache/claude/{project}-codex-brief.md`
+  - `~/.agents/cache/gemini/{project}-scan.md`
+  - `~/.agents/cache/gemini/{project}-review-prescan.md`
+  - `~/.agents/cache/claude/{project}-codex-brief.md`
 - Workspace 프로젝트에서 작업할 때 위 파일이 있고 최근 생성되었다면 먼저 읽고 참고한다.
 - 기본 fresh 기준:
   - 프로젝트 스캔: 30분
@@ -346,6 +424,9 @@ Claude 전용 에이전트 파이프라인, MCP 검색 규칙, 제품 고유 워
 - Claude brief와 Codex 판단이 충돌하면 파일 읽기, 테스트, git diff로 검증하고 추정으로 채택하지 않는다.
 - 같은 워크트리에 Codex와 Claude Code가 동시에 write하지 않는다. 병렬 구현이 필요하면 worktree를 분리한다.
 
+EOF
+            emit_external_llm_router_rules
+            cat <<'EOF'
 ## Claude Compatibility
 
 Claude 스타일 호출문을 Codex에서도 호환 모드로 해석한다. 이 호출은 네이티브 에이전트 import가 아니라, 해당 프롬프트 파일을 먼저 읽고 그 역할에 맞춰 작업하는 규칙이다.
@@ -439,6 +520,7 @@ Antigravity의 Gemini 에이전트는 병렬 구현 담당이다.
 - 프로젝트 내부 규칙이 전역 규칙보다 구체적이면 프로젝트 규칙을 우선한다.
 
 EOF
+            emit_external_llm_router_rules
         else
             warn "알 수 없는 글로벌 대상: $target"
             return 1
@@ -726,7 +808,7 @@ sync_symlink_dir() {
 
         if [[ "$require_skill_file" == "true" ]]; then
             [[ -d "$source_path" ]] || continue
-            [[ -f "$source_path/SKILL.md" ]] || continue
+            [[ -f "$source_path/SKILL.md" || -f "$source_path/skill.md" ]] || continue
         fi
 
         entry_name="$(basename "$source_path")"
@@ -767,6 +849,105 @@ sync_skills() {
     log "Agent 스킬 링크 (.agents/skills 멀티툴 표준): 신규 ${AGENTS_SKILLS_LINKED}개 / 사용 가능 ${AGENTS_SKILLS_AVAILABLE}/${AGENTS_SKILLS_TOTAL}"
 }
 
+sync_file_links() {
+    local source_dir="$1"
+    local target_dir="$2"
+    local total_var="$3"
+    local linked_var="$4"
+    local available_var="$5"
+    shift 5
+
+    local entry_name
+    local source_path
+    local target_path
+    local total=0
+    local linked=0
+    local available=0
+
+    mkdir -p "$target_dir"
+
+    for entry_name in "$@"; do
+        source_path="$source_dir/$entry_name"
+        target_path="$target_dir/$entry_name"
+        [[ -e "$source_path" ]] || continue
+
+        total=$((total + 1))
+
+        if [[ -L "$target_path" ]] && [[ ! -e "$target_path" ]]; then
+            if [[ "$DRY_RUN" == "true" ]]; then
+                echo "[dry-run] rm $target_path"
+            else
+                rm "$target_path"
+            fi
+        fi
+
+        if [[ -e "$target_path" || -L "$target_path" ]]; then
+            available=$((available + 1))
+            continue
+        fi
+
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo "[dry-run] ln -s $source_path $target_path"
+        else
+            ln -s "$source_path" "$target_path"
+        fi
+
+        linked=$((linked + 1))
+        available=$((available + 1))
+    done
+
+    printf -v "$total_var" '%s' "$total"
+    printf -v "$linked_var" '%s' "$linked"
+    printf -v "$available_var" '%s' "$available"
+}
+
+sync_single_symlink() {
+    local source_path="$1"
+    local target_path="$2"
+    local label="$3"
+
+    mkdir -p "$(dirname "$target_path")"
+
+    if [[ -L "$target_path" ]]; then
+        if [[ "$(readlink "$target_path")" == "$source_path" ]]; then
+            log "$label 링크 최신: $target_path"
+            return 0
+        fi
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo "[dry-run] rm $target_path"
+        else
+            rm "$target_path"
+        fi
+    elif [[ -e "$target_path" ]]; then
+        warn "$label 링크 건너뜀: $target_path already exists and is not a symlink"
+        return 0
+    fi
+
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "[dry-run] ln -s $source_path $target_path"
+    else
+        ln -s "$source_path" "$target_path"
+    fi
+    log "$label 링크 생성: $target_path -> $source_path"
+}
+
+sync_agents_control_plane() {
+    sync_symlink_dir "$CLAUDE_SHARED_DIR" "$AGENTS_SHARED_DIR" "false" \
+        AGENTS_SHARED_TOTAL AGENTS_SHARED_LINKED AGENTS_SHARED_AVAILABLE
+    log "Agent shared 링크: 신규 ${AGENTS_SHARED_LINKED}개 / 사용 가능 ${AGENTS_SHARED_AVAILABLE}/${AGENTS_SHARED_TOTAL}"
+
+    sync_symlink_dir "$CLAUDE_DIR/registry" "$AGENTS_REGISTRY_DIR" "false" \
+        AGENTS_REGISTRY_TOTAL AGENTS_REGISTRY_LINKED AGENTS_REGISTRY_AVAILABLE
+    log "Agent registry 링크: 신규 ${AGENTS_REGISTRY_LINKED}개 / 사용 가능 ${AGENTS_REGISTRY_AVAILABLE}/${AGENTS_REGISTRY_TOTAL}"
+
+    sync_file_links "$CLAUDE_DIR/scripts" "$AGENTS_SCRIPTS_DIR" \
+        AGENTS_SCRIPTS_TOTAL AGENTS_SCRIPTS_LINKED AGENTS_SCRIPTS_AVAILABLE \
+        llm-router.sh llm-router.py llm-call.sh gemini-wrapped.sh _lib_ini_call.py _nvm-path.sh
+    log "Agent scripts 링크: 신규 ${AGENTS_SCRIPTS_LINKED}개 / 사용 가능 ${AGENTS_SCRIPTS_AVAILABLE}/${AGENTS_SCRIPTS_TOTAL}"
+
+    sync_single_symlink "$CLAUDE_DIR/cache" "$AGENTS_CACHE_LINK" "Agent cache"
+}
+
 sync_workflows() {
     local target="$1"
 
@@ -804,6 +985,27 @@ sync_agents_dir() {
             ;;
         *)
             warn "알 수 없는 agents 대상: $target"
+            return 1
+            ;;
+    esac
+}
+
+sync_shared_dir() {
+    local target="$1"
+
+    case "$target" in
+        codex)
+            sync_symlink_dir "$CLAUDE_SHARED_DIR" "$CODEX_SHARED_DIR" "false" \
+                CODEX_SHARED_TOTAL CODEX_SHARED_LINKED CODEX_SHARED_AVAILABLE
+            log "Codex shared 링크: 신규 ${CODEX_SHARED_LINKED}개 / 사용 가능 ${CODEX_SHARED_AVAILABLE}/${CODEX_SHARED_TOTAL}"
+            ;;
+        gemini)
+            sync_symlink_dir "$CLAUDE_SHARED_DIR" "$GEMINI_SHARED_DIR" "false" \
+                GEMINI_SHARED_TOTAL GEMINI_SHARED_LINKED GEMINI_SHARED_AVAILABLE
+            log "Gemini shared 링크: 신규 ${GEMINI_SHARED_LINKED}개 / 사용 가능 ${GEMINI_SHARED_AVAILABLE}/${GEMINI_SHARED_TOTAL}"
+            ;;
+        *)
+            warn "알 수 없는 shared 대상: $target"
             return 1
             ;;
     esac
@@ -896,12 +1098,32 @@ count_available_links() {
 
         if [[ "$require_skill_file" == "true" ]]; then
             [[ -d "$source_path" ]] || continue
-            [[ -f "$source_path/SKILL.md" ]] || continue
+            [[ -f "$source_path/SKILL.md" || -f "$source_path/skill.md" ]] || continue
         fi
 
         total=$((total + 1))
 
         if [[ -e "$target_dir/$(basename "$source_path")" || -L "$target_dir/$(basename "$source_path")" ]]; then
+            available=$((available + 1))
+        fi
+    done
+
+    printf '%s\t%s\n' "$available" "$total"
+}
+
+count_named_file_links() {
+    local source_dir="$1"
+    local target_dir="$2"
+    shift 2
+
+    local entry_name
+    local total=0
+    local available=0
+
+    for entry_name in "$@"; do
+        [[ -e "$source_dir/$entry_name" ]] || continue
+        total=$((total + 1))
+        if [[ -e "$target_dir/$entry_name" || -L "$target_dir/$entry_name" ]]; then
             available=$((available + 1))
         fi
     done
@@ -1074,6 +1296,28 @@ print_status() {
     total="${count_line##*$'\t'}"
     echo "Agent 스킬 (.agents): $available/$total 사용 가능"
 
+    count_line="$(count_available_links "$CLAUDE_SHARED_DIR" "$AGENTS_SHARED_DIR" "false")"
+    available="${count_line%%$'\t'*}"
+    total="${count_line##*$'\t'}"
+    echo "Agent shared:        $available/$total 사용 가능"
+
+    count_line="$(count_available_links "$CLAUDE_DIR/registry" "$AGENTS_REGISTRY_DIR" "false")"
+    available="${count_line%%$'\t'*}"
+    total="${count_line##*$'\t'}"
+    echo "Agent registry:      $available/$total 사용 가능"
+
+    count_line="$(count_named_file_links "$CLAUDE_DIR/scripts" "$AGENTS_SCRIPTS_DIR" \
+        llm-router.sh llm-router.py llm-call.sh gemini-wrapped.sh _lib_ini_call.py _nvm-path.sh)"
+    available="${count_line%%$'\t'*}"
+    total="${count_line##*$'\t'}"
+    echo "Agent scripts:       $available/$total 사용 가능"
+
+    if [[ -L "$AGENTS_CACHE_LINK" && "$(readlink "$AGENTS_CACHE_LINK")" == "$CLAUDE_DIR/cache" ]]; then
+        echo "Agent cache:         링크"
+    else
+        echo "Agent cache:         미연결"
+    fi
+
     count_line="$(count_available_links "$CLAUDE_WORKFLOWS_DIR" "$CODEX_WORKFLOWS_DIR" "false")"
     available="${count_line%%$'\t'*}"
     total="${count_line##*$'\t'}"
@@ -1093,6 +1337,16 @@ print_status() {
     available="${count_line%%$'\t'*}"
     total="${count_line##*$'\t'}"
     echo "Gemini agents:       $available/$total 사용 가능"
+
+    count_line="$(count_available_links "$CLAUDE_SHARED_DIR" "$CODEX_SHARED_DIR" "false")"
+    available="${count_line%%$'\t'*}"
+    total="${count_line##*$'\t'}"
+    echo "Codex shared:        $available/$total 사용 가능"
+
+    count_line="$(count_available_links "$CLAUDE_SHARED_DIR" "$GEMINI_SHARED_DIR" "false")"
+    available="${count_line%%$'\t'*}"
+    total="${count_line##*$'\t'}"
+    echo "Gemini shared:       $available/$total 사용 가능"
 
     echo ""
     echo "| 프로젝트 | AGENTS.md |"
@@ -1185,10 +1439,15 @@ print_summary() {
     echo "Gemini 글로벌 GEMINI: $([[ "$GLOBAL_GEMINI_CHANGED" -eq 1 ]] && echo "갱신" || echo "최신")"
     echo "프로젝트 AGENTS: ${PROJECTS_CREATED}개 생성 / ${PROJECTS_SKIPPED}개 기존 / ${PROJECTS_SCANNED}개 확인"
     echo "Agent 스킬 (.agents/skills): ${AGENTS_SKILLS_AVAILABLE}/${AGENTS_SKILLS_TOTAL} 사용 가능 (신규 링크 ${AGENTS_SKILLS_LINKED}개)"
+    echo "Agent shared: ${AGENTS_SHARED_AVAILABLE}/${AGENTS_SHARED_TOTAL} 사용 가능 (신규 링크 ${AGENTS_SHARED_LINKED}개)"
+    echo "Agent registry: ${AGENTS_REGISTRY_AVAILABLE}/${AGENTS_REGISTRY_TOTAL} 사용 가능 (신규 링크 ${AGENTS_REGISTRY_LINKED}개)"
+    echo "Agent scripts: ${AGENTS_SCRIPTS_AVAILABLE}/${AGENTS_SCRIPTS_TOTAL} 사용 가능 (신규 링크 ${AGENTS_SCRIPTS_LINKED}개)"
     echo "Codex workflows: ${CODEX_WORKFLOWS_AVAILABLE}/${CODEX_WORKFLOWS_TOTAL} 사용 가능 (신규 링크 ${CODEX_WORKFLOWS_LINKED}개)"
     echo "Gemini workflows: ${GEMINI_WORKFLOWS_AVAILABLE}/${GEMINI_WORKFLOWS_TOTAL} 사용 가능 (신규 링크 ${GEMINI_WORKFLOWS_LINKED}개)"
     echo "Codex agents: ${CODEX_AGENTS_AVAILABLE}/${CODEX_AGENTS_TOTAL} 사용 가능 (신규 링크 ${CODEX_AGENTS_LINKED}개)"
     echo "Gemini agents: ${GEMINI_AGENTS_AVAILABLE}/${GEMINI_AGENTS_TOTAL} 사용 가능 (신규 링크 ${GEMINI_AGENTS_LINKED}개)"
+    echo "Codex shared: ${CODEX_SHARED_AVAILABLE}/${CODEX_SHARED_TOTAL} 사용 가능 (신규 링크 ${CODEX_SHARED_LINKED}개)"
+    echo "Gemini shared: ${GEMINI_SHARED_AVAILABLE}/${GEMINI_SHARED_TOTAL} 사용 가능 (신규 링크 ${GEMINI_SHARED_LINKED}개)"
     echo "Codex hooks: $([[ "$CODEX_HOOKS_CHANGED" -eq 1 ]] && echo "갱신" || echo "최신")"
     echo "Gemini hooks: $([[ "$GEMINI_HOOKS_CHANGED" -eq 1 ]] && echo "갱신" || echo "최신")"
     echo ""
@@ -1215,32 +1474,39 @@ main() {
         exit 0
     fi
 
-    log "1/8 Codex 글로벌 AGENTS.md 동기화"
+    log "1/10 Codex 글로벌 AGENTS.md 동기화"
     sync_global_agents "codex"
 
-    log "2/8 Gemini 글로벌 GEMINI.md 동기화"
+    log "2/10 Gemini 글로벌 GEMINI.md 동기화"
     sync_global_agents "gemini"
 
-    log "3/8 프로젝트 AGENTS.md 동기화"
+    log "3/10 프로젝트 AGENTS.md 동기화"
     sync_workspace_agents
 
-    log "4/8 스킬 심링크 동기화 (.agents/skills 멀티툴 표준)"
+    log "4/10 스킬 심링크 동기화 (.agents/skills 멀티툴 표준)"
     sync_skills
 
-    log "5/8 Workflows 심링크 동기화"
+    log "5/10 Agent 중앙 표면 동기화"
+    sync_agents_control_plane
+
+    log "6/10 Workflows 심링크 동기화"
     sync_workflows "codex"
     sync_workflows "gemini"
 
-    log "6/8 Agents 디렉토리 심링크 동기화"
+    log "7/10 Agents 디렉토리 심링크 동기화"
     sync_agents_dir "codex"
     sync_agents_dir "gemini"
 
-    log "7/8 Hooks 동기화"
+    log "8/10 Shared 디렉토리 심링크 동기화"
+    sync_shared_dir "codex"
+    sync_shared_dir "gemini"
+
+    log "9/10 Hooks 동기화"
     sync_hooks "codex"
     sync_hooks "gemini"
     repair_codex_project_moai_hooks
 
-    log "8/8 MCP 서버 등록 동기화 (Claude → Codex/Gemini 단방향)"
+    log "10/10 MCP 서버 등록 동기화 (Claude → Codex/Gemini 단방향)"
     sync_mcp_servers
 
     schedule_regression_check
