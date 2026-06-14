@@ -10,7 +10,7 @@ description: |
   ZH: git, 提交, 推送, 拉取, 分支, PR, 拉取请求, 合并, 发布
   NOT for: code implementation, testing, architecture design, documentation content, security audits
 tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite, Skill
-model: haiku
+model: inherit
 permissionMode: bypassPermissions
 memory: project
 skills:

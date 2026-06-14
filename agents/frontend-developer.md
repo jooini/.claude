@@ -1,1 +1,1 @@
-/Users/leonard/.claude/agents/builds/python/frontend-developer.md
+/Users/leonard/.claude/agents/builds/root/frontend-developer.md

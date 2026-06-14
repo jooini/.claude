@@ -1,1 +1,1 @@
-/Users/leonard/.claude/agents/builds/python/dev-lead.md
+/Users/leonard/.claude/agents/builds/root/dev-lead.md

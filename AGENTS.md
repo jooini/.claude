@@ -27,8 +27,8 @@
 
 | 도구 | 받는 파일 | sync 시점 | Claude 전용 룰 제외? |
 |------|----------|-----------|---------------------|
-| Codex CLI | `~/.codex/AGENTS.md` (~28KB, 34 sections) | `sync-external.sh` | ✅ 에이전트 파이프라인/MCP 룰 제외 |
-| Gemini CLI / agy | `~/.gemini/GEMINI.md` (~22KB) | `sync-external.sh` | ✅ Claude 전용 hook 룰 제외 |
+| Codex CLI | `~/.codex/AGENTS.md` (~16KB, 13 sections) | `sync-external.sh` | ✅ 에이전트 파이프라인/MCP 룰 제외 |
+| Gemini CLI / agy | `~/.gemini/GEMINI.md` (~11KB) | `sync-external.sh` | ✅ Claude 전용 hook 룰 제외 |
 | Antigravity | 자체 워크스페이스 설정 + IDE 직접 | 수동 | ✅ |
 
 상세 동작: `~/.claude/scripts/sync-external.sh` 의 필터 로직.
