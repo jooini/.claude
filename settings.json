@@ -1,18 +1,5 @@
 {
-  "alwaysThinkingEnabled": false,
   "cleanupPeriodDays": 90,
-  "effortLevel": "xhigh",
-  "enabledPlugins": {
-    "claude-mem@thedotmack": true,
-    "codex@openai-codex": true,
-    "frontend-design@claude-plugins-official": true,
-    "gitkraken-hooks@gitkraken": true,
-    "gitlab@claude-plugins-official": true,
-    "identity-hub@identity-hub-skills": true,
-    "playwright@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
-  },
   "env": {
     "CCGUI_CLI_LOGIN_AUTHORIZED": "1",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
@@ -22,371 +9,7 @@
     "GEMINI_CLI": "agy",
     "PATH": "/Users/leonard/.local/bin:/Users/leonard/.nvm/versions/node/v22.22.0/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   },
-  "extraKnownMarketplaces": {
-    "claude-code-plugins": {
-      "source": {
-        "repo": "anthropics/claude-code",
-        "source": "github"
-      }
-    },
-    "gitkraken": {
-      "source": {
-        "path": "/Users/leonard/.claude/plugins/marketplaces/gitkraken",
-        "source": "directory"
-      }
-    },
-    "identity-hub-skills": {
-      "source": {
-        "path": "/Users/leonard/Workspace/identity-hub-skills",
-        "source": "directory"
-      }
-    },
-    "openai-codex": {
-      "source": {
-        "repo": "openai/codex-plugin-cc",
-        "source": "github"
-      }
-    },
-    "thedotmack": {
-      "source": {
-        "repo": "thedotmack/claude-mem",
-        "source": "github"
-      }
-    }
-  },
-  "hooks": {
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "command": "/Users/leonard/.claude/hooks/ask-notify.sh",
-            "timeout": 3,
-            "type": "command"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py posttooluse-bash-pre-guard-async --execute --allow-side-effects",
-            "timeout": 92,
-            "type": "command"
-          },
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/dangerous-command-detect.sh",
-            "timeout": 3,
-            "type": "command"
-          },
-          {
-            "async": true,
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py posttooluse-bash-post-guard-async --execute --allow-side-effects",
-            "statusMessage": "Gemma 에러 요약 중...",
-            "timeout": 142,
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/moai-update-post-hook.sh",
-            "timeout": 20,
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash(moai update*)"
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py posttooluse-agent-event-matcher --execute --allow-side-effects",
-            "timeout": 30,
-            "type": "command"
-          }
-        ],
-        "matcher": "Agent"
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py posttooluse-edit-write-event-matcher --execute --allow-side-effects",
-            "statusMessage": "Gemini 의존성 영향 분석 중...",
-            "timeout": 82,
-            "type": "command"
-          }
-        ],
-        "matcher": "Edit|Write"
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/md-read-trace.sh",
-            "timeout": 3,
-            "type": "command"
-          }
-        ],
-        "matcher": "Read"
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/mcp-knowledge-telemetry.sh",
-            "timeout": 5,
-            "type": "command"
-          }
-        ],
-        "matcher": "mcp__local-rag__|mcp__plugin_claude-mem_mcp-search__"
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-finalize.sh",
-            "timeout": 10,
-            "type": "command"
-          }
-        ],
-        "matcher": ""
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "$HOME/.claude/hooks/taskhub-task-create.sh",
-            "timeout": 5,
-            "type": "command"
-          }
-        ],
-        "matcher": "TaskCreate"
-      },
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "$HOME/.claude/hooks/taskhub-task-update.sh",
-            "timeout": 5,
-            "type": "command"
-          }
-        ],
-        "matcher": "TaskUpdate"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/toolsearch-mark-loaded.sh",
-            "timeout": 3,
-            "type": "command"
-          }
-        ],
-        "matcher": "ToolSearch"
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "command": "/Users/leonard/.claude/hooks/precompact-notify.sh",
-            "timeout": 3,
-            "type": "command"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-bash-safety-gates --execute --allow-side-effects",
-            "timeout": 13,
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-git-commit-pipeline --execute --allow-side-effects",
-            "statusMessage": "커밋 사전 검사 중...",
-            "timeout": 102,
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash(git commit*)"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-gh-pr-pipeline --execute --allow-side-effects",
-            "statusMessage": "Gemma 한글 번역 검사 중...",
-            "timeout": 104,
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash(gh pr*)"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-edit-write-event-matcher --execute --allow-side-effects",
-            "timeout": 22,
-            "type": "command"
-          }
-        ],
-        "matcher": "Edit|Write"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-agent-event-matcher --execute --allow-side-effects",
-            "timeout": 45,
-            "type": "command"
-          }
-        ],
-        "matcher": "Agent"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/mcp-deferred-guard.sh",
-            "timeout": 3,
-            "type": "command"
-          }
-        ],
-        "matcher": "mcp__"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/askuserquestion-korean-block.sh",
-            "timeout": 3,
-            "type": "command"
-          }
-        ],
-        "matcher": "AskUserQuestion"
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "command": "/bin/zsh /Users/leonard/.claude/hooks/llm-adapter-health-notify.sh",
-            "timeout": 12,
-            "type": "command"
-          },
-          {
-            "command": "$HOME/.claude/hooks/iterm-badge-clear.sh",
-            "timeout": 3,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "command": "$HOME/.claude/hooks/session-start-router.sh",
-            "timeout": 120,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      },
-      {
-        "hooks": [
-          {
-            "command": "$HOME/.claude/hooks/taskhub-session-start.sh",
-            "timeout": 5,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      },
-      {
-        "hooks": [
-          {
-            "command": "$HOME/.claude/hooks/iterm-badge-set.sh",
-            "timeout": 3,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "async": true,
-            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py stop-composite-notification-output-router --execute --allow-side-effects",
-            "statusMessage": "세션 종료 훅 통합 실행 중...",
-            "timeout": 177,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "command": "$HOME/.claude/hooks/user-prompt-router.sh",
-            "timeout": 10,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      },
-      {
-        "hooks": [
-          {
-            "command": "$HOME/.claude/hooks/taskhub-utterance.sh",
-            "timeout": 5,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      }
-    ]
-  },
-  "mcpServers": {
-    "gitlab": {
-      "args": [
-        "-y",
-        "@zereight/mcp-gitlab"
-      ],
-      "command": "npx",
-      "env": {
-        "GITLAB_API_URL": "https://git.weaversmind.com/api/v4"
-      }
-    },
-    "local-rag": {
-      "args": [],
-      "command": "/Users/leonard/.claude/scripts/run-local-rag.sh",
-      "env": {
-        "BASE_DIR": "/Users/leonard/Workspace",
-        "CACHE_DIR": "/Users/leonard/.claude/cache/rag-models",
-        "DB_PATH": "/Users/leonard/Workspace/lancedb",
-        "MODEL_NAME": "Xenova/multilingual-e5-small",
-        "RAG_BASE_DIR": "/Users/leonard/Workspace"
-      }
-    }
-  },
   "permissions": {
-    "additionalDirectories": [
-      "/Users/leonard/Workspace/weaversbrain/weaversbrain"
-    ],
     "allow": [
       "Read",
       "Edit",
@@ -456,7 +79,6 @@
       "Skill(ask-codex)",
       "Skill(ask-gemini)"
     ],
-    "defaultMode": "auto",
     "deny": [
       "Read(./secrets/**)",
       "Read(~/.ssh/**)",
@@ -510,19 +132,397 @@
       "Bash(killall:*)",
       "Bash(redis-cli FLUSHALL:*)",
       "Bash(redis-cli FLUSHDB:*)"
+    ],
+    "defaultMode": "auto",
+    "additionalDirectories": [
+      "/Users/leonard/Workspace/weaversbrain/weaversbrain"
     ]
   },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/ask-notify.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py posttooluse-bash-pre-guard-async --execute --allow-side-effects",
+            "timeout": 92,
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/dangerous-command-detect.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py posttooluse-bash-post-guard-async --execute --allow-side-effects",
+            "timeout": 142,
+            "statusMessage": "Gemma 에러 요약 중...",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(moai update*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/moai-update-post-hook.sh",
+            "timeout": 20
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py posttooluse-agent-event-matcher --execute --allow-side-effects",
+            "timeout": 30,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py posttooluse-edit-write-event-matcher --execute --allow-side-effects",
+            "timeout": 82,
+            "statusMessage": "Gemini 의존성 영향 분석 중...",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/md-read-trace.sh",
+            "timeout": 3,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__local-rag__|mcp__plugin_claude-mem_mcp-search__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/mcp-knowledge-telemetry.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/turn-finalize.sh",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "TaskCreate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/taskhub-task-create.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/taskhub-task-update.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "ToolSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/toolsearch-mark-loaded.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/hooks/precompact-notify.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-bash-safety-gates --execute --allow-side-effects",
+            "timeout": 13
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-git-commit-pipeline --execute --allow-side-effects",
+            "timeout": 102,
+            "statusMessage": "커밋 사전 검사 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(gh pr*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-gh-pr-pipeline --execute --allow-side-effects",
+            "timeout": 104,
+            "statusMessage": "Gemma 한글 번역 검사 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-edit-write-event-matcher --execute --allow-side-effects",
+            "timeout": 22
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py pretooluse-agent-event-matcher --execute --allow-side-effects",
+            "timeout": 45
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/mcp-deferred-guard.sh",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/askuserquestion-korean-block.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/zsh /Users/leonard/.claude/hooks/llm-adapter-health-notify.sh",
+            "timeout": 12
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/iterm-badge-clear.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/session-start-router.sh",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/taskhub-session-start.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/iterm-badge-set.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/leonard/.claude/scripts/hook-wrapper-runner.py stop-composite-notification-output-router --execute --allow-side-effects",
+            "timeout": 177,
+            "statusMessage": "세션 종료 훅 통합 실행 중...",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/user-prompt-router.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/taskhub-utterance.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "zsh /Users/leonard/.claude/statusline-agent.sh"
+  },
+  "enabledPlugins": {
+    "claude-mem@thedotmack": true,
+    "codex@openai-codex": true,
+    "frontend-design@claude-plugins-official": true,
+    "gitkraken-hooks@gitkraken": true,
+    "gitlab@claude-plugins-official": true,
+    "identity-hub@identity-hub-skills": true,
+    "playwright@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-code-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code"
+      }
+    },
+    "gitkraken": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/leonard/.claude/plugins/marketplaces/gitkraken"
+      }
+    },
+    "identity-hub-skills": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/leonard/Workspace/identity-hub-skills"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "thedotmack": {
+      "source": {
+        "source": "github",
+        "repo": "thedotmack/claude-mem"
+      }
+    }
+  },
+  "alwaysThinkingEnabled": false,
+  "effortLevel": "xhigh",
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark-daltonized",
   "remoteControlAtStartup": false,
+  "skipAutoPermissionPrompt": true,
+  "mcpServers": {
+    "gitlab": {
+      "args": [
+        "-y",
+        "@zereight/mcp-gitlab"
+      ],
+      "command": "npx",
+      "env": {
+        "GITLAB_API_URL": "https://git.weaversmind.com/api/v4"
+      }
+    },
+    "local-rag": {
+      "args": [],
+      "command": "/Users/leonard/.claude/scripts/run-local-rag.sh",
+      "env": {
+        "BASE_DIR": "/Users/leonard/Workspace",
+        "CACHE_DIR": "/Users/leonard/.claude/cache/rag-models",
+        "DB_PATH": "/Users/leonard/Workspace/lancedb",
+        "MODEL_NAME": "Xenova/multilingual-e5-small",
+        "RAG_BASE_DIR": "/Users/leonard/Workspace"
+      }
+    }
+  },
   "skills": {
     "userSettings:tool-status": {
       "path": "/Users/leonard/.claude/skills/tool-status/skill.md"
     }
-  },
-  "skipAutoPermissionPrompt": true,
-  "skipWorkflowUsageWarning": true,
-  "statusLine": {
-    "command": "zsh /Users/leonard/.claude/statusline-agent.sh",
-    "type": "command"
-  },
-  "theme": "dark-daltonized"
+  }
 }

@@ -99,3 +99,6 @@ llm-configs/**/*.bak-*
 # codex 쓰기 권한 probe 잔여물 (0바이트 임시 파일)
 .codex_write_probe
 *write_probe
+
+# claude update 가 생성하는 원격설정 로컬 캐시 (빈 {})
+remote-settings.json
