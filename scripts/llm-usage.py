@@ -30,9 +30,13 @@ LLM_ADAPTER_THRESHOLDS_PATH = os.path.join(ROOT, "registry", "llm-adapter-thresh
 # 모델별 1M 토큰당 USD 가격 (2026-05 기준 — 검증 필요 시 갱신)
 # 출처: OpenAI / Anthropic / Google 공식 가격표 (2026-05-07 시점 추정)
 PRICING = {
-    # Anthropic Claude
-    'claude-opus-4-7':         {'input': 15.0, 'output': 75.0, 'cache_read': 1.5, 'cache_create': 18.75},
+    # Anthropic Claude (2026-06-11 claude-api 스킬 기준 — Opus 4.x 티어 $5/$25, Fable 5 $10/$50.
+    # cache_read = input×0.1, cache_create = input×1.25 (5m TTL). 구 opus-4-7 15/75는 3배 과대 → 정정)
+    'claude-fable-5':          {'input': 10.0, 'output': 50.0, 'cache_read': 1.0, 'cache_create': 12.5},
+    'claude-opus-4-8':         {'input':  5.0, 'output': 25.0, 'cache_read': 0.5, 'cache_create':  6.25},
+    'claude-opus-4-7':         {'input':  5.0, 'output': 25.0, 'cache_read': 0.5, 'cache_create':  6.25},
     'claude-sonnet-4-6':       {'input':  3.0, 'output': 15.0, 'cache_read': 0.3, 'cache_create':  3.75},
+    'claude-sonnet-4-5':       {'input':  3.0, 'output': 15.0, 'cache_read': 0.3, 'cache_create':  3.75},
     'claude-haiku-4-5':        {'input':  1.0, 'output':  5.0, 'cache_read': 0.1, 'cache_create':  1.25},
     # OpenAI GPT
     'gpt-5':                   {'input':  2.5, 'output': 10.0, 'cache_read': 0.25, 'cache_create': 0},
@@ -205,8 +209,11 @@ def cost_for(model, in_tokens=0, out_tokens=0, cache_r=0, cache_c=0):
     """모델 + 토큰 → USD"""
     p = PRICING.get(model)
     if not p:
-        # unknown 모델 — claude-opus 가격 기준으로 보수적 추정
-        p = PRICING.get('gpt-5.4', {'input': 3.0, 'output': 12.0, 'cache_read': 0.3, 'cache_create': 0})
+        # unknown 모델 — claude-* 는 Opus 티어로 보수적 추정, 그 외는 gpt-5.4 기준
+        if model.startswith('claude'):
+            p = PRICING['claude-opus-4-8']
+        else:
+            p = PRICING.get('gpt-5.4', {'input': 3.0, 'output': 12.0, 'cache_read': 0.3, 'cache_create': 0})
     return (
         in_tokens / 1_000_000 * p['input'] +
         out_tokens / 1_000_000 * p['output'] +
