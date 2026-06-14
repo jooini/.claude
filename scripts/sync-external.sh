@@ -1201,7 +1201,7 @@ print_summary() {
 schedule_regression_check() {
     [[ "$DRY_RUN" == "false" ]] || return 0
     [[ -x "$CLAUDE_DIR/scripts/moai-regression-check.py" ]] || return 0
-    nohup "$CLAUDE_DIR/scripts/moai-regression-check.py" --quiet >/dev/null 2>&1 &
+    nohup "$CLAUDE_DIR/scripts/moai-regression-check.py" --quiet --live >/dev/null 2>&1 &
 }
 
 main() {

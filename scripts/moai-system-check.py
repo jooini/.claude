@@ -130,6 +130,10 @@ def is_executable(path: Path) -> bool:
     return path.exists() and os.access(path, os.X_OK)
 
 
+def _existing(path: Path) -> str | None:
+    return str(path) if path.exists() else None
+
+
 def read_text(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8", errors="replace")
@@ -193,9 +197,10 @@ def check_static_files(runner: CheckRunner) -> None:
 
 
 def check_cli_paths(runner: CheckRunner) -> None:
-    agy_path = shutil.which("agy")
+    local_bin = HOME / ".local" / "bin"
+    agy_path = shutil.which("agy") or _existing(local_bin / "agy")
     codex_path = shutil.which("codex") or str(HOME / ".nvm" / "versions" / "node" / "v22.22.0" / "bin" / "codex")
-    gemini_path = shutil.which("gemini")
+    gemini_path = shutil.which("gemini") or _existing(local_bin / "gemini")
     node_path = shutil.which("node")
 
     runner.add_bool("agy-cli", bool(agy_path), agy_path or "missing")
