@@ -1,0 +1,3 @@
+- [identity-hub coverage 측정 drift](identity-hub-coverage-drift-2026-06-07.md) — 사용자 인용 baseline 과 실측이 크게 다름. 측정 조건/환경 차이 가능. 보고 전 baseline을 같은 명령으로 직접 재측정해 비교할 것
+- [audit_service 큐 핸들러 cov-instrumentation flake](audit-service-coverage-flake-2026-06-07.md) — `test_log_event_omits_none_values` 가 `--cov` 옵션과 결합 시 race condition. 신규 테스트와 무관한 pre-existing flake. `audit_svc.close()` 호출 누락이 근본 원인
+- [from-import binding monkeypatch 함정](from-import-binding-monkeypatch.md) — 핸들러가 `from app.utils.redirect import validate_redirect_uri` 형태면 원본 모듈 패치 무효. 사용자 모듈(`app.api.v1.endpoints.oauth`)을 직접 패치해야 적용됨
