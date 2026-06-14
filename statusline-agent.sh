@@ -1,5 +1,7 @@
 #!/bin/zsh
-# Claude Code statusline - 활성 에이전트 표시 (에이전트별 색상 적용)
+# Claude Code statusline - 활성 에이전트 표시 + MoAI statusline 통합
+# 출력 구조: [에이전트 라벨] <moai statusline 본문>
+# moai 가 없거나 .moai 가 없는 프로젝트는 기존 단순 라인으로 폴백.
 
 INPUT=$(cat)
 
@@ -113,18 +115,48 @@ if [ -n "$USED_PCT" ]; then
   fi
 fi
 
-# 모델 축약
+# 모델 축약 (폴백 출력용)
 SHORT_MODEL=$(echo "$MODEL" | sed \
   -e 's/Claude //' \
   -e 's/Opus \([0-9.]*\).*/O\1/' \
   -e 's/Sonnet \([0-9.]*\).*/S\1/' \
   -e 's/Haiku \([0-9.]*\).*/H\1/')
 
-# 최종 출력
-printf "%b%s" "${AGENT_PART}" "${BASENAME_DIR}"
-
-if [ -n "$SHORT_MODEL" ]; then
-  printf " | %s" "$SHORT_MODEL"
+# MoAI statusline 위임 시도 — 프로젝트 루트에서 .moai 디렉토리 또는 status_line.sh 가 있고
+# moai CLI 가 존재하면 풍부한 MoAI statusline 을 본문으로 사용.
+MOAI_BODY=""
+MOAI_BIN=$(command -v moai 2>/dev/null)
+if [ -z "$MOAI_BIN" ] && [ -x "$HOME/go/bin/moai" ]; then
+  MOAI_BIN="$HOME/go/bin/moai"
+fi
+if [ -z "$MOAI_BIN" ] && [ -x "$HOME/.local/bin/moai" ]; then
+  MOAI_BIN="$HOME/.local/bin/moai"
 fi
 
-printf "%b" "${CTX_PART}"
+# .moai 디렉토리 탐색 (cwd 에서 상위로 거슬러 올라가며)
+HAS_MOAI=0
+SEARCH_DIR="$CWD"
+while [ -n "$SEARCH_DIR" ] && [ "$SEARCH_DIR" != "/" ]; do
+  if [ -d "$SEARCH_DIR/.moai" ]; then
+    HAS_MOAI=1
+    break
+  fi
+  SEARCH_DIR=$(dirname "$SEARCH_DIR")
+done
+
+if [ -n "$MOAI_BIN" ] && [ "$HAS_MOAI" -eq 1 ]; then
+  MOAI_BODY=$(printf '%s' "$INPUT" | "$MOAI_BIN" statusline 2>/dev/null)
+fi
+
+# 최종 출력
+if [ -n "$MOAI_BODY" ]; then
+  # 에이전트 prefix 가 있으면 첫 줄 앞에 붙임. moai 출력은 다중 라인이므로 줄단위 처리 X — 통째로 출력.
+  printf "%b%s" "${AGENT_PART}" "${MOAI_BODY}"
+else
+  # 폴백: 기존 단순 라인
+  printf "%b%s" "${AGENT_PART}" "${BASENAME_DIR}"
+  if [ -n "$SHORT_MODEL" ]; then
+    printf " | %s" "$SHORT_MODEL"
+  fi
+  printf "%b" "${CTX_PART}"
+fi

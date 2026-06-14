@@ -20,6 +20,19 @@ Base: `~/Workspace/weaversbrain/weaversbrain/`
 - 파일명에 시분 포함: `YYYY-MM-DD-HHMM-{파일명}.md`
 - Claude 컨텍스트 파일: `~/.claude/{프로젝트명}/`
 
+## Frontmatter schema (2026-06-11 도입 — 신규 문서부터, 기존 노트 소급 금지)
+
+기존 필드(`date`, `type`, `project`, `tags`) 유지 + 아래 3개 선택 필드 추가. controlled enum — vault-find/local-rag 검색 정밀도용.
+
+| 필드 | enum | 비고 |
+|------|------|------|
+| `status` | `draft` / `review` / `published` / `archived` | 작성 중 → 확정 → 무효 라이프사이클 |
+| `audience` | `private` / `team` / `agent-input` / `external` | `agent-input` = 에이전트가 입력으로 읽는 문서 (스킬 knowledge 등) |
+| `domain` | `work` / `personal` / `claude-config` | 폴더는 활동 기반, domain은 컨텍스트 축 — Dataview cross-cutting 쿼리용 |
+
+- `type` enum (기존 사용값 정규화): `session` / `daily` / `plan` / `report` / `retro` / `reference` / `decision`
+- 소문자·하이픈, 공백 금지. 새 enum 값 필요 시 본 파일에 먼저 추가 후 사용
+
 ## 문서 링크 표기 규칙
 
 문서/파일 경로를 사용자에게 안내할 때:
